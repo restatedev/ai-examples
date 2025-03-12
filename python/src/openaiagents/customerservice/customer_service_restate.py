@@ -21,7 +21,8 @@ from agents import (
 from agents.extensions.handoff_prompt import RECOMMENDED_PROMPT_PREFIX
 
 from src.openaiagents.customerservice.restate_agent_runner import RestateRunner
-
+from src.openaiagents.customerservice.scheduler.invoice_sender import invoice_sender as invoice_sender_svc
+from src.openaiagents.customerservice.scheduler import invoice_sender
 
 ### CONTEXT
 
@@ -56,6 +57,33 @@ async def faq_lookup_tool(question: str) -> str:
     elif "wifi" in question:
         return "We have free wifi on the plane, join Airline-Wifi"
     return "I'm sorry, I don't know the answer to that question."
+
+
+
+@function_tool(
+    name_override="schedule_invoice_sending",
+    description_override="Schedules the sending of an invoice after a delay specified in milliseconds."
+)
+async def schedule_invoice_sending(
+        context: RunContextWrapper[restate.ObjectContext], delay_millis: int
+) -> str:
+    """
+    Update the seat for a given confirmation number.
+
+    Args:
+        confirmation_number: The confirmation number for the flight.
+        new_seat: The new seat to update to.
+    """
+    # Update the context based on the customer's input
+    customer_context = await context.context.get("customer_context", PydanticJsonSerde(CustomerContext))
+    if customer_context is None:
+        return f"Could not find customer context for invoice sending"
+
+    context.context.service_send(
+        invoice_sender.send_invoice,
+        arg=customer_context.passenger_name,
+        send_delay=timedelta(milliseconds=delay_millis))
+    return f"Scheduled invoice sending for {customer_context.passenger_name}"
 
 
 
@@ -105,6 +133,19 @@ faq_agent = Agent[restate.ObjectContext](
     tools=[faq_lookup_tool],
 )
 
+invoice_scheduling_agent = Agent[restate.ObjectContext](
+    name="Invoice Scheduling Agent",
+    handoff_description="A helpful agent that can helps you with scheduling to receive an invoice after a specific delay.",
+    instructions=f"""{RECOMMENDED_PROMPT_PREFIX}
+    You are an invoice sending scheduling agent. If you are speaking to a customer, you probably were transferred to from the triage agent.
+    Use the following routine to support the customer.
+    # Routine
+    1. Ask for when they want the invoice to be sent. If they give a date in the future, calculate the millisecond delay by subtracting the current date from the future date. 
+    2. Use the schedule invoice sending tool to schedule the sending of the invoice and supply it the delay in milliseconds.
+    If the customer asks a question that is not related to the routine, transfer back to the triage agent. """,
+    tools=[schedule_invoice_sending],
+)
+
 seat_booking_agent = Agent[restate.ObjectContext](
     name="Seat Booking Agent",
     handoff_description="A helpful agent that can update a seat on a flight.",
@@ -129,16 +170,19 @@ triage_agent = Agent[restate.ObjectContext](
     handoffs=[
         faq_agent,
         handoff(agent=seat_booking_agent, on_handoff=on_seat_booking_handoff),
+        invoice_scheduling_agent,
     ],
 )
 
 faq_agent.handoffs.append(triage_agent)
 seat_booking_agent.handoffs.append(triage_agent)
+invoice_scheduling_agent.handoffs.append(triage_agent)
 
 AGENTS = {
     triage_agent.name: triage_agent,
     faq_agent.name: faq_agent,
     seat_booking_agent.name: seat_booking_agent,
+    invoice_scheduling_agent.name: invoice_scheduling_agent,
 }
 
 ### RUN
@@ -177,7 +221,7 @@ async def chat(ctx: restate.ObjectContext, req: CustomerChatRequest) -> None:
     return prettify_response(result)
 
 
-app = restate.app(services=[customer_service_session])
+app = restate.app(services=[customer_service_session, invoice_sender_svc])
 
 
 
