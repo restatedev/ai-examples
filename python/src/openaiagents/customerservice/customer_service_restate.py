@@ -15,10 +15,8 @@ from agents import (
     RunResult,
     ToolCallItem,
     ToolCallOutputItem,
-    TResponseInputItem,
     function_tool,
     handoff,
-    trace,
 )
 from agents.extensions.handoff_prompt import RECOMMENDED_PROMPT_PREFIX
 
@@ -27,6 +25,10 @@ from src.openaiagents.customerservice.restate_agent_runner import RestateRunner
 
 ### CONTEXT
 
+class CustomerChatRequest(BaseModel):
+    customer_id: str
+    user_input: str
+
 class CustomerContext(BaseModel):
     passenger_name: str | None = None
     confirmation_number: str | None = None
@@ -34,7 +36,6 @@ class CustomerContext(BaseModel):
     flight_number: str | None = None
 
 ### TOOLS
-
 
 @function_tool(
     name_override="faq_lookup_tool", description_override="Lookup frequently asked questions."
@@ -84,7 +85,6 @@ async def update_seat(
 
 ### HOOKS
 
-
 async def on_seat_booking_handoff(context: RunContextWrapper[restate.ObjectContext]) -> None:
     # Do something on the handoff
     pass
@@ -92,9 +92,8 @@ async def on_seat_booking_handoff(context: RunContextWrapper[restate.ObjectConte
 
 ### AGENTS
 
-faq_agent_name = "FAQ Agent"
 faq_agent = Agent[restate.ObjectContext](
-    name=faq_agent_name,
+    name="FAQ Agent",
     handoff_description="A helpful agent that can answer questions about the airline.",
     instructions=f"""{RECOMMENDED_PROMPT_PREFIX}
     You are an FAQ agent. If you are speaking to a customer, you probably were transferred to from the triage agent.
@@ -106,9 +105,8 @@ faq_agent = Agent[restate.ObjectContext](
     tools=[faq_lookup_tool],
 )
 
-seat_booking_agent_name = "Seat Booking Agent"
 seat_booking_agent = Agent[restate.ObjectContext](
-    name=seat_booking_agent_name,
+    name="Seat Booking Agent",
     handoff_description="A helpful agent that can update a seat on a flight.",
     instructions=f"""{RECOMMENDED_PROMPT_PREFIX}
     You are a seat booking agent. If you are speaking to a customer, you probably were transferred to from the triage agent.
@@ -121,9 +119,8 @@ seat_booking_agent = Agent[restate.ObjectContext](
     tools=[update_seat],
 )
 
-triage_agent_name = "Triage Agent"
 triage_agent = Agent[restate.ObjectContext](
-    name=triage_agent_name,
+    name="Triage Agent",
     handoff_description="A triage agent that can delegate a customer's request to the appropriate agent.",
     instructions=(
         f"{RECOMMENDED_PROMPT_PREFIX} "
@@ -138,66 +135,66 @@ triage_agent = Agent[restate.ObjectContext](
 faq_agent.handoffs.append(triage_agent)
 seat_booking_agent.handoffs.append(triage_agent)
 
+AGENTS = {
+    triage_agent.name: triage_agent,
+    faq_agent.name: faq_agent,
+    seat_booking_agent.name: seat_booking_agent,
+}
 
 ### RUN
-
-class CustomerChatRequest(BaseModel):
-    customer_id: str
-    user_input: str
-
 customer_service_session = restate.VirtualObject("CustomerServiceSession")
-
-
-def get_customer_context(customer_id):
-    return CustomerContext(passenger_name="Alice", confirmation_number="123456", seat_number="12A", flight_number="FLT-123")
-
-AGENTS = {
-    triage_agent_name: triage_agent,
-    faq_agent_name: faq_agent,
-    seat_booking_agent_name: seat_booking_agent,
-}
 
 @customer_service_session.handler()
 async def chat(ctx: restate.ObjectContext, req: CustomerChatRequest) -> None:
 
+    # Retrieve the current agent of this session
     current_agent_name = await ctx.get("current_agent_name")
     if current_agent_name is None:
-        current_agent_name = triage_agent_name
+        current_agent_name = triage_agent.name
         ctx.set("current_agent_name", current_agent_name)
-
     current_agent: Agent[restate.ObjectContext] = AGENTS[current_agent_name]
-    input_items: list[TResponseInputItem] = await ctx.get("input_items") or []
 
     # If this is the first time, then retrieve the CustomerContext from an external CRM system
     if await ctx.get("customer_context") is None:
         customer_context = await ctx.run(
             "Get customer context",
-            lambda: get_customer_context(req.customer_id),
+            lambda: retrieve_customer_from_crm(req.customer_id),
             PydanticJsonSerde(CustomerContext))
         ctx.set("customer_context", customer_context, PydanticJsonSerde(CustomerContext))
 
-    # conversation_id is the session_id
-    conversation_id = ctx.key()
-
-    with trace("Customer service", group_id=conversation_id):
-        input_items.append({"content": req.user_input, "role": "user"})
-
-        result: RunResult = await RestateRunner.run(
-            current_agent,
-            input_items,
-            max_turns=10,
-            context=ctx)
-        input_items = result.to_input_list()
-        ctx.set("input_items", input_items)
-        ctx.set("current_agent_name", result.last_agent.name)
-
-        # give us some time to inspect the journal
-        await ctx.sleep(timedelta(minutes=10))
+    # Run the input through the agent
+    input_items = await ctx.get("input_items") or []
+    input_items.append({"content": req.user_input, "role": "user"})
+    result: RunResult = await RestateRunner.run(
+        current_agent,
+        input_items,
+        max_turns=10,
+        context=ctx)
+    input_items = result.to_input_list()
+    ctx.set("input_items", input_items)
+    ctx.set("current_agent_name", result.last_agent.name)
 
     return prettify_response(result)
 
 
 app = restate.app(services=[customer_service_session])
+
+
+
+
+
+
+
+
+
+
+
+# -----------------------------------------------------------------------------------------------------------------------------
+# --------------------------------------------------HELPERS/STUBS--------------------------------------------------------------
+
+
+def retrieve_customer_from_crm(customer_id):
+    return CustomerContext(passenger_name="Alice", confirmation_number="123456", seat_number="12A", flight_number="FLT-123")
 
 def prettify_response(result: RunResult):
     response = ""
