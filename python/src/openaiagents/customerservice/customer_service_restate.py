@@ -1,11 +1,9 @@
 from __future__ import annotations as _annotations
 
-from datetime import timedelta
-
 import restate
-from pydantic import BaseModel
 from restate.serde import PydanticJsonSerde
-
+from pydantic import BaseModel
+from datetime import timedelta
 from agents import (
     Agent,
     HandoffOutputItem,
@@ -20,9 +18,7 @@ from agents import (
 )
 from agents.extensions.handoff_prompt import RECOMMENDED_PROMPT_PREFIX
 
-from src.openaiagents.customerservice.restate_agent_runner import RestateRunner
-from src.openaiagents.customerservice.scheduler.invoice_sender import invoice_sender as invoice_sender_svc
-from src.openaiagents.customerservice.scheduler import invoice_sender
+from src.openaiagents.customerservice.restate_runner.restate_agent_runner import RestateRunner
 
 ### CONTEXT
 
@@ -59,6 +55,15 @@ async def faq_lookup_tool(question: str) -> str:
     return "I'm sorry, I don't know the answer to that question."
 
 
+invoice_sender = restate.Service("InvoiceSender")
+
+@invoice_sender.handler()
+async def send_invoice(ctx: restate.Context, passenger_name: str) -> None:
+    """Send an invoice to a customer."""
+    print(f"Sending invoice to {passenger_name}")
+    # Send invoice logic here
+    print("Invoice sent!")
+
 
 @function_tool(
     name_override="schedule_invoice_sending",
@@ -68,19 +73,18 @@ async def schedule_invoice_sending(
         context: RunContextWrapper[restate.ObjectContext], delay_millis: int
 ) -> str:
     """
-    Update the seat for a given confirmation number.
+    Schedules the sending of an invoice after a delay specified in milliseconds.
 
     Args:
-        confirmation_number: The confirmation number for the flight.
-        new_seat: The new seat to update to.
+        delay_millis: The delay in milliseconds to send the invoice.
     """
-    # Update the context based on the customer's input
+    # Retrieve the customer context
     customer_context = await context.context.get("customer_context", PydanticJsonSerde(CustomerContext))
     if customer_context is None:
         return f"Could not find customer context for invoice sending"
 
     context.context.service_send(
-        invoice_sender.send_invoice,
+        send_invoice,
         arg=customer_context.passenger_name,
         send_delay=timedelta(milliseconds=delay_millis))
     return f"Scheduled invoice sending for {customer_context.passenger_name}"
@@ -221,7 +225,7 @@ async def chat(ctx: restate.ObjectContext, req: CustomerChatRequest) -> None:
     return prettify_response(result)
 
 
-app = restate.app(services=[customer_service_session, invoice_sender_svc])
+app = restate.app(services=[customer_service_session, invoice_sender])
 
 
 

@@ -1,24 +1,12 @@
 from __future__ import annotations
 
-import asyncio
+# import asyncio
 import copy
-import json
 import logging
 import restate
 from restate.exceptions import TerminalError
 from dataclasses import dataclass, field
-from typing import Any, cast, Dict
-
-from openai.types.responses import (
-    ResponseOutputMessage,
-    ResponseOutputText,
-    ResponseOutputRefusal,
-    ResponseFunctionToolCall,
-    ResponseComputerToolCall,
-    ResponseFileSearchToolCall,
-    ResponseFunctionWebSearch
-)
-
+from typing import Any, cast
 
 from agents.tracing import agent_span
 from agents import _utils
@@ -34,7 +22,6 @@ from agents._run_impl import (
 from agents import (
     Agent,
     Model,
-    Usage,
     ItemHelpers,
     ModelProvider,
     RunContextWrapper,
@@ -60,6 +47,8 @@ from agents import (
     OutputGuardrailResult,
     OutputGuardrailTripwireTriggered,
 )
+
+from src.openaiagents.customerservice.restate_runner.model_response_serde import ModelResponseSerde
 
 DEFAULT_MAX_TURNS = 10
 
@@ -225,36 +214,33 @@ class RestateRunner:
                         f"Running agent {current_agent.name} (turn {current_turn})",
                     )
 
-                    # TODO
-                    # if current_turn == 1:
-                    #     input_guardrail_results, turn_result = await asyncio.gather(
-                    #         cls._run_input_guardrails(
-                    #             starting_agent,
-                    #             starting_agent.input_guardrails
-                    #             + (run_config.input_guardrails or []),
-                    #             copy.deepcopy(input),
-                    #             context_wrapper,
-                    #             ),
-                    #         cls._run_single_turn(
-                    #             agent=current_agent,
-                    #             original_input=original_input,
-                    #             generated_items=generated_items,
-                    #             hooks=hooks,
-                    #             context_wrapper=context_wrapper,
-                    #             run_config=run_config,
-                    #             should_run_agent_start_hooks=should_run_agent_start_hooks,
-                    #         ),
-                    #     )
-                    # else:
-                    turn_result = await cls._run_single_turn(
-                        agent=current_agent,
-                        original_input=original_input,
-                        generated_items=generated_items,
-                        hooks=hooks,
-                        context_wrapper=context_wrapper,
-                        run_config=run_config,
-                        should_run_agent_start_hooks=should_run_agent_start_hooks,
-                    )
+                    if current_turn == 1:
+                        input_guardrail_results = await cls._run_input_guardrails(
+                                starting_agent,
+                                starting_agent.input_guardrails
+                                + (run_config.input_guardrails or []),
+                                copy.deepcopy(input),
+                                context_wrapper,
+                                )
+                        turn_result = await cls._run_single_turn(
+                                agent=current_agent,
+                                original_input=original_input,
+                                generated_items=generated_items,
+                                hooks=hooks,
+                                context_wrapper=context_wrapper,
+                                run_config=run_config,
+                                should_run_agent_start_hooks=should_run_agent_start_hooks,
+                        )
+                    else:
+                        turn_result = await cls._run_single_turn(
+                            agent=current_agent,
+                            original_input=original_input,
+                            generated_items=generated_items,
+                            hooks=hooks,
+                            context_wrapper=context_wrapper,
+                            run_config=run_config,
+                            should_run_agent_start_hooks=should_run_agent_start_hooks,
+                        )
                     should_run_agent_start_hooks = False
 
                     model_responses.append(turn_result.model_response)
@@ -262,15 +248,12 @@ class RestateRunner:
                     generated_items = turn_result.generated_items
 
                     if isinstance(turn_result.next_step, NextStepFinalOutput):
-                        async def run_output_guardrails():
-                            return await cls._run_output_guardrails(
-                                current_agent.output_guardrails + (run_config.output_guardrails or []),
-                                current_agent,
-                                turn_result.next_step.output,
-                                context_wrapper,
+                        output_guardrail_results = await cls._run_output_guardrails(
+                            current_agent.output_guardrails + (run_config.output_guardrails or []),
+                            current_agent,
+                            turn_result.next_step.output,
+                            context_wrapper,
                             )
-
-                        output_guardrail_results = await context.run("Output guardrails", run_output_guardrails)
                         return RunResult(
                             input=original_input,
                             new_items=generated_items,
@@ -309,14 +292,10 @@ class RestateRunner:
     ) -> SingleStepResult:
         # Ensure we run the hooks before anything else
         if should_run_agent_start_hooks:
-            await asyncio.gather(
-                hooks.on_agent_start(context_wrapper, agent),
-                (
-                    agent.hooks.on_start(context_wrapper, agent)
-                    if agent.hooks
-                    else _utils.noop_coroutine()
-                ),
-            )
+            await hooks.on_agent_start(context_wrapper, agent),
+            agent_hooks = agent.hooks
+            if agent_hooks is not None:
+                await agent.hooks.on_start(context_wrapper, agent)
 
         system_prompt = await agent.get_system_prompt(context_wrapper)
 
@@ -390,21 +369,12 @@ class RestateRunner:
         if not guardrails:
             return []
 
-        guardrail_tasks = [
-            asyncio.create_task(
-                RunImpl.run_single_input_guardrail(agent, guardrail, input, context)
-            )
-            for guardrail in guardrails
-        ]
-
         guardrail_results = []
+        for guardrail in guardrails:
+            guardrail_results.append(await RunImpl.run_single_input_guardrail(agent, guardrail, input, context))
 
-        for done in asyncio.as_completed(guardrail_tasks):
-            result = await done
+        for result in guardrail_results:
             if result.output.tripwire_triggered:
-                # Cancel all guardrail tasks if a tripwire is triggered.
-                for t in guardrail_tasks:
-                    t.cancel()
                 _utils.attach_error_to_current_span(
                     SpanError(
                         message="Guardrail tripwire triggered",
@@ -412,8 +382,6 @@ class RestateRunner:
                     )
                 )
                 raise InputGuardrailTripwireTriggered(result)
-            else:
-                guardrail_results.append(result)
 
         return guardrail_results
 
@@ -428,21 +396,12 @@ class RestateRunner:
         if not guardrails:
             return []
 
-        guardrail_tasks = [
-            asyncio.create_task(
-                RunImpl.run_single_output_guardrail(guardrail, agent, agent_output, context)
-            )
-            for guardrail in guardrails
-        ]
-
         guardrail_results = []
+        for guardrail in guardrails:
+            guardrail_results.append(await RunImpl.run_single_output_guardrail(guardrail, agent, agent_output, context))
 
-        for done in asyncio.as_completed(guardrail_tasks):
-            result = await done
+        for result in guardrail_results:
             if result.output.tripwire_triggered:
-                # Cancel all guardrail tasks if a tripwire is triggered.
-                for t in guardrail_tasks:
-                    t.cancel()
                 _utils.attach_error_to_current_span(
                     SpanError(
                         message="Guardrail tripwire triggered",
@@ -450,8 +409,6 @@ class RestateRunner:
                     )
                 )
                 raise OutputGuardrailTripwireTriggered(result)
-            else:
-                guardrail_results.append(result)
 
         return guardrail_results
 
@@ -469,8 +426,8 @@ class RestateRunner:
         model = cls._get_model(agent, run_config)
         model_settings = agent.model_settings.resolve(run_config.model_settings)
 
-        async def get_model_response() -> Dict[str, Any]:
-            resp = await model.get_response(
+        async def get_model_response() -> ModelResponse:
+            return await model.get_response(
                 system_instructions=system_prompt,
                 input=input,
                 model_settings=model_settings,
@@ -481,10 +438,11 @@ class RestateRunner:
                     run_config.tracing_disabled, run_config.trace_include_sensitive_data
                 ),
             )
-            return serialize_model_response(resp)
 
-        dict_response = await context_wrapper.context.run("LLM call - "+ agent.name, get_model_response)
-        new_response: ModelResponse = deserialize_model_response(dict_response)
+        new_response: ModelResponse =  await context_wrapper.context.run(
+            "LLM call - "+ agent.name,
+            get_model_response,
+            serde=ModelResponseSerde())
         context_wrapper.usage.add(new_response.usage)
 
         return new_response
@@ -519,107 +477,3 @@ class RestateRunner:
 
 
 
-# ---------------------------------------------------------------------------
-# Model response serializer
-
-
-def serialize_model_response(response: ModelResponse) -> Dict[str, Any]:
-    """
-    Serializes a ModelResponse object to a dictionary that can be JSON serialized.
-
-    Args:
-        response: The ModelResponse object to serialize
-
-    Returns:
-        A dictionary representation of the ModelResponse
-    """
-    return {
-        "output": [output.model_dump(exclude_unset=True) for output in response.output],
-        "usage": {
-            "input_tokens": response.usage.input_tokens,
-            "output_tokens": response.usage.output_tokens,
-            "total_tokens": response.usage.total_tokens
-        },
-        "referenceable_id": response.referenceable_id
-    }
-
-def serialize_model_response_to_json(response: ModelResponse) -> str:
-    """
-    Serializes a ModelResponse object to a JSON string.
-
-    Args:
-        response: The ModelResponse object to serialize
-
-    Returns:
-        A JSON string representation of the ModelResponse
-    """
-    return json.dumps(serialize_model_response(response))
-
-
-def deserialize_model_response(data: Dict[str, Any]) -> ModelResponse:
-    """
-    Deserializes a dictionary into a ModelResponse object.
-
-    Args:
-        data: The dictionary containing serialized ModelResponse data
-
-    Returns:
-        A ModelResponse object
-    """
-
-    # First, convert the plain dictionaries to their corresponding Pydantic models
-    output_items = []
-    for item_dict in data["output"]:
-        if item_dict.get("type") == "message":
-            # Process content for message items
-            content_list = []
-            for content_item in item_dict.get("content", []):
-                if content_item.get("type") == "output_text":
-                    content_list.append(ResponseOutputText(type="output_text", text=content_item["text"], annotations=content_item.get("annotations")))
-                elif content_item.get("type") == "refusal":
-                    content_list.append(ResponseOutputRefusal(type="refusal", refusal=content_item["refusal"]))
-
-            output_items.append(ResponseOutputMessage(
-                id=item_dict.get("id"),
-                type="message",
-                role=item_dict.get("role", "assistant"),
-                content=content_list,
-                status=item_dict.get("status")
-            ))
-        elif item_dict.get("type") == "function_call":
-            output_items.append(ResponseFunctionToolCall(**item_dict))
-        elif item_dict.get("type") == "computer_call":
-            output_items.append(ResponseComputerToolCall(**item_dict))
-        elif item_dict.get("type") == "file_search_call":
-            output_items.append(ResponseFileSearchToolCall(**item_dict))
-        elif item_dict.get("type") == "web_search_call":
-            output_items.append(ResponseFunctionWebSearch(**item_dict))
-
-    # Create the Usage object
-    usage_data = data.get("usage", {})
-    usage = Usage(
-        input_tokens=usage_data.get("input_tokens", 0),
-        output_tokens=usage_data.get("output_tokens", 0),
-        total_tokens=usage_data.get("total_tokens", 0)
-    )
-
-    # Create and return the ModelResponse
-    return ModelResponse(
-        output=output_items,
-        usage=usage,
-        referenceable_id=data.get("referenceable_id")
-    )
-
-
-def deserialize_model_response_from_json(json_str: str) -> ModelResponse:
-    """
-    Deserializes a JSON string into a ModelResponse object.
-
-    Args:
-        json_str: The JSON string containing serialized ModelResponse data
-
-    Returns:
-        A ModelResponse object
-    """
-    data = json.loads(json_str)
-    return deserialize_model_response(data)
