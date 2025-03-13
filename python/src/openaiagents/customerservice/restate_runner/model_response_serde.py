@@ -21,8 +21,6 @@ from agents import (
 
 
 class ModelResponseSerde(Serde[bytes]):
-    """A pass-trough serializer/deserializer."""
-
     def deserialize(self, buf: bytes) -> ModelResponse:
         """
         Deserializes bytes into a ModelResponse object.
@@ -79,13 +77,13 @@ class ModelResponseSerde(Serde[bytes]):
 
     def serialize(self, obj: typing.Optional[ModelResponse]) -> bytes:
         """
-        Serializes a ModelResponse object to a dictionary that can be JSON serialized.
+        Serializes a ModelResponse object to bytes
 
         Args:
             obj: The ModelResponse object to serialize
 
         Returns:
-            A dictionary representation of the ModelResponse
+            Bytes containing the serialized ModelResponse object
         """
         if obj is None:
             return bytes()
