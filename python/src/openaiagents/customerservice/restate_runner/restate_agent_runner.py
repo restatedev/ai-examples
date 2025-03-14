@@ -124,7 +124,7 @@ class RestateRunner:
             starting_agent: Agent[restate.ObjectContext],
             input: str | list[TResponseInputItem],
             *,
-            context: EnrichedContext | None = None,
+            context: restate.ObjectContext | None = None,
             max_turns: int = DEFAULT_MAX_TURNS,
             hooks: RunHooks[TContext] | None = None,
             run_config: RunConfig | None = None,
@@ -444,7 +444,7 @@ class RestateRunner:
                 ),
             )
 
-        new_response: ModelResponse =  await context_wrapper.context["restate_context"].run(
+        new_response: ModelResponse =  await context_wrapper.context.run(
             "LLM call - "+ agent.name,
             get_model_response,
             serde=ModelResponseSerde())
