@@ -64,7 +64,7 @@ def prettify_response(result: RunResult):
             response += f"{agent_name}: Calling a tool\n"
         elif isinstance(new_item, ToolCallOutputItem):
             print(f"{agent_name}: Tool call output: {new_item.output}")
-            response += f"{agent_name}: Tool call output: {new_item.output}"
+            response += f"{agent_name}: Tool call output: {new_item.output}\n"
         else:
             print(f"{agent_name}: Skipping item: {new_item.__class__.__name__}")
             response += f"{agent_name}: Skipping item: {new_item.__class__.__name__}\n"

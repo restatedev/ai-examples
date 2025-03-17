@@ -46,7 +46,7 @@ async def send_invoice_tool(
 
 
 @function_tool()
-async def update_seat(context: RunContextWrapper[EnrichedContext[Booking]], new_seat_number: str) -> str:
+async def update_seat_tool(context: RunContextWrapper[EnrichedContext[Booking]], new_seat_number: str) -> str:
     """
     Update the seat for a given customer
 
@@ -59,6 +59,16 @@ async def update_seat(context: RunContextWrapper[EnrichedContext[Booking]], new_
     return await restate_context.object_call(booking_object.update_seat,
                                              key=booking.confirmation_number,
                                              arg=new_seat_number)
+
+
+@function_tool()
+async def booking_info_tool(context: RunContextWrapper[EnrichedContext[Booking]]) -> str:
+    """
+    Get the booking information: confirmation number, flight number, passenger name, passenger email, and seat number.
+    """
+    print(context.context["custom_context"])
+    return f"Here is your booking info {context.context["custom_context"].model_dump_json()}"
+
 
 # HOOKS
 
@@ -96,6 +106,21 @@ faq_agent = Agent[EnrichedContext[Booking]](
                         params_json_schema=ensure_strict_json_schema(EmbeddedRequest[LookupRequest].model_json_schema()))],
 )
 
+booking_info_agent = Agent[EnrichedContext[Booking]](
+    name="Booking Info Agent",
+    handoff_description="A helpful agent that can answer questions about the customer's booking: confirmation number, flight number, passenger name, passenger email, and seat number.",
+    instructions=f"""{RECOMMENDED_PROMPT_PREFIX}
+    You are a booking info agent that knows everything about a customer's booking
+    If you are speaking to a customer, you probably were transferred to from the triage agent.
+    Use the following routine to support the customer.
+    # Routine
+    1. Identify the last question asked by the customer.
+    2. Use the get_booking_info tool to get extra information to answer the question. 
+    3. If you cannot answer the question, transfer back to the triage agent.
+    """,
+    tools=[booking_info_tool],
+)
+
 send_invoice_agent = Agent[EnrichedContext[Booking]](
     name="Send Invoice Agent",
     handoff_description="A helpful agent that can helps you with scheduling to receive an invoice after a specific delay.",
@@ -123,7 +148,7 @@ update_seat_agent = Agent[EnrichedContext[Booking]](
     Ask the customer what their desired seat number is.
     Use the update seat tool to update the seat on the flight.
     2. If the customer asks a question that is not related to the routine, transfer back to the triage agent.""",
-    tools=[update_seat],
+    tools=[update_seat_tool],
 )
 
 triage_agent = Agent[EnrichedContext[Booking]](
@@ -135,18 +160,21 @@ triage_agent = Agent[EnrichedContext[Booking]](
     ),
     handoffs=[
         faq_agent,
+        booking_info_agent,
         send_invoice_agent,
         handoff(agent=update_seat_agent, on_handoff=on_seat_booking_handoff),
     ],
 )
 
 faq_agent.handoffs.append(triage_agent)
+booking_info_agent.handoffs.append(triage_agent)
 send_invoice_agent.handoffs.append(triage_agent)
 update_seat_agent.handoffs.append(triage_agent)
 
 chat_agents = {
     triage_agent.name: triage_agent,
     faq_agent.name: faq_agent,
+    booking_info_agent.name: booking_info_agent,
     send_invoice_agent.name: send_invoice_agent,
     update_seat_agent.name: update_seat_agent,
 }
@@ -178,6 +206,7 @@ async def chat(ctx: restate.ObjectContext, req: CustomerChatRequest) -> str:
     else:
         booking = None
 
+    print(booking)
     result = await execute_agent_call(ctx, RunOpts(
         agents=chat_agents,
         init_agent=triage_agent,
