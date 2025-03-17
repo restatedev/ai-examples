@@ -4,8 +4,8 @@ import restate
 from agents import RunResult, RunHooks, RunConfig, TResponseInputItem, TContext, ItemHelpers, MessageOutputItem, \
     HandoffOutputItem, ToolCallItem, ToolCallOutputItem, Agent
 
-from src.openaiagents.agents_runtime.restate_runner.restate_agent_runner import RestateRunner
-from src.openaiagents.agents_runtime.restate_runner.restate_tool_router import TCustomContext, EnrichedContext
+from src.openaiagents.restate_runner.restate_agent_runner import RestateRunner
+from src.openaiagents.restate_runner.restate_tool_router import TCustomContext, EnrichedContext
 
 # TYPES
 

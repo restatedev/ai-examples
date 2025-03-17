@@ -1,9 +1,8 @@
 import restate
 
 from restate.serde import PydanticJsonSerde
-from restate.exceptions import TerminalError
 from pydantic import BaseModel
-from src.openaiagents.agents_runtime.services import seat_object
+from src.openaiagents.services import seat_object
 
 
 class Booking(BaseModel):

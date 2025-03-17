@@ -15,9 +15,9 @@ from agents.strict_schema import ensure_strict_json_schema
 from restate_runner.restate_tool_router import restate_tool_router, EmbeddedRequest, EnrichedContext
 from restate_runner.restate_agent_service import execute_agent_call, RunOpts, prettify_response
 
-from src.openaiagents.agents_runtime.services import booking_object
-from src.openaiagents.agents_runtime.services.booking_object import Booking
-from src.openaiagents.agents_runtime.services.faq_service import faq_service, LookupRequest
+from src.openaiagents.services import booking_object
+from src.openaiagents.services.booking_object import Booking
+from src.openaiagents.services.faq_service import faq_service, LookupRequest
 
 # TOOLS
 

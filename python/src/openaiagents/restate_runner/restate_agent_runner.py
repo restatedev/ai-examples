@@ -5,7 +5,6 @@ import logging
 import pickle
 import typing
 
-import restate
 from restate.serde import Serde
 from restate.exceptions import TerminalError
 from dataclasses import dataclass, field
@@ -51,7 +50,7 @@ from agents import (
     OutputGuardrailTripwireTriggered,
 )
 
-from src.openaiagents.agents_runtime.restate_runner.restate_tool_router import EnrichedContext, TCustomContext
+from src.openaiagents.restate_runner.restate_tool_router import EnrichedContext, TCustomContext
 
 DEFAULT_MAX_TURNS = 10
 
