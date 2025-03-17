@@ -1,9 +1,12 @@
 from __future__ import annotations
 
-# import asyncio
 import copy
 import logging
+import pickle
+import typing
+
 import restate
+from restate.serde import Serde
 from restate.exceptions import TerminalError
 from dataclasses import dataclass, field
 from typing import Any, cast
@@ -47,8 +50,6 @@ from agents import (
     OutputGuardrailResult,
     OutputGuardrailTripwireTriggered,
 )
-
-from src.openaiagents.customerservice.restate_runner.model_response_serde import ModelResponseSerde
 
 DEFAULT_MAX_TURNS = 10
 
@@ -248,8 +249,6 @@ class RestateRunner:
                     generated_items = turn_result.generated_items
 
                     # print the model response
-                    print(f"model response: {turn_result.model_response}")
-
                     if isinstance(turn_result.next_step, NextStepFinalOutput):
                         output_guardrail_results = await cls._run_output_guardrails(
                             current_agent.output_guardrails + (run_config.output_guardrails or []),
@@ -317,10 +316,6 @@ class RestateRunner:
             run_config,
         )
 
-        # print model response
-        print(f"model response: {new_response}")
-
-
         return await cls._get_single_step_result_from_response(
             agent=agent,
             original_input=original_input,
@@ -364,10 +359,6 @@ class RestateRunner:
             context_wrapper=context_wrapper,
             run_config=run_config,
         )
-
-        # print the tool result
-        print(f"tool result: {tool_result.new_step_items}")
-
         return tool_result
 
     @classmethod
@@ -489,3 +480,27 @@ class RestateRunner:
 
 
 
+class ModelResponseSerde(Serde[ModelResponse]):
+    def deserialize(self, buf: bytes) -> ModelResponse:
+        """
+        Deserializes bytes into a ModelResponse object.
+
+        Args:
+            data: The dictionary containing serialized ModelResponse data
+
+        Returns:
+            A ModelResponse object
+        """
+        return pickle.loads(buf)
+
+    def serialize(self, obj: typing.Optional[ModelResponse]) -> bytes:
+        """
+        Serializes a ModelResponse object to bytes
+
+        Args:
+            obj: The ModelResponse object to serialize
+
+        Returns:
+            Bytes containing the serialized ModelResponse object
+        """
+        return pickle.dumps(obj)

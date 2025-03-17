@@ -1,43 +1,48 @@
-import json
-import pickle
 import typing
 
 import restate
-from restate.serde import Serde
 from agents import RunResult, RunHooks, RunConfig, TResponseInputItem, TContext, ItemHelpers, MessageOutputItem, \
-    HandoffOutputItem, ToolCallItem, ToolCallOutputItem, RunContextWrapper
-from pydantic import BaseModel
+    HandoffOutputItem, ToolCallItem, ToolCallOutputItem, Agent
 
-from src.openaiagents.agents_runtime import my_agents
-from src.openaiagents.agents_runtime.my_agents import EnrichedContext
 from src.openaiagents.agents_runtime.restate_runner.restate_agent_runner import RestateRunner
+from src.openaiagents.agents_runtime.restate_runner.restate_tool_router import TCustomContext, EnrichedContext
 
-agent_runner = restate.VirtualObject("AgentRunner")
-
+# TYPES
 
 class RunOpts(typing.TypedDict):
-    custom_context: TContext | None
+    agents: typing.Dict[str, Agent]
+    init_agent: Agent
+    custom_context: TCustomContext | None
     input: str | list[TResponseInputItem]
     max_turns: int
     hooks: RunHooks[TContext] | None
     run_config: RunConfig | None
 
 
-class RunOptsSerde(Serde[RunOpts]):
-    def serialize(self, obj: typing.Optional[RunOpts]) -> bytes:
-        return pickle.dumps(obj)
+# class RunOptsSerde(Serde[RunOpts]):
+#     def serialize(self, obj: typing.Optional[RunOpts]) -> bytes:
+#         return pickle.dumps(obj)
+#
+#     def deserialize(self, buf: bytes) -> typing.Optional[RunOpts]:
+#         return pickle.loads(buf)
+#
+#
+# class AgentSerde(Serde[Agent]):
+#     def serialize(self, obj: typing.Optional[Agent]) -> bytes:
+#         return pickle.dumps(obj)
+#
+#     def deserialize(self, buf: bytes) -> typing.Optional[Agent]:
+#         return pickle.loads(buf)
 
-    def deserialize(self, buf: bytes) -> RunOpts:
-        return pickle.loads(buf)
+# RESTATE SERVICE
 
-@agent_runner.handler(input_serde=RunOptsSerde())
-async def execute_agent_call(ctx: restate.ObjectContext, args: RunOpts) -> str:
+async def execute_agent_call(ctx: restate.ObjectContext, args: RunOpts) -> RunResult:
     # Retrieve the current agent of this session
     current_agent_name = await ctx.get("current_agent_name")
     if current_agent_name is None:
-        current_agent_name = my_agents.triage_agent.name
+        current_agent_name = args["init_agent"].name
         ctx.set("current_agent_name", current_agent_name)
-    current_agent = my_agents.AGENTS[current_agent_name]
+    current_agent = args["agents"][current_agent_name]
 
     input_items = await ctx.get("input_items") or []
     if isinstance(args["input"], str):
@@ -47,15 +52,15 @@ async def execute_agent_call(ctx: restate.ObjectContext, args: RunOpts) -> str:
 
     result: RunResult = await RestateRunner.run(
         current_agent,
-        args["input"],
+        input_items,
         context=EnrichedContext(context=args.get("custom_context", None),restate_context=ctx),
-        max_turns=10,
+        max_turns=args.get("max_turns", 10),
         hooks=args.get("hooks", None),
         run_config=args.get("run_config", None))
     input_items = result.to_input_list()
     ctx.set("input_items", input_items)
     ctx.set("current_agent_name", result.last_agent.name)
-    return prettify_response(result)
+    return result
 
 
 def prettify_response(result: RunResult):

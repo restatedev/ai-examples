@@ -28,6 +28,7 @@ class CustomerChatRequest(BaseModel):
 
 class CustomerContext(BaseModel):
     passenger_name: str | None = None
+    passenger_email: str | None = None
     confirmation_number: str | None = None
     seat_number: str | None = None
     flight_number: str | None = None
@@ -222,19 +223,12 @@ async def chat(ctx: restate.ObjectContext, req: CustomerChatRequest) -> None:
     ctx.set("input_items", input_items)
     ctx.set("current_agent_name", result.last_agent.name)
 
+    # await ctx.sleep(timedelta(milliseconds=1000000))
+
     return prettify_response(result)
 
 
 app = restate.app(services=[customer_service_session, invoice_sender])
-
-
-
-
-
-
-
-
-
 
 
 # -----------------------------------------------------------------------------------------------------------------------------
@@ -242,7 +236,11 @@ app = restate.app(services=[customer_service_session, invoice_sender])
 
 
 def retrieve_customer_from_crm(customer_id):
-    return CustomerContext(passenger_name="Alice", confirmation_number="123456", seat_number="12A", flight_number="FLT-123")
+    return CustomerContext(passenger_name="Alice",
+                           passenger_email="alice@gmail.com",
+                           confirmation_number="123456",
+                           seat_number="12A",
+                           flight_number="FLT-123")
 
 def prettify_response(result: RunResult):
     response = ""
