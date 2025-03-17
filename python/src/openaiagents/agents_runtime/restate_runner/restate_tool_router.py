@@ -27,7 +27,9 @@ class EmbeddedRequest(BaseModel, typing.Generic[TToolInput]):
 async def restate_tool_router(context: RunContextWrapper[EnrichedContext[TCustomContext]], req: EmbeddedRequest[TToolInput]) -> str:
     try:
         tool_response = await (context.context["restate_context"]
-                               .generic_call(service=req.agent_name, handler=req.tool_name, arg=json.dumps(req.request).encode("utf-8")))
+                               .generic_call(service=req.agent_name,
+                                             handler=req.tool_name, 
+                                             arg=json.dumps(req.request).encode("utf-8")))
         return tool_response.decode("utf-8")
     except Exception as e:
         return e.add_note("The tool could not be called. Make sure the tool_name is correct and the request is valid.")

@@ -18,22 +18,6 @@ class RunOpts(typing.TypedDict):
     hooks: RunHooks[TContext] | None
     run_config: RunConfig | None
 
-
-# class RunOptsSerde(Serde[RunOpts]):
-#     def serialize(self, obj: typing.Optional[RunOpts]) -> bytes:
-#         return pickle.dumps(obj)
-#
-#     def deserialize(self, buf: bytes) -> typing.Optional[RunOpts]:
-#         return pickle.loads(buf)
-#
-#
-# class AgentSerde(Serde[Agent]):
-#     def serialize(self, obj: typing.Optional[Agent]) -> bytes:
-#         return pickle.dumps(obj)
-#
-#     def deserialize(self, buf: bytes) -> typing.Optional[Agent]:
-#         return pickle.loads(buf)
-
 # RESTATE SERVICE
 
 async def execute_agent_call(ctx: restate.ObjectContext, args: RunOpts) -> RunResult:

@@ -5,7 +5,7 @@ import restate
 from pydantic import BaseModel
 
 
-faq_agent_svc = restate.Service("FaqAgent")
+faq_service = restate.Service("FaqAgent")
 
 
 class LookupRequest(BaseModel):
@@ -17,7 +17,7 @@ class LookupRequest(BaseModel):
     question: str
 
 
-@faq_agent_svc.handler()
+@faq_service.handler()
 async def faq_lookup_tool(ctx: restate.Context, question: LookupRequest) -> str:
     if "bag" in question or "baggage" in question:
         return (

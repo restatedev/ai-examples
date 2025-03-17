@@ -1,12 +1,12 @@
-from datetime import timedelta
-from typing import TypedDict
-from pydantic import BaseModel
 import restate
 
+from datetime import timedelta
+from pydantic import BaseModel
 from agents import (
     Agent,
     FunctionTool,
     function_tool,
+    handoff,
     RunContextWrapper,
 )
 from agents.extensions.handoff_prompt import RECOMMENDED_PROMPT_PREFIX
@@ -14,31 +14,59 @@ from agents.strict_schema import ensure_strict_json_schema
 
 from restate_runner.restate_tool_router import restate_tool_router, EmbeddedRequest, EnrichedContext
 from restate_runner.restate_agent_service import execute_agent_call, RunOpts, prettify_response
-from tool_invoice_sender import invoice_sender_svc, SendInvoiceRequest, send_invoice
-from tool_faq import faq_agent_svc, LookupRequest
 
-# TYPES
+from src.openaiagents.agents_runtime.services import booking_object
+from src.openaiagents.agents_runtime.services.booking_object import Booking
+from src.openaiagents.agents_runtime.services.faq_service import faq_service, LookupRequest
 
-class CustomerChatRequest(BaseModel):
-    customer_id: str
-    user_input: str
+# TOOLS
 
-class CustomerContext(TypedDict):
+@function_tool()
+async def send_invoice_tool(
+        context: RunContextWrapper[EnrichedContext[Booking]], delay_millis: int
+) -> str:
     """
-    This is extra information about the customer that can be used to enrich the conversation
-    or as parameters for invoking tools.
+    Schedules the sending of an invoice after a delay specified in milliseconds.
 
-    The passenger_name is the full name of the passenger.
-    The passenger_email is the email address of the passenger to send communication.
-    The confirmation_number is the confirmation number of the flight.
-    The seat_number is the seat number of the passenger.
-    The flight_number is the flight number.
+    Args:
+        delay_millis: The delay in milliseconds to send the invoice. If 0, the invoice is sent immediately.
     """
-    passenger_name: str | None
-    passenger_email: str | None
-    confirmation_number: str | None
-    seat_number: str | None
-    flight_number: str | None
+    booking: Booking = context.context["custom_context"]
+    restate_context = context.context["restate_context"]
+    if delay_millis == 0:
+        return await restate_context.object_call(booking_object.send_invoice,
+                                                 key=booking.confirmation_number,
+                                                 arg=None)
+    else:
+        restate_context.object_send(booking_object.send_invoice,
+                                    key=booking.confirmation_number,
+                                    arg=None,
+                                    send_delay=timedelta(milliseconds=delay_millis))
+        return f"Scheduled invoice sending for booking {booking.confirmation_number}"
+
+
+@function_tool()
+async def update_seat(context: RunContextWrapper[EnrichedContext[Booking]], new_seat_number: str) -> str:
+    """
+    Update the seat for a given customer
+
+    Args:
+        new_seat_number: The new seat to update to.
+    """
+    booking: Booking = context.context["custom_context"]
+    restate_context = context.context["restate_context"]
+    # Update the context based on the customer's input
+    return await restate_context.object_call(booking_object.update_seat,
+                                             key=booking.confirmation_number,
+                                             arg=new_seat_number)
+
+# HOOKS
+
+async def on_seat_booking_handoff(context: RunContextWrapper[EnrichedContext[Booking]]) -> None:
+    # Do something on the handoff
+    pass
+
+
 
 # AGENTS
 
@@ -50,11 +78,11 @@ class CustomerContext(TypedDict):
 #    Pro: You can adapt the arguments, specify delay, etc.
 #    Con: You need to write a glue function for each tool
 
-faq_agent = Agent[EnrichedContext[CustomerContext]](
-    name=faq_agent_svc.name,
+faq_agent = Agent[EnrichedContext[Booking]](
+    name=faq_service.name,
     handoff_description="A helpful agent that can answer questions about the airline.",
     instructions=f"""{RECOMMENDED_PROMPT_PREFIX}
-    You are an FAQ agent with name {faq_agent_svc.name}. 
+    You are an FAQ agent with name {faq_service.name}. 
     If you are speaking to a customer, you probably were transferred to from the triage agent.
     Use the following routine to support the customer.
     # Routine
@@ -68,49 +96,38 @@ faq_agent = Agent[EnrichedContext[CustomerContext]](
                         params_json_schema=ensure_strict_json_schema(EmbeddedRequest[LookupRequest].model_json_schema()))],
 )
 
-@function_tool()
-async def send_invoice_tool(
-        context: RunContextWrapper[EnrichedContext[CustomerContext]], delay_millis: int
-) -> str:
-    """
-    Schedules the sending of an invoice after a delay specified in milliseconds.
-
-    Args:
-        delay_millis: The delay in milliseconds to send the invoice. If 0, the invoice is sent immediately.
-    """
-    customer_context: CustomerContext = context.context["custom_context"]
-    restate_context = context.context["restate_context"]
-    req = SendInvoiceRequest(
-        passenger_name=customer_context["passenger_name"],
-        passenger_email=customer_context["passenger_email"]
-    )
-
-    if delay_millis == 0:
-        return await restate_context.service_call(send_invoice, arg=req)
-    else:
-        restate_context.service_send(send_invoice, arg=req, send_delay=timedelta(milliseconds=delay_millis))
-        return f"Scheduled invoice sending for {customer_context["passenger_name"]}"
-
-
-invoice_sender = Agent[EnrichedContext[CustomerContext]](
-    name=invoice_sender_svc.name,
+send_invoice_agent = Agent[EnrichedContext[Booking]](
+    name="Send Invoice Agent",
     handoff_description="A helpful agent that can helps you with scheduling to receive an invoice after a specific delay.",
     instructions=f"""{RECOMMENDED_PROMPT_PREFIX}
-    You are an invoice sending scheduling agent, called {invoice_sender_svc.name}. 
+    You are an agent that helps with answering questions and queries on flight bookings. 
     If you are speaking to a customer, you probably were transferred to from the triage agent.
     Use the following routine to support the customer.
     # Routine
     1. If the original message does not include the time or delay for the sending of the invoice, then assume the invoice should be send immediately with the send_invoice tool.
     If the original message does include a time or delay, then use the send_invoice_delayed tool. 
     If they give a date in the future, calculate the millisecond delay by subtracting the current date from the future date. 
-    You can retrieve the name and the email of the customer from the context.
-    2. If the customer asks a question that is not related to the routine, transfer back to the triage agent. """,
+    2. If the customer asks a question that is not related to the routine, transfer back to the triage agent.""",
     tools=[send_invoice_tool],
 )
 
+update_seat_agent = Agent[EnrichedContext[Booking]](
+    name="Update Seat Agent",
+    handoff_description="A helpful agent that can helps you with scheduling to receive an invoice after a specific delay.",
+    instructions=f"""{RECOMMENDED_PROMPT_PREFIX}
+    You are an agent that helps with answering questions and queries on flight bookings. 
+    If you are speaking to a customer, you probably were transferred to from the triage agent.
+    Use the following routine to support the customer.
+    # Routine
+    1. If the customer asks for a seat change, you can use the update_seat tool to update the seat on the flight.
+    Ask the customer what their desired seat number is.
+    Use the update seat tool to update the seat on the flight.
+    2. If the customer asks a question that is not related to the routine, transfer back to the triage agent.""",
+    tools=[update_seat],
+)
 
-triage_agent = Agent[EnrichedContext[CustomerContext]](
-    name="triage_agent",
+triage_agent = Agent[EnrichedContext[Booking]](
+    name="Triage Agent",
     handoff_description="A triage agent that can delegate a customer's request to the appropriate agent.",
     instructions=(
         f"{RECOMMENDED_PROMPT_PREFIX} "
@@ -118,50 +135,54 @@ triage_agent = Agent[EnrichedContext[CustomerContext]](
     ),
     handoffs=[
         faq_agent,
-        invoice_sender,
+        send_invoice_agent,
+        handoff(agent=update_seat_agent, on_handoff=on_seat_booking_handoff),
     ],
 )
 
 faq_agent.handoffs.append(triage_agent)
-invoice_sender.handoffs.append(triage_agent)
+send_invoice_agent.handoffs.append(triage_agent)
+update_seat_agent.handoffs.append(triage_agent)
 
 chat_agents = {
     triage_agent.name: triage_agent,
     faq_agent.name: faq_agent,
-    invoice_sender.name: invoice_sender,
+    send_invoice_agent.name: send_invoice_agent,
+    update_seat_agent.name: update_seat_agent,
 }
 
 # CHAT SERVICE
 
 chat_service = restate.VirtualObject("ChatService")
 
+
+class CustomerChatRequest(BaseModel):
+    booking_id: str | None
+    user_input: str
+
+
 @chat_service.handler()
 async def chat(ctx: restate.ObjectContext, req: CustomerChatRequest) -> str:
+    """
+    A chat service that lets a customer interact with their bookings.
+    The customer can ask questions, request invoices, and update their seat.
 
-    # Retrieve the CustomerContext from an external CRM system
-    customer_context = await ctx.run(
-        "Get customer context",
-        lambda: retrieve_customer_from_crm(req.customer_id))
+    Args:
+    :param ctx: The Restate context that tracks the state of the conversation.
+    :param req: The request to the chat service.
+    :return: The response from the chat service.
+    """
+
+    if req.booking_id is not None:
+        booking = await ctx.object_call(booking_object.get_info, key=req.booking_id, arg=None)
+    else:
+        booking = None
 
     result = await execute_agent_call(ctx, RunOpts(
         agents=chat_agents,
         init_agent=triage_agent,
         input=req.user_input, # this is the input for the LLM call
-        custom_context=customer_context # this does not get passed in the LLM call, only as input to tools
+        custom_context=booking # this does not get passed in the LLM call, only as input to tools
     ))
 
     return prettify_response(result)
-
-
-app = restate.app(services=[chat_service, faq_agent_svc, invoice_sender_svc])
-
-
-
-# -------------- Stubs ----------------
-
-def retrieve_customer_from_crm(customer_id):
-    return CustomerContext(passenger_name="Alice",
-                           passenger_email="alice@gmail.com",
-                           confirmation_number="123456",
-                           seat_number="12A",
-                           flight_number="FLT-123")
