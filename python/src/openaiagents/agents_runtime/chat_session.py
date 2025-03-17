@@ -1,18 +1,20 @@
+from datetime import timedelta
 from typing import TypedDict
 from pydantic import BaseModel
 import restate
 
 from agents import (
     Agent,
-    FunctionTool
+    FunctionTool,
+    function_tool,
+    RunContextWrapper,
 )
 from agents.extensions.handoff_prompt import RECOMMENDED_PROMPT_PREFIX
 from agents.strict_schema import ensure_strict_json_schema
 
 from restate_runner.restate_tool_router import restate_tool_router, EmbeddedRequest, EnrichedContext
 from restate_runner.restate_agent_service import execute_agent_call, RunOpts, prettify_response
-from src.openaiagents.agents_runtime.tool_invoice_sender import invoice_sender_svc, DelayedSendInvoiceRequest, \
-    SendInvoiceRequest
+from tool_invoice_sender import invoice_sender_svc, SendInvoiceRequest, send_invoice
 from tool_faq import faq_agent_svc, LookupRequest
 
 # TYPES
@@ -40,6 +42,14 @@ class CustomerContext(TypedDict):
 
 # AGENTS
 
+# There are two ways to integrate Restate handlers as tools for your agents
+# 1. By using the restate_tool_router function to route the call to the appropriate handler (see faq_agent below)
+#    Pro: You don't need to write the glue function for each tool
+#    Con: You cannot impact or adapt the specifics of how the handler is called (use custom context to enrich the arguments, specify delay, etc.)
+# 2. By specifying a tool which calls the Restate handler (see send_invoice_tool below)
+#    Pro: You can adapt the arguments, specify delay, etc.
+#    Con: You need to write a glue function for each tool
+
 faq_agent = Agent[EnrichedContext[CustomerContext]](
     name=faq_agent_svc.name,
     handoff_description="A helpful agent that can answer questions about the airline.",
@@ -58,6 +68,29 @@ faq_agent = Agent[EnrichedContext[CustomerContext]](
                         params_json_schema=ensure_strict_json_schema(EmbeddedRequest[LookupRequest].model_json_schema()))],
 )
 
+@function_tool()
+async def send_invoice_tool(
+        context: RunContextWrapper[EnrichedContext[CustomerContext]], delay_millis: int
+) -> str:
+    """
+    Schedules the sending of an invoice after a delay specified in milliseconds.
+
+    Args:
+        delay_millis: The delay in milliseconds to send the invoice. If 0, the invoice is sent immediately.
+    """
+    customer_context: CustomerContext = context.context["custom_context"]
+    restate_context = context.context["restate_context"]
+    req = SendInvoiceRequest(
+        passenger_name=customer_context["passenger_name"],
+        passenger_email=customer_context["passenger_email"]
+    )
+
+    if delay_millis == 0:
+        return await restate_context.service_call(send_invoice, arg=req)
+    else:
+        restate_context.service_send(send_invoice, arg=req, send_delay=timedelta(milliseconds=delay_millis))
+        return f"Scheduled invoice sending for {customer_context["passenger_name"]}"
+
 
 invoice_sender = Agent[EnrichedContext[CustomerContext]](
     name=invoice_sender_svc.name,
@@ -72,14 +105,7 @@ invoice_sender = Agent[EnrichedContext[CustomerContext]](
     If they give a date in the future, calculate the millisecond delay by subtracting the current date from the future date. 
     You can retrieve the name and the email of the customer from the context.
     2. If the customer asks a question that is not related to the routine, transfer back to the triage agent. """,
-    tools=[FunctionTool(name="send_invoice",
-                        description="Immediately sends an invoice",
-                        on_invoke_tool=restate_tool_router,
-                        params_json_schema=ensure_strict_json_schema(EmbeddedRequest[SendInvoiceRequest].model_json_schema())),
-           FunctionTool(name="send_invoice_delayed",
-                        description="Schedules the sending of an invoice after a delay specified in milliseconds.",
-                        on_invoke_tool=restate_tool_router,
-                        params_json_schema=ensure_strict_json_schema(EmbeddedRequest[DelayedSendInvoiceRequest].model_json_schema()))],
+    tools=[send_invoice_tool],
 )
 
 

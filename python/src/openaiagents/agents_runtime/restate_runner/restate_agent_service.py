@@ -53,7 +53,7 @@ async def execute_agent_call(ctx: restate.ObjectContext, args: RunOpts) -> RunRe
     result: RunResult = await RestateRunner.run(
         current_agent,
         input_items,
-        context=EnrichedContext(context=args.get("custom_context", None),restate_context=ctx),
+        context=EnrichedContext(custom_context=args.get("custom_context", None),restate_context=ctx),
         max_turns=args.get("max_turns", 10),
         hooks=args.get("hooks", None),
         run_config=args.get("run_config", None))

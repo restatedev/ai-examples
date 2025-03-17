@@ -51,6 +51,8 @@ from agents import (
     OutputGuardrailTripwireTriggered,
 )
 
+from src.openaiagents.agents_runtime.restate_runner.restate_tool_router import EnrichedContext, TCustomContext
+
 DEFAULT_MAX_TURNS = 10
 
 
@@ -117,12 +119,12 @@ class RestateRunner:
     @classmethod
     async def run(
             cls,
-            starting_agent: Agent[restate.ObjectContext],
+            starting_agent: Agent[EnrichedContext[TCustomContext]],
             input: str | list[TResponseInputItem],
             *,
-            context: restate.ObjectContext | None = None,
+            context: EnrichedContext[TCustomContext] | None = None,
             max_turns: int = DEFAULT_MAX_TURNS,
-            hooks: RunHooks[restate.ObjectContext] | None = None,
+            hooks: RunHooks[EnrichedContext[TCustomContext]] | None = None,
             run_config: RunConfig | None = None,
     ) -> RunResult:
         """Run a workflow starting at the given agent. The agent will run in a loop until a final
@@ -170,7 +172,7 @@ class RestateRunner:
             generated_items: list[RunItem] = []
             model_responses: list[ModelResponse] = []
 
-            context_wrapper: RunContextWrapper[restate.ObjectContext] = RunContextWrapper(
+            context_wrapper: RunContextWrapper[EnrichedContext[TCustomContext]] = RunContextWrapper(
                 context=context,  # type: ignore
             )
 
@@ -266,7 +268,7 @@ class RestateRunner:
                             output_guardrail_results=output_guardrail_results,
                         )
                     elif isinstance(turn_result.next_step, NextStepHandoff):
-                        current_agent = cast(Agent[restate.ObjectContext], turn_result.next_step.new_agent)
+                        current_agent = cast(Agent[EnrichedContext[TCustomContext]], turn_result.next_step.new_agent)
                         current_span.finish(reset_current=True)
                         current_span = None
                         should_run_agent_start_hooks = True
@@ -284,11 +286,11 @@ class RestateRunner:
     async def _run_single_turn(
             cls,
             *,
-            agent: Agent[restate.ObjectContext],
+            agent: Agent[EnrichedContext[TCustomContext]],
             original_input: str | list[TResponseInputItem],
             generated_items: list[RunItem],
-            hooks: RunHooks[restate.ObjectContext],
-            context_wrapper: RunContextWrapper[restate.ObjectContext],
+            hooks: RunHooks[EnrichedContext[TCustomContext]],
+            context_wrapper: RunContextWrapper[EnrichedContext[TCustomContext]],
             run_config: RunConfig,
             should_run_agent_start_hooks: bool,
     ) -> SingleStepResult:
@@ -332,14 +334,14 @@ class RestateRunner:
     async def _get_single_step_result_from_response(
             cls,
             *,
-            agent: Agent[restate.ObjectContext],
+            agent: Agent[EnrichedContext[TCustomContext]],
             original_input: str | list[TResponseInputItem],
             pre_step_items: list[RunItem],
             new_response: ModelResponse,
             output_schema: AgentOutputSchema | None,
             handoffs: list[Handoff],
-            hooks: RunHooks[restate.ObjectContext],
-            context_wrapper: RunContextWrapper[restate.ObjectContext],
+            hooks: RunHooks[EnrichedContext[TCustomContext]],
+            context_wrapper: RunContextWrapper[EnrichedContext[TCustomContext]],
             run_config: RunConfig,
     ) -> SingleStepResult:
         processed_response = RunImpl.process_model_response(
@@ -365,9 +367,9 @@ class RestateRunner:
     async def _run_input_guardrails(
             cls,
             agent: Agent[Any],
-            guardrails: list[InputGuardrail[restate.ObjectContext]],
+            guardrails: list[InputGuardrail[EnrichedContext[TCustomContext]]],
             input: str | list[TResponseInputItem],
-            context: RunContextWrapper[restate.ObjectContext],
+            context: RunContextWrapper[EnrichedContext[TCustomContext]],
     ) -> list[InputGuardrailResult]:
         if not guardrails:
             return []
@@ -391,10 +393,10 @@ class RestateRunner:
     @classmethod
     async def _run_output_guardrails(
             cls,
-            guardrails: list[OutputGuardrail[restate.ObjectContext]],
-            agent: Agent[restate.ObjectContext],
+            guardrails: list[OutputGuardrail[EnrichedContext[TCustomContext]]],
+            agent: Agent[EnrichedContext[TCustomContext]],
             agent_output: Any,
-            context: RunContextWrapper[restate.ObjectContext],
+            context: RunContextWrapper[EnrichedContext[TCustomContext]],
     ) -> list[OutputGuardrailResult]:
         if not guardrails:
             return []
@@ -418,12 +420,12 @@ class RestateRunner:
     @classmethod
     async def _get_new_response(
             cls,
-            agent: Agent[restate.ObjectContext],
+            agent: Agent[EnrichedContext[TCustomContext]],
             system_prompt: str | None,
             input: list[TResponseInputItem],
             output_schema: AgentOutputSchema | None,
             handoffs: list[Handoff],
-            context_wrapper: RunContextWrapper[restate.ObjectContext],
+            context_wrapper: RunContextWrapper[EnrichedContext[TCustomContext]],
             run_config: RunConfig,
     ) -> ModelResponse:
         model = cls._get_model(agent, run_config)
