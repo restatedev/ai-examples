@@ -1,17 +1,24 @@
 import json
 import logging
-from typing import Optional, Any, Callable, Awaitable, TypeVar, Type
+import typing
+from typing import Optional, Any, Callable, Awaitable, TypeVar, Type, Union
 
 import restate
 from openai import OpenAI
 from openai.lib._pydantic import to_strict_json_schema
 from openai.types.responses import ResponseFunctionToolCall, Response, ResponseOutputMessage
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
+from restate import TerminalError
 from restate.serde import PydanticJsonSerde
+from typing_extensions import Generic
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
+I = TypeVar('I', bound=BaseModel)
+O = TypeVar('O', bound=BaseModel)
+
+client = OpenAI()
 
 RECOMMENDED_PROMPT_PREFIX = (
     "# System context\n"
@@ -24,17 +31,26 @@ RECOMMENDED_PROMPT_PREFIX = (
     " do not mention or draw attention to these transfers in your conversation with the user.\n"
 )
 
-I = TypeVar('I')
-O = TypeVar('O')
+ServiceType = typing.Literal["Service", "VirtualObject", "Workflow"]
+
 
 class Empty(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-class Tool(BaseModel):
-    name: str
-    handler: Callable[[Any, I], Awaitable[O]]
-    description: str
-    input_type: Type[I]
+# class GenericRestateTool(BaseModel, Generic[I,O]):
+#     service_name: str
+#     service_type: ServiceType
+#     handler_name: str
+#     input_type: Type[I]
+#     output_type: Type[O]
+
+class RestateTool(BaseModel):
+    tool_call: Callable[[Any, I], Awaitable[O]]
+    name: str = Field(default_factory=lambda data: getattr(data["tool_call"], '__name__', ''))
+    description: str = Field(default_factory=lambda data: getattr(data["tool_call"], '__doc__', ''))
+    input_type: Type[I] = Field(default_factory=lambda data: getattr(data["tool_call"], '__annotations__', {}).get('req'))
+    output_type: Type[I] = Field(default_factory=lambda data: getattr(data["tool_call"], '__annotations__', {}).get('return'))
+    service_type: ServiceType = Field(default_factory=lambda data: get_service_type_from_handler(data["tool_call"]))
 
     def to_tool_schema(self) -> dict[str, Any]:
         return {
@@ -50,8 +66,8 @@ class Agent(BaseModel):
     name: str
     handoff_description: str
     instructions: str
-    tools: list[Tool]
-    handoffs: list[str] # agent names
+    tools: list[RestateTool] = Field(default=[])
+    handoffs: list[str] = Field(default=[]) # agent names
 
     def to_tool_schema(self) -> dict[str, Any]:
         return {
@@ -63,14 +79,26 @@ class Agent(BaseModel):
     }
 
 
-def format_name(name: str) -> str:
-    return name.replace(" ", "_").lower()
-
 class ChatResponse(BaseModel):
     agent: Optional[str]
     messages: list[dict[str, Any]]
 
-client = OpenAI()
+
+def get_service_type_from_handler(handler: Callable[[Any, I], Awaitable[O]]) -> ServiceType:
+    handler_annotations = getattr(handler, '__annotations__', {})
+    context_type = handler_annotations.get('ctx')
+    if issubclass(context_type, restate.Context):
+        return "Service"
+    elif issubclass(context_type, restate.ObjectContext) or issubclass(context_type, restate.ObjectSharedContext):
+        return "VirtualObject"
+    elif issubclass(context_type, restate.WorkflowContext) or issubclass(context_type, restate.WorkflowSharedContext):
+        return "Workflow"
+    else:
+        raise TerminalError(f"Could not determine service type for handler {handler}")
+
+
+def format_name(name: str) -> str:
+    return name.replace(" ", "_").lower()
 
 
 async def run(
@@ -87,16 +115,15 @@ async def run(
     agent = agents_dict[current_agent_name]
     logger.info(f"Agent at disposal: {agents_dict}")
 
+    # TODO make the input items a separate class
     input_items = await ctx.get("input_items") or []
     input_items.append({"role": "user", "content": message})
     logger.info(f"Current input items: {input_items}")
 
     while True:
-
         tools = {format_name(tool.name): tool for tool in agent.tools}
         tool_and_handoff_schemas = {format_name(tool.name): tool.to_tool_schema() for tool in agent.tools}
         tool_and_handoff_schemas.update({format_name(agent_name): agents_dict[format_name(agent_name)].to_tool_schema() for agent_name in agent.handoffs})
-        print("Tools and handoffs:", tool_and_handoff_schemas)
 
         response = await ctx.run("Call LLM", lambda: client.responses.create(
                 model="gpt-4o",
@@ -147,8 +174,13 @@ async def run(
 
 
 async def execute_tool_call(ctx: restate.ObjectContext,
-                      command_message: ResponseFunctionToolCall,
-                      tool_to_call: Tool):
-    result = await ctx.service_call(tool_to_call.handler, arg=tool_to_call.input_type(**json.loads(command_message.arguments)))
-    print("Tool result:", result)
-    return result
+                            command_message: ResponseFunctionToolCall,
+                            tool_to_call: RestateTool):
+    if tool_to_call.service_type == "Service":
+        return await ctx.service_call(tool_to_call.tool_call, arg=tool_to_call.input_type(**json.loads(command_message.arguments)))
+    elif tool_to_call.service_type == "VirtualObject":
+        return await ctx.object_call(tool_to_call.tool_call, key="123", arg=tool_to_call.input_type(**json.loads(command_message.arguments)))
+    elif tool_to_call.service_type == "Workflow":
+        return await ctx.workflow_call(tool_to_call.tool_call, key="123", arg=tool_to_call.input_type(**json.loads(command_message.arguments)))
+    else:
+        TerminalError(f"Cannot invoke tool with service type {tool_to_call.service_type}")

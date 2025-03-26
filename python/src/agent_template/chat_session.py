@@ -3,7 +3,7 @@ import restate
 from pydantic import BaseModel
 from typing import Any
 
-from restate_runner.agent_restate import run, Agent, Tool, RECOMMENDED_PROMPT_PREFIX
+from restate_runner.agent_restate import run, Agent, RestateTool, RECOMMENDED_PROMPT_PREFIX
 
 # AGENTS
 
@@ -21,6 +21,11 @@ class LookupRequest(BaseModel):
 
 @faq_service.handler()
 async def faq_lookup_tool(ctx: restate.Context, req: LookupRequest) -> str:
+    """
+    A tool that can answer questions about the airline.
+    Args:
+    :param req: The request to the tool.
+    """
     question = req.question
     if "bag" in question or "baggage" in question:
         return (
@@ -59,12 +64,8 @@ faq_agent = Agent(
     3. If you cannot answer the question with any of the tools, then transfer back to the triage agent.
     """,
     tools=[
-        Tool(name="faq_lookup_tool",
-             handler=faq_lookup_tool,
-             description="A tool that can answer questions about the airline.",
-             input_type=LookupRequest)
+        RestateTool(tool_call=faq_lookup_tool)
     ],
-    handoffs=[]
 )
 
 triage_agent = Agent(
@@ -73,7 +74,6 @@ triage_agent = Agent(
     instructions= (f"{RECOMMENDED_PROMPT_PREFIX}"
                    "You are a helpful triaging agent. You can use your tools to delegate questions to other appropriate agents."
                    ),
-    tools=[],
     handoffs=[faq_agent.name],
 )
 
