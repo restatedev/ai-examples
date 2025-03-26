@@ -1,8 +1,8 @@
-import json
-from typing import Any
 
 import restate
 from pydantic import BaseModel
+from typing import Any
+
 from restate_runner.agent_restate import run, Agent, Tool, RECOMMENDED_PROMPT_PREFIX
 
 # AGENTS
@@ -51,11 +51,12 @@ faq_agent = Agent(
     handoff_description="A helpful agent that can answer questions about the airline.",
     instructions=f"""{RECOMMENDED_PROMPT_PREFIX}
     You are an FAQ agent. 
+    If you are speaking to a customer, you probably were transferred to from the triage agent.
     Use the following routine to support the customer.
     # Routine
     1. Identify the last question asked by the customer.
     2. Use the faq_lookup_tool to answer the question. Do not rely on your own knowledge.
-    3. If you cannot answer the question, just let the customer know and ask if they have any other questions.
+    3. If you cannot answer the question with any of the tools, then transfer back to the triage agent.
     """,
     tools=[
         Tool(name="faq_lookup_tool",
@@ -63,27 +64,22 @@ faq_agent = Agent(
              description="A tool that can answer questions about the airline.",
              input_type=LookupRequest)
     ],
-    handoffs=[],
+    handoffs=[]
 )
 
-# triage_agent = Agent(
-#     name="Triage Agent",
-#     handoff_description="A triage agent that can delegate a customer's request to the appropriate agent.",
-#     instructions= (f"{RECOMMENDED_PROMPT_PREFIX}"
-#                    "You are a helpful triaging agent. You can use your tools to delegate questions to other appropriate agents."
-#                    ),
-#     handoffs=[faq_service.name],
-# )
-#
-# faq_agent.handoffs.append(triage_agent)
+triage_agent = Agent(
+    name="Triage Agent",
+    handoff_description="A triage agent that can delegate a customer's request to the appropriate agent.",
+    instructions= (f"{RECOMMENDED_PROMPT_PREFIX}"
+                   "You are a helpful triaging agent. You can use your tools to delegate questions to other appropriate agents."
+                   ),
+    tools=[],
+    handoffs=[faq_agent.name],
+)
 
-chat_agents = {
-    # triage_agent.name: triage_agent,
-    faq_agent.name: faq_agent,
-}
+faq_agent.handoffs.append(triage_agent.name)
 
 # CHAT SERVICE
-
 chat_service = restate.VirtualObject("ChatService")
 
 
@@ -97,8 +93,8 @@ async def chat(ctx: restate.ObjectContext, req: CustomerChatRequest) -> list[dic
     print("chat handler called")
     result = await run(
         ctx=ctx,
-        starting_agent=faq_agent,
-        agents=chat_agents,
+        starting_agent=triage_agent,
+        agents=[triage_agent, faq_agent],
         message=req.user_input, # this is the input for the LLM call
     )
 
