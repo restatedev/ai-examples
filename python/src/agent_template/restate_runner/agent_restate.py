@@ -88,7 +88,7 @@ async def run(
     logger.info(f"Agent at disposal: {agents_dict}")
 
     input_items = await ctx.get("input_items") or []
-    input_items.append({"content": message, "role": "user"})
+    input_items.append({"role": "user", "content": message})
     logger.info(f"Current input items: {input_items}")
 
     while True:
@@ -118,16 +118,25 @@ async def run(
             # Handoffs
             if command.name in agents_dict.keys():
                 agent = agents_dict[command.name]
-                result = f"Transfered to {agent.name}."
+                input_items.append({
+                    "role": "system",
+                    "content": f"Transferred to {agent.name}.",
+                })
+                ctx.set("input_items", input_items)
             # Execute handler tool
             else:
-                result = await execute_tool_call(ctx, command, tools)
+                input_items.append({
+                    "role": "system",
+                    "content": f"Executing tool {command.name}.",
+                })
+                ctx.set("input_items", input_items)
 
-            input_items.append({
-                "role": "system",
-                "content": result,
-            })
-            ctx.set("input_items", input_items)
+                result = await execute_tool_call(ctx, command, tools[command.name])
+                input_items.append({
+                    "role": "system",
+                    "content": result,
+                })
+                ctx.set("input_items", input_items)
         if isinstance(command, ResponseOutputMessage):
             break
 
@@ -139,12 +148,7 @@ async def run(
 
 async def execute_tool_call(ctx: restate.ObjectContext,
                       command_message: ResponseFunctionToolCall,
-                      tools: dict[str, Tool]):
-
-    tool_to_call = tools[command_message.name]
-
-    print("Calling tool:", tool_to_call.name)
-
+                      tool_to_call: Tool):
     result = await ctx.service_call(tool_to_call.handler, arg=tool_to_call.input_type(**json.loads(command_message.arguments)))
     print("Tool result:", result)
     return result
