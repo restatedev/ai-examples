@@ -23,15 +23,19 @@ class Booking(BaseModel):
     seat_number: str
 
 
+booking_object_context = (
+    "This tool is part of a virtual object that represents a booking for a flight for a passenger."
+    "The Virtual Object is keyed by booking ID."
+)
 booking_object = restate.VirtualObject("BookingObject")
 
 
 @booking_object.handler()
 async def update_seat(ctx: restate.ObjectContext, new_seat_number: str) -> str:
-    """Update the seat for a given customer
-
-    This tool is part of a virtual object that represents a booking for a flight for a passenger.
-    The Virtual Object is keyed by booking ID.
+    f"""
+    Update the seat for a given customer.
+    
+    {booking_object_context}
 
     Args:
         new_seat_number: The new seat to update to.
@@ -53,11 +57,10 @@ async def update_seat(ctx: restate.ObjectContext, new_seat_number: str) -> str:
 
 @booking_object.handler(kind="shared")
 async def send_invoice(ctx: restate.ObjectContext) -> str:
-    """
+    f"""
     This tool sends an invoice to a customer.
 
-    This tool is part of a virtual object that represents a booking for a flight for a passenger.
-    The Virtual Object is keyed by booking ID.
+    {booking_object_context}
     """
     booking: Booking = await get_info(ctx)
     print(f"Sending invoice to {booking.passenger_name} at {booking.passenger_email}")
@@ -65,13 +68,12 @@ async def send_invoice(ctx: restate.ObjectContext) -> str:
     return f"Invoice sent to {booking.passenger_name} at {booking.passenger_email}"
 
 
-@booking_object.handler(kind="shared", output_serde=PydanticJsonSerde(Booking))
-async def get_info(ctx: restate.ObjectContext) -> Booking | None:
-    """
+@booking_object.handler(kind="shared")
+async def get_info(ctx: restate.ObjectContext) -> Booking:
+    f"""
     This tool gets the booking information.
 
-    This tool is part of a virtual object that represents a booking for a flight for a passenger.
-    The Virtual Object is keyed by booking ID.
+    {booking_object_context}
     """
     return await ctx.get("booking", PydanticJsonSerde(Booking)) or Booking(
         confirmation_number="12345",

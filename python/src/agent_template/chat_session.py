@@ -32,10 +32,11 @@ booking_info_agent = Agent(
     If you are speaking to a customer, you probably were transferred to from the triage agent.
     Use the following routine to support the customer.
     # Routine
-    1. Identify the last question asked by the customer. Make sure you know the booking ID the customer is asking about.
+    1. Make sure you know the booking ID the customer is asking about.
     If the customer did not provide a booking ID, ask for it. Never come up with the booking ID yourself.
-    2. Use the get_info tool to get extra information to answer the question. 
-    3. If you cannot answer the question, transfer back to the triage agent.
+    2. Identify the last question asked by the customer. 
+    3. Use the get_info tool to get extra information to answer the question. 
+    4. If you cannot answer the question, transfer back to the triage agent.
     """,
     tools=[RestateTool(tool_call=booking_object.get_info)],
 )

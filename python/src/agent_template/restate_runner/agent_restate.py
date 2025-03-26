@@ -1,6 +1,7 @@
 import json
 import logging
 import typing
+from datetime import timedelta
 from typing import Optional, Any, Callable, Awaitable, TypeVar, Type, Union
 
 import restate
@@ -31,14 +32,24 @@ RECOMMENDED_PROMPT_PREFIX = (
     " do not mention or draw attention to these transfers in your conversation with the user.\n"
 )
 
-SERVICE_HANDLER_TOOL_PREFIX = (
+VIRTUAL_OBJECT_HANDLER_TOOL_PREFIX = (
     "# System context\n"
     "This tool is part of a Virtual Object. Virtual Objects are keyed services that need to be addressed by specifying the key. "
     "The key is a unique identifier for the object. "
     "The key makes sure that you get access to the correct object so it is really important that this is correct. "
     "The key is a string. In case there is the slightest doubt about the key, always ask the user for the key. "
     "The key is part of the input schema of the tool. You can find the meaning of the key in the tool's input schema. "
-    "Keys usually present a unique identifier for the object: for example a booking virtual object might have the booking id as key. "
+    "Keys usually present a unique identifier for the object: for example a customer virtual object might have the customer id as key. "
+)
+
+WORKFLOW_HANDLER_TOOL_PREFIX = (
+    "# System context\n"
+    "This tool is part of a Workflow. Workflows are keyed services that need to be addressed by specifying the key. "
+    "The key is a unique identifier for the workflow. "
+    "The key makes sure that you get access to the correct workflow so it is really important that this is correct. "
+    "The key is a string. In case there is the slightest doubt about the key, always ask the user for the key. "
+    "The key is part of the input schema of the tool. You can find the meaning of the key in the tool's input schema. "
+    "Keys usually present a unique identifier for the workflow: for example a customer signup workflow might have the customer id as key. "
 )
 
 
@@ -62,14 +73,6 @@ class RestateRequest(BaseModel, Generic[I]):
 
 ServiceType = typing.Literal["Service", "VirtualObject", "Workflow"]
 
-
-# class GenericRestateTool(BaseModel, Generic[I,O]):
-#     service_name: str
-#     service_type: ServiceType
-#     handler_name: str
-#     input_type: Type[I]
-#     output_type: Type[O]
-
 class RestateTool(BaseModel, Generic[I,O]):
     tool_call: Callable[[Any, I], Awaitable[O]]
     name: str = Field(default_factory=lambda data: getattr(data["tool_call"], '__name__', ''))
@@ -80,10 +83,11 @@ class RestateTool(BaseModel, Generic[I,O]):
 
     def to_tool_schema(self) -> dict[str, Any]:
         print(self.tool_call)
+        full_tool_description = f"{self.description}\n\n{VIRTUAL_OBJECT_HANDLER_TOOL_PREFIX}" if self.service_type == "VirtualObject" else f"{self.description}\n\n{WORKFLOW_HANDLER_TOOL_PREFIX}" if self.service_type == "Workflow" else self.description
         return {
             "type": "function",
             "name": format_name(self.name),
-            "description": self.description,
+            "description": full_tool_description,
             "parameters": to_strict_json_schema(RestateRequest[self.input_type]),
             "strict": True
         }
@@ -218,10 +222,22 @@ async def execute_tool_call(ctx: restate.ObjectContext,
         arg = request.req
 
     if tool_to_call.service_type == "Service":
-        return await ctx.service_call(tool_to_call.tool_call, arg=arg)
+        if request.delay_in_millis > 0:
+            ctx.service_send(tool_to_call.tool_call, arg=arg, send_delay=timedelta(milliseconds=request.delay_in_millis))
+            return "Task was scheduled."
+        else:
+            return await ctx.service_call(tool_to_call.tool_call, arg=arg)
     elif tool_to_call.service_type == "VirtualObject":
-        return await ctx.object_call(tool_to_call.tool_call, key=request.key, arg=arg)
+        if request.delay_in_millis > 0:
+            ctx.object_send(tool_to_call.tool_call, key=request.key, arg=arg, send_delay=timedelta(milliseconds=request.delay_in_millis))
+            return "Task was scheduled."
+        else:
+            return await ctx.object_call(tool_to_call.tool_call, key=request.key, arg=arg)
     elif tool_to_call.service_type == "Workflow":
-        return await ctx.workflow_call(tool_to_call.tool_call, key=request.key, arg=arg)
+        if request.delay_in_millis > 0:
+            ctx.workflow_send(tool_to_call.tool_call, key=request.key, arg=arg, send_delay=timedelta(milliseconds=request.delay_in_millis))
+            return "Task was scheduled."
+        else:
+            return await ctx.workflow_call(tool_to_call.tool_call, key=request.key, arg=arg)
     else:
         TerminalError(f"Cannot invoke tool with service type {tool_to_call.service_type}")
