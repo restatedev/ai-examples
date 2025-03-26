@@ -42,11 +42,26 @@ SERVICE_HANDLER_TOOL_PREFIX = (
 )
 
 
-ServiceType = typing.Literal["Service", "VirtualObject", "Workflow"]
-
-
+# TODO I don't think we need this. Strip it out.
 class Empty(BaseModel):
     model_config = ConfigDict(extra="forbid")
+
+class RestateRequest(BaseModel, Generic[I]):
+    """
+    Represents a request to a Restate service.
+
+    Attributes:
+        key (str): The unique identifier for the Virtual Object or Workflow which contains the tool.
+        arg (I): The argument to be passed to the tool.
+        delay_in_millis (int): The delay in milliseconds to delay the task with.
+    """
+    key: str
+    req: I | Empty
+    delay_in_millis: int
+
+
+ServiceType = typing.Literal["Service", "VirtualObject", "Workflow"]
+
 
 # class GenericRestateTool(BaseModel, Generic[I,O]):
 #     service_name: str
@@ -69,7 +84,7 @@ class RestateTool(BaseModel, Generic[I,O]):
             "type": "function",
             "name": format_name(self.name),
             "description": self.description,
-            "parameters": to_strict_json_schema(self.input_type),
+            "parameters": to_strict_json_schema(RestateRequest[self.input_type]),
             "strict": True
         }
 
@@ -196,16 +211,17 @@ async def run(
 async def execute_tool_call(ctx: restate.ObjectContext,
                             command_message: ResponseFunctionToolCall,
                             tool_to_call: RestateTool):
+    request = RestateRequest[tool_to_call.input_type](**json.loads(command_message.arguments))
     if tool_to_call.input_type == Empty:
         arg = None
     else:
-        arg = tool_to_call.input_type(**json.loads(command_message.arguments))
+        arg = request.req
 
     if tool_to_call.service_type == "Service":
         return await ctx.service_call(tool_to_call.tool_call, arg=arg)
     elif tool_to_call.service_type == "VirtualObject":
-        return await ctx.object_call(tool_to_call.tool_call, key="123", arg=arg)
+        return await ctx.object_call(tool_to_call.tool_call, key=request.key, arg=arg)
     elif tool_to_call.service_type == "Workflow":
-        return await ctx.workflow_call(tool_to_call.tool_call, key="123", arg=arg)
+        return await ctx.workflow_call(tool_to_call.tool_call, key=request.key, arg=arg)
     else:
         TerminalError(f"Cannot invoke tool with service type {tool_to_call.service_type}")
