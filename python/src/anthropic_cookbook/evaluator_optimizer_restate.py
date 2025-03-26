@@ -5,9 +5,16 @@ from util import llm_call, extract_xml
 
 evaluator_optimizer = restate.Service("EvaluatorOptimizer")
 
-async def generate(ctx: restate.Context, prompt: str, task: str, llm_context: str = "") -> tuple[str, str]:
+
+async def generate(
+    ctx: restate.Context, prompt: str, task: str, llm_context: str = ""
+) -> tuple[str, str]:
     """Generate and improve a solution based on feedback."""
-    full_prompt = f"{prompt}\n{llm_context}\nTask: {task}" if llm_context else f"{prompt}\nTask: {task}"
+    full_prompt = (
+        f"{prompt}\n{llm_context}\nTask: {task}"
+        if llm_context
+        else f"{prompt}\nTask: {task}"
+    )
     response = await ctx.run("LLM call", lambda: llm_call(full_prompt))
     thoughts = extract_xml(response, "thoughts")
     result = extract_xml(response, "response")
@@ -20,7 +27,9 @@ async def generate(ctx: restate.Context, prompt: str, task: str, llm_context: st
     return thoughts, result
 
 
-async def evaluate(ctx: restate.Context, prompt: str, content: str, task: str) -> tuple[str, str]:
+async def evaluate(
+    ctx: restate.Context, prompt: str, content: str, task: str
+) -> tuple[str, str]:
     """Evaluate if a solution meets requirements."""
     full_prompt = f"{prompt}\nOriginal task: {task}\nContent to evaluate: {content}"
     response = await ctx.run("LLM call", lambda: llm_call(full_prompt))
@@ -40,6 +49,7 @@ class LoopRequest(pydantic.BaseModel):
     evaluator_prompt: str
     generator_prompt: str
 
+
 @evaluator_optimizer.handler()
 def loop(ctx: restate.Context, req: LoopRequest) -> tuple[str, list[dict]]:
     """Keep generating and evaluating until requirements are met."""
@@ -55,11 +65,13 @@ def loop(ctx: restate.Context, req: LoopRequest) -> tuple[str, list[dict]]:
         if evaluation == "PASS":
             return result, chain_of_thought
 
-        llm_context = "\n".join([
-            "Previous attempts:",
-            *[f"- {m}" for m in memory],
-            f"\nFeedback: {feedback}"
-        ])
+        llm_context = "\n".join(
+            [
+                "Previous attempts:",
+                *[f"- {m}" for m in memory],
+                f"\nFeedback: {feedback}",
+            ]
+        )
 
         thoughts, result = generate(ctx, req.generator_prompt, req.task, llm_context)
         memory.append(result)

@@ -5,7 +5,10 @@ import logging
 import pickle
 import typing
 
-from agents.util._error_tracing import attach_error_to_span, attach_error_to_current_span
+from agents.util._error_tracing import (
+    attach_error_to_span,
+    attach_error_to_current_span,
+)
 from restate.serde import Serde
 from restate.exceptions import TerminalError
 from dataclasses import dataclass, field
@@ -50,7 +53,10 @@ from agents import (
     OutputGuardrailTripwireTriggered,
 )
 
-from src.openaiagents.restate_runner.restate_tool_router import EnrichedContext, TCustomContext
+from src.openaiagents.restate_runner.restate_tool_router import (
+    EnrichedContext,
+    TCustomContext,
+)
 
 DEFAULT_MAX_TURNS = 10
 
@@ -117,14 +123,14 @@ class RunConfig:
 class RestateRunner:
     @classmethod
     async def run(
-            cls,
-            starting_agent: Agent[EnrichedContext[TCustomContext]],
-            input: str | list[TResponseInputItem],
-            *,
-            context: EnrichedContext[TCustomContext] | None = None,
-            max_turns: int = DEFAULT_MAX_TURNS,
-            hooks: RunHooks[EnrichedContext[TCustomContext]] | None = None,
-            run_config: RunConfig | None = None,
+        cls,
+        starting_agent: Agent[EnrichedContext[TCustomContext]],
+        input: str | list[TResponseInputItem],
+        *,
+        context: EnrichedContext[TCustomContext] | None = None,
+        max_turns: int = DEFAULT_MAX_TURNS,
+        hooks: RunHooks[EnrichedContext[TCustomContext]] | None = None,
+        run_config: RunConfig | None = None,
     ) -> RunResult:
         """Run a workflow starting at the given agent. The agent will run in a loop until a final
         output is generated. The loop runs like so:
@@ -160,18 +166,20 @@ class RestateRunner:
             run_config = RunConfig()
 
         with TraceCtxManager(
-                workflow_name=run_config.workflow_name,
-                trace_id=run_config.trace_id,
-                group_id=run_config.group_id,
-                metadata=run_config.trace_metadata,
-                disabled=run_config.tracing_disabled,
+            workflow_name=run_config.workflow_name,
+            trace_id=run_config.trace_id,
+            group_id=run_config.group_id,
+            metadata=run_config.trace_metadata,
+            disabled=run_config.tracing_disabled,
         ):
             current_turn = 0
             original_input: str | list[TResponseInputItem] = copy.deepcopy(input)
             generated_items: list[RunItem] = []
             model_responses: list[ModelResponse] = []
 
-            context_wrapper: RunContextWrapper[EnrichedContext[TCustomContext]] = RunContextWrapper(
+            context_wrapper: RunContextWrapper[
+                EnrichedContext[TCustomContext]
+            ] = RunContextWrapper(
                 context=context,  # type: ignore
             )
 
@@ -186,7 +194,9 @@ class RestateRunner:
                     # Start an agent span if we don't have one. This span is ended if the current
                     # agent changes, or if the agent loop ends.
                     if current_span is None:
-                        handoff_names = [h.agent_name for h in cls._get_handoffs(current_agent)]
+                        handoff_names = [
+                            h.agent_name for h in cls._get_handoffs(current_agent)
+                        ]
                         tool_names = [t.name for t in current_agent.tools]
                         if output_schema := cls._get_output_schema(current_agent):
                             output_type_name = output_schema.output_type_name()
@@ -210,7 +220,9 @@ class RestateRunner:
                                 data={"max_turns": max_turns},
                             ),
                         )
-                        raise TerminalError(f"MaxTurnExceeded: Max turns ({max_turns}) exceeded")
+                        raise TerminalError(
+                            f"MaxTurnExceeded: Max turns ({max_turns}) exceeded"
+                        )
 
                     logging.debug(
                         f"Running agent {current_agent.name} (turn {current_turn})",
@@ -218,20 +230,20 @@ class RestateRunner:
 
                     if current_turn == 1:
                         input_guardrail_results = await cls._run_input_guardrails(
-                                starting_agent,
-                                starting_agent.input_guardrails
-                                + (run_config.input_guardrails or []),
-                                copy.deepcopy(input),
-                                context_wrapper,
-                                )
+                            starting_agent,
+                            starting_agent.input_guardrails
+                            + (run_config.input_guardrails or []),
+                            copy.deepcopy(input),
+                            context_wrapper,
+                        )
                         turn_result = await cls._run_single_turn(
-                                agent=current_agent,
-                                original_input=original_input,
-                                generated_items=generated_items,
-                                hooks=hooks,
-                                context_wrapper=context_wrapper,
-                                run_config=run_config,
-                                should_run_agent_start_hooks=should_run_agent_start_hooks,
+                            agent=current_agent,
+                            original_input=original_input,
+                            generated_items=generated_items,
+                            hooks=hooks,
+                            context_wrapper=context_wrapper,
+                            run_config=run_config,
+                            should_run_agent_start_hooks=should_run_agent_start_hooks,
                         )
                     else:
                         turn_result = await cls._run_single_turn(
@@ -252,11 +264,12 @@ class RestateRunner:
                     # print the model response
                     if isinstance(turn_result.next_step, NextStepFinalOutput):
                         output_guardrail_results = await cls._run_output_guardrails(
-                            current_agent.output_guardrails + (run_config.output_guardrails or []),
+                            current_agent.output_guardrails
+                            + (run_config.output_guardrails or []),
                             current_agent,
                             turn_result.next_step.output,
                             context_wrapper,
-                            )
+                        )
                         return RunResult(
                             input=original_input,
                             new_items=generated_items,
@@ -267,7 +280,10 @@ class RestateRunner:
                             output_guardrail_results=output_guardrail_results,
                         )
                     elif isinstance(turn_result.next_step, NextStepHandoff):
-                        current_agent = cast(Agent[EnrichedContext[TCustomContext]], turn_result.next_step.new_agent)
+                        current_agent = cast(
+                            Agent[EnrichedContext[TCustomContext]],
+                            turn_result.next_step.new_agent,
+                        )
                         current_span.finish(reset_current=True)
                         current_span = None
                         should_run_agent_start_hooks = True
@@ -283,15 +299,15 @@ class RestateRunner:
 
     @classmethod
     async def _run_single_turn(
-            cls,
-            *,
-            agent: Agent[EnrichedContext[TCustomContext]],
-            original_input: str | list[TResponseInputItem],
-            generated_items: list[RunItem],
-            hooks: RunHooks[EnrichedContext[TCustomContext]],
-            context_wrapper: RunContextWrapper[EnrichedContext[TCustomContext]],
-            run_config: RunConfig,
-            should_run_agent_start_hooks: bool,
+        cls,
+        *,
+        agent: Agent[EnrichedContext[TCustomContext]],
+        original_input: str | list[TResponseInputItem],
+        generated_items: list[RunItem],
+        hooks: RunHooks[EnrichedContext[TCustomContext]],
+        context_wrapper: RunContextWrapper[EnrichedContext[TCustomContext]],
+        run_config: RunConfig,
+        should_run_agent_start_hooks: bool,
     ) -> SingleStepResult:
         # Ensure we run the hooks before anything else
         if should_run_agent_start_hooks:
@@ -305,7 +321,9 @@ class RestateRunner:
         output_schema = cls._get_output_schema(agent)
         handoffs = cls._get_handoffs(agent)
         input = ItemHelpers.input_to_new_input_list(original_input)
-        input.extend([generated_item.to_input_item() for generated_item in generated_items])
+        input.extend(
+            [generated_item.to_input_item() for generated_item in generated_items]
+        )
 
         new_response = await cls._get_new_response(
             agent,
@@ -331,17 +349,17 @@ class RestateRunner:
 
     @classmethod
     async def _get_single_step_result_from_response(
-            cls,
-            *,
-            agent: Agent[EnrichedContext[TCustomContext]],
-            original_input: str | list[TResponseInputItem],
-            pre_step_items: list[RunItem],
-            new_response: ModelResponse,
-            output_schema: AgentOutputSchema | None,
-            handoffs: list[Handoff],
-            hooks: RunHooks[EnrichedContext[TCustomContext]],
-            context_wrapper: RunContextWrapper[EnrichedContext[TCustomContext]],
-            run_config: RunConfig,
+        cls,
+        *,
+        agent: Agent[EnrichedContext[TCustomContext]],
+        original_input: str | list[TResponseInputItem],
+        pre_step_items: list[RunItem],
+        new_response: ModelResponse,
+        output_schema: AgentOutputSchema | None,
+        handoffs: list[Handoff],
+        hooks: RunHooks[EnrichedContext[TCustomContext]],
+        context_wrapper: RunContextWrapper[EnrichedContext[TCustomContext]],
+        run_config: RunConfig,
     ) -> SingleStepResult:
         processed_response = RunImpl.process_model_response(
             agent=agent,
@@ -364,18 +382,22 @@ class RestateRunner:
 
     @classmethod
     async def _run_input_guardrails(
-            cls,
-            agent: Agent[Any],
-            guardrails: list[InputGuardrail[EnrichedContext[TCustomContext]]],
-            input: str | list[TResponseInputItem],
-            context: RunContextWrapper[EnrichedContext[TCustomContext]],
+        cls,
+        agent: Agent[Any],
+        guardrails: list[InputGuardrail[EnrichedContext[TCustomContext]]],
+        input: str | list[TResponseInputItem],
+        context: RunContextWrapper[EnrichedContext[TCustomContext]],
     ) -> list[InputGuardrailResult]:
         if not guardrails:
             return []
 
         guardrail_results = []
         for guardrail in guardrails:
-            guardrail_results.append(await RunImpl.run_single_input_guardrail(agent, guardrail, input, context))
+            guardrail_results.append(
+                await RunImpl.run_single_input_guardrail(
+                    agent, guardrail, input, context
+                )
+            )
 
         for result in guardrail_results:
             if result.output.tripwire_triggered:
@@ -391,18 +413,22 @@ class RestateRunner:
 
     @classmethod
     async def _run_output_guardrails(
-            cls,
-            guardrails: list[OutputGuardrail[EnrichedContext[TCustomContext]]],
-            agent: Agent[EnrichedContext[TCustomContext]],
-            agent_output: Any,
-            context: RunContextWrapper[EnrichedContext[TCustomContext]],
+        cls,
+        guardrails: list[OutputGuardrail[EnrichedContext[TCustomContext]]],
+        agent: Agent[EnrichedContext[TCustomContext]],
+        agent_output: Any,
+        context: RunContextWrapper[EnrichedContext[TCustomContext]],
     ) -> list[OutputGuardrailResult]:
         if not guardrails:
             return []
 
         guardrail_results = []
         for guardrail in guardrails:
-            guardrail_results.append(await RunImpl.run_single_output_guardrail(guardrail, agent, agent_output, context))
+            guardrail_results.append(
+                await RunImpl.run_single_output_guardrail(
+                    guardrail, agent, agent_output, context
+                )
+            )
 
         for result in guardrail_results:
             if result.output.tripwire_triggered:
@@ -418,14 +444,14 @@ class RestateRunner:
 
     @classmethod
     async def _get_new_response(
-            cls,
-            agent: Agent[EnrichedContext[TCustomContext]],
-            system_prompt: str | None,
-            input: list[TResponseInputItem],
-            output_schema: AgentOutputSchema | None,
-            handoffs: list[Handoff],
-            context_wrapper: RunContextWrapper[EnrichedContext[TCustomContext]],
-            run_config: RunConfig,
+        cls,
+        agent: Agent[EnrichedContext[TCustomContext]],
+        system_prompt: str | None,
+        input: list[TResponseInputItem],
+        output_schema: AgentOutputSchema | None,
+        handoffs: list[Handoff],
+        context_wrapper: RunContextWrapper[EnrichedContext[TCustomContext]],
+        run_config: RunConfig,
     ) -> ModelResponse:
         model = cls._get_model(agent, run_config)
         model_settings = agent.model_settings.resolve(run_config.model_settings)
@@ -443,10 +469,11 @@ class RestateRunner:
                 ),
             )
 
-        new_response: ModelResponse =  await context_wrapper.context["restate_context"].run(
-            "LLM call - "+ agent.name,
-            get_model_response,
-            serde=ModelResponseSerde())
+        new_response: ModelResponse = await context_wrapper.context[
+            "restate_context"
+        ].run(
+            "LLM call - " + agent.name, get_model_response, serde=ModelResponseSerde()
+        )
         context_wrapper.usage.add(new_response.usage)
 
         return new_response
@@ -478,7 +505,6 @@ class RestateRunner:
             return agent.model
 
         return run_config.model_provider.get_model(agent.model)
-
 
 
 class ModelResponseSerde(Serde[ModelResponse]):

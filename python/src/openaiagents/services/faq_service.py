@@ -14,6 +14,7 @@ class LookupRequest(BaseModel):
     This request is the input for the tool with name: faq_lookup_tool
     The question parameter is the question that the tool will answer.
     """
+
     question: str
 
 

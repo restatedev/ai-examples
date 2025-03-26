@@ -15,6 +15,7 @@ class Booking(BaseModel):
     The seat_number is the seat number of the passenger.
     The flight_number is the flight number.
     """
+
     confirmation_number: str
     flight_number: str
     passenger_name: str
@@ -33,15 +34,17 @@ async def update_seat(ctx: restate.ObjectContext, new_seat_number: str) -> str:
         new_seat_number: The new seat to update to.
     """
     booking: Booking = await get_info(ctx)
-    success = await ctx.object_call(seat_object.reserve,
-                                    key=f"{booking.flight_number}-{new_seat_number}",
-                                    arg=None)
+    success = await ctx.object_call(
+        seat_object.reserve, key=f"{booking.flight_number}-{new_seat_number}", arg=None
+    )
     if not success:
         return f"Seat {new_seat_number} is not available"
     else:
-        await ctx.object_call(seat_object.unreserve,
-                              key=f"{booking.flight_number}-{booking.seat_number}",
-                              arg=None)
+        await ctx.object_call(
+            seat_object.unreserve,
+            key=f"{booking.flight_number}-{booking.seat_number}",
+            arg=None,
+        )
         booking.seat_number = new_seat_number
         ctx.set("booking", booking, PydanticJsonSerde(Booking))
         return f"Seat updated to {new_seat_number}"
@@ -64,5 +67,5 @@ async def get_info(ctx: restate.ObjectContext) -> Booking:
         flight_number="FL-123",
         passenger_email="alice@gmail.com",
         passenger_name="Alice",
-        seat_number="2B"
+        seat_number="2B",
     )

@@ -1,9 +1,13 @@
-
 import restate
 from pydantic import BaseModel
 from typing import Any
 
-from restate_runner.agent_restate import run, Agent, RestateTool, RECOMMENDED_PROMPT_PREFIX
+from restate_runner.agent_restate import (
+    run,
+    Agent,
+    RestateTool,
+    RECOMMENDED_PROMPT_PREFIX,
+)
 from services import faq_service, booking_object
 
 # AGENTS
@@ -19,9 +23,7 @@ faq_agent = Agent(
     2. Use the faq_lookup_tool to answer the question. Do not rely on your own knowledge.
     3. If you cannot answer the question with any of the tools, then transfer back to the triage agent.
     """,
-    tools=[
-        RestateTool(tool_call=faq_service.faq_lookup_tool)
-    ],
+    tools=[RestateTool(tool_call=faq_service.faq_lookup_tool)],
 )
 
 booking_info_agent = Agent(
@@ -79,10 +81,16 @@ update_seat_agent = Agent(
 triage_agent = Agent(
     name="Triage Agent",
     handoff_description="A triage agent that can delegate a customer's request to the appropriate agent.",
-    instructions= (f"{RECOMMENDED_PROMPT_PREFIX}"
-                   "You are a helpful triaging agent. You can use your tools to delegate questions to other appropriate agents."
-                   ),
-    handoffs=[faq_agent.name, booking_info_agent.name, send_invoice_agent.name, update_seat_agent.name],
+    instructions=(
+        f"{RECOMMENDED_PROMPT_PREFIX}"
+        "You are a helpful triaging agent. You can use your tools to delegate questions to other appropriate agents."
+    ),
+    handoffs=[
+        faq_agent.name,
+        booking_info_agent.name,
+        send_invoice_agent.name,
+        update_seat_agent.name,
+    ],
 )
 
 faq_agent.handoffs.append(triage_agent.name)
@@ -101,14 +109,21 @@ class CustomerChatRequest(BaseModel):
 
 
 @chat_service.handler()
-async def chat(ctx: restate.ObjectContext, req: CustomerChatRequest) -> list[dict[str, Any]]:
+async def chat(
+    ctx: restate.ObjectContext, req: CustomerChatRequest
+) -> list[dict[str, Any]]:
     print("chat handler called")
     result = await run(
         ctx=ctx,
         starting_agent=triage_agent,
-        agents=[triage_agent, faq_agent, booking_info_agent, send_invoice_agent, update_seat_agent],
-        message=req.user_input, # this is the input for the LLM call
+        agents=[
+            triage_agent,
+            faq_agent,
+            booking_info_agent,
+            send_invoice_agent,
+            update_seat_agent,
+        ],
+        message=req.user_input,  # this is the input for the LLM call
     )
 
     return result.messages
-

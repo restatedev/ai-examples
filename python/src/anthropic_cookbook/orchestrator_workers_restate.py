@@ -3,12 +3,13 @@ from pydantic import BaseModel
 from typing import Dict, List, Optional
 from util import llm_call, extract_xml
 
+
 def parse_tasks(tasks_xml: str) -> List[Dict]:
     """Parse XML tasks into a list of task dictionaries."""
     tasks = []
     current_task = {}
 
-    for line in tasks_xml.split('\n'):
+    for line in tasks_xml.split("\n"):
         line = line.strip()
         if not line:
             continue
@@ -54,11 +55,11 @@ async def process(ctx: restate.ObjectContext, req: OrchestrationRequest) -> Dict
 
     # Step 1: Get orchestrator response
     orchestrator_input = format_prompt(
-        orchestrator_prompt=req.orchestrator_prompt,
-        task=req.task,
-        **llm_context
+        orchestrator_prompt=req.orchestrator_prompt, task=req.task, **llm_context
     )
-    orchestrator_response = await ctx.run("LLM call", lambda: llm_call(orchestrator_input))
+    orchestrator_response = await ctx.run(
+        "LLM call", lambda: llm_call(orchestrator_input)
+    )
 
     # Parse orchestrator response
     analysis = extract_xml(orchestrator_response, "analysis")
@@ -75,19 +76,21 @@ async def process(ctx: restate.ObjectContext, req: OrchestrationRequest) -> Dict
         worker_input = format_prompt(
             req.worker_prompt,
             original_task=req.task,
-            task_type=task_info['type'],
-            task_description=task_info['description'],
-            **llm_context
+            task_type=task_info["type"],
+            task_description=task_info["description"],
+            **llm_context,
         )
 
         worker_response = await ctx.run("process task", lambda: llm_call(worker_input))
         result = extract_xml(worker_response, "response")
 
-        worker_results.append({
-            "type": task_info["type"],
-            "description": task_info["description"],
-            "result": result
-        })
+        worker_results.append(
+            {
+                "type": task_info["type"],
+                "description": task_info["description"],
+                "result": result,
+            }
+        )
         # Expose the state to the outside
         ctx.set("worker_results", worker_results)
 

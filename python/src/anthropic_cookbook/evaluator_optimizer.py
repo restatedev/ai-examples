@@ -1,8 +1,11 @@
 from util import llm_call, extract_xml
 
+
 def generate(prompt: str, task: str, context: str = "") -> tuple[str, str]:
     """Generate and improve a solution based on feedback."""
-    full_prompt = f"{prompt}\n{context}\nTask: {task}" if context else f"{prompt}\nTask: {task}"
+    full_prompt = (
+        f"{prompt}\n{context}\nTask: {task}" if context else f"{prompt}\nTask: {task}"
+    )
     response = llm_call(full_prompt)
     thoughts = extract_xml(response, "thoughts")
     result = extract_xml(response, "response")
@@ -13,6 +16,7 @@ def generate(prompt: str, task: str, context: str = "") -> tuple[str, str]:
     print("=== GENERATION END ===\n")
 
     return thoughts, result
+
 
 def evaluate(prompt: str, content: str, task: str) -> tuple[str, str]:
     """Evaluate if a solution meets requirements."""
@@ -28,7 +32,10 @@ def evaluate(prompt: str, content: str, task: str) -> tuple[str, str]:
 
     return evaluation, feedback
 
-def loop(task: str, evaluator_prompt: str, generator_prompt: str) -> tuple[str, list[dict]]:
+
+def loop(
+    task: str, evaluator_prompt: str, generator_prompt: str
+) -> tuple[str, list[dict]]:
     """Keep generating and evaluating until requirements are met."""
     memory = []
     chain_of_thought = []
@@ -42,11 +49,13 @@ def loop(task: str, evaluator_prompt: str, generator_prompt: str) -> tuple[str, 
         if evaluation == "PASS":
             return result, chain_of_thought
 
-        context = "\n".join([
-            "Previous attempts:",
-            *[f"- {m}" for m in memory],
-            f"\nFeedback: {feedback}"
-        ])
+        context = "\n".join(
+            [
+                "Previous attempts:",
+                *[f"- {m}" for m in memory],
+                f"\nFeedback: {feedback}",
+            ]
+        )
 
         thoughts, result = generate(generator_prompt, task, context)
         memory.append(result)

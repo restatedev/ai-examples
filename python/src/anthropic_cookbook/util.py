@@ -4,7 +4,10 @@ import re
 
 client = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 
-def llm_call(prompt: str, system_prompt: str = "", model="claude-3-5-sonnet-20241022") -> str:
+
+def llm_call(
+    prompt: str, system_prompt: str = "", model="claude-3-5-sonnet-20241022"
+) -> str:
     """
     Calls the model with the given prompt and returns the response.
 
@@ -27,6 +30,7 @@ def llm_call(prompt: str, system_prompt: str = "", model="claude-3-5-sonnet-2024
     )
     return response.content[0].text
 
+
 def extract_xml(text: str, tag: str) -> str:
     """
     Extracts the content of the specified XML tag from the given text. Used for parsing structured responses
@@ -38,5 +42,5 @@ def extract_xml(text: str, tag: str) -> str:
     Returns:
         str: The content of the specified XML tag, or an empty string if the tag is not found.
     """
-    match = re.search(f'<{tag}>(.*?)</{tag}>', text, re.DOTALL)
+    match = re.search(f"<{tag}>(.*?)</{tag}>", text, re.DOTALL)
     return match.group(1) if match else ""

@@ -8,13 +8,21 @@ from agents import (
     function_tool,
     handoff,
     RunContextWrapper,
-    WebSearchTool
+    WebSearchTool,
 )
 from agents.extensions.handoff_prompt import RECOMMENDED_PROMPT_PREFIX
 from agents.strict_schema import ensure_strict_json_schema
 
-from restate_runner.restate_tool_router import restate_tool_router, EmbeddedRequest, EnrichedContext
-from restate_runner.restate_agent_service import execute_agent_call, RunOpts, prettify_response
+from restate_runner.restate_tool_router import (
+    restate_tool_router,
+    EmbeddedRequest,
+    EnrichedContext,
+)
+from restate_runner.restate_agent_service import (
+    execute_agent_call,
+    RunOpts,
+    prettify_response,
+)
 
 from src.openaiagents.services import booking_object
 from src.openaiagents.services.booking_object import Booking
@@ -22,9 +30,10 @@ from src.openaiagents.services.faq_service import faq_service, LookupRequest
 
 # TOOLS
 
+
 @function_tool()
 async def send_invoice_tool(
-        context: RunContextWrapper[EnrichedContext[Booking]], delay_millis: int
+    context: RunContextWrapper[EnrichedContext[Booking]], delay_millis: int
 ) -> str:
     """
     Schedules the sending of an invoice after a delay specified in milliseconds.
@@ -35,19 +44,23 @@ async def send_invoice_tool(
     booking: Booking = context.context["custom_context"]
     restate_context = context.context["restate_context"]
     if delay_millis == 0:
-        return await restate_context.object_call(booking_object.send_invoice,
-                                                 key=booking.confirmation_number,
-                                                 arg=None)
+        return await restate_context.object_call(
+            booking_object.send_invoice, key=booking.confirmation_number, arg=None
+        )
     else:
-        restate_context.object_send(booking_object.send_invoice,
-                                    key=booking.confirmation_number,
-                                    arg=None,
-                                    send_delay=timedelta(milliseconds=delay_millis))
+        restate_context.object_send(
+            booking_object.send_invoice,
+            key=booking.confirmation_number,
+            arg=None,
+            send_delay=timedelta(milliseconds=delay_millis),
+        )
         return f"Scheduled invoice sending for booking {booking.confirmation_number}"
 
 
 @function_tool()
-async def update_seat_tool(context: RunContextWrapper[EnrichedContext[Booking]], new_seat_number: str) -> str:
+async def update_seat_tool(
+    context: RunContextWrapper[EnrichedContext[Booking]], new_seat_number: str
+) -> str:
     """
     Update the seat for a given customer
 
@@ -57,13 +70,15 @@ async def update_seat_tool(context: RunContextWrapper[EnrichedContext[Booking]],
     booking: Booking = context.context["custom_context"]
     restate_context = context.context["restate_context"]
     # Update the context based on the customer's input
-    return await restate_context.object_call(booking_object.update_seat,
-                                             key=booking.confirmation_number,
-                                             arg=new_seat_number)
+    return await restate_context.object_call(
+        booking_object.update_seat, key=booking.confirmation_number, arg=new_seat_number
+    )
 
 
 @function_tool()
-async def booking_info_tool(context: RunContextWrapper[EnrichedContext[Booking]]) -> str:
+async def booking_info_tool(
+    context: RunContextWrapper[EnrichedContext[Booking]],
+) -> str:
     """
     Get the booking information: confirmation number, flight number, passenger name, passenger email, and seat number.
     """
@@ -73,10 +88,12 @@ async def booking_info_tool(context: RunContextWrapper[EnrichedContext[Booking]]
 
 # HOOKS
 
-async def on_seat_booking_handoff(context: RunContextWrapper[EnrichedContext[Booking]]) -> None:
+
+async def on_seat_booking_handoff(
+    context: RunContextWrapper[EnrichedContext[Booking]],
+) -> None:
     # Do something on the handoff
     pass
-
 
 
 # AGENTS
@@ -102,11 +119,19 @@ faq_agent = Agent[EnrichedContext[Booking]](
     3. If you cannot answer the question with the faq_lookup_tool then use the WebSearchTool to find the answer.
     3. If you cannot answer the question with any of the tools, then transfer back to the triage agent.
     """,
-    tools=[FunctionTool(name="faq_lookup_tool",
-                        description="A tool that can answer questions about the airline.",
-                        on_invoke_tool=restate_tool_router,
-                        params_json_schema=ensure_strict_json_schema(EmbeddedRequest[LookupRequest].model_json_schema())),
-           WebSearchTool(user_location={"type": "approximate", "city": "Berlin", "country": "DE"})],
+    tools=[
+        FunctionTool(
+            name="faq_lookup_tool",
+            description="A tool that can answer questions about the airline.",
+            on_invoke_tool=restate_tool_router,
+            params_json_schema=ensure_strict_json_schema(
+                EmbeddedRequest[LookupRequest].model_json_schema()
+            ),
+        ),
+        WebSearchTool(
+            user_location={"type": "approximate", "city": "Berlin", "country": "DE"}
+        ),
+    ],
 )
 
 booking_info_agent = Agent[EnrichedContext[Booking]](
@@ -205,16 +230,21 @@ async def chat(ctx: restate.ObjectContext, req: CustomerChatRequest) -> str:
     """
 
     if req.booking_id is not None:
-        booking = await ctx.object_call(booking_object.get_info, key=req.booking_id, arg=None)
+        booking = await ctx.object_call(
+            booking_object.get_info, key=req.booking_id, arg=None
+        )
     else:
         booking = None
 
     print(booking)
-    result = await execute_agent_call(ctx, RunOpts(
-        agents=chat_agents,
-        init_agent=triage_agent,
-        input=req.user_input, # this is the input for the LLM call
-        custom_context=booking # this does not get passed in the LLM call, only as input to tools
-    ))
+    result = await execute_agent_call(
+        ctx,
+        RunOpts(
+            agents=chat_agents,
+            init_agent=triage_agent,
+            input=req.user_input,  # this is the input for the LLM call
+            custom_context=booking,  # this does not get passed in the LLM call, only as input to tools
+        ),
+    )
 
     return prettify_response(result)

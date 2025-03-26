@@ -1,15 +1,19 @@
 import restate
 from pydantic import BaseModel
 
+
 class LookupRequest(BaseModel):
     """
     A request to the faq_lookup_tool.
     This request is the input for the tool with name: faq_lookup_tool
     The question parameter is the question that the tool will answer.
     """
+
     question: str
 
+
 faq_service = restate.Service("FaqAgent")
+
 
 @faq_service.handler()
 async def faq_lookup_tool(ctx: restate.Context, req: LookupRequest) -> str:

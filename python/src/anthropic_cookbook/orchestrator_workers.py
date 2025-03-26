@@ -1,12 +1,13 @@
 from typing import Dict, List, Optional
 from util import llm_call, extract_xml
 
+
 def parse_tasks(tasks_xml: str) -> List[Dict]:
     """Parse XML tasks into a list of task dictionaries."""
     tasks = []
     current_task = {}
 
-    for line in tasks_xml.split('\n'):
+    for line in tasks_xml.split("\n"):
         line = line.strip()
         if not line:
             continue
@@ -25,13 +26,14 @@ def parse_tasks(tasks_xml: str) -> List[Dict]:
 
     return tasks
 
+
 class FlexibleOrchestrator:
     """Break down tasks and run them in parallel using worker LLMs."""
 
     def __init__(
-            self,
-            orchestrator_prompt: str,
-            worker_prompt: str,
+        self,
+        orchestrator_prompt: str,
+        worker_prompt: str,
     ):
         """Initialize with prompt templates."""
         self.orchestrator_prompt = orchestrator_prompt
@@ -50,9 +52,7 @@ class FlexibleOrchestrator:
 
         # Step 1: Get orchestrator response
         orchestrator_input = self._format_prompt(
-            self.orchestrator_prompt,
-            task=task,
-            **context
+            self.orchestrator_prompt, task=task, **context
         )
         orchestrator_response = llm_call(orchestrator_input)
 
@@ -71,19 +71,21 @@ class FlexibleOrchestrator:
             worker_input = self._format_prompt(
                 self.worker_prompt,
                 original_task=task,
-                task_type=task_info['type'],
-                task_description=task_info['description'],
-                **context
+                task_type=task_info["type"],
+                task_description=task_info["description"],
+                **context,
             )
 
             worker_response = llm_call(worker_input)
             result = extract_xml(worker_response, "response")
 
-            worker_results.append({
-                "type": task_info["type"],
-                "description": task_info["description"],
-                "result": result
-            })
+            worker_results.append(
+                {
+                    "type": task_info["type"],
+                    "description": task_info["description"],
+                    "result": result,
+                }
+            )
 
             print(f"\n=== WORKER RESULT ({task_info['type']}) ===\n{result}\n")
 

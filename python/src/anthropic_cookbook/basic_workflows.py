@@ -14,6 +14,7 @@ basic_workflows = restate.Service("BasicWorkflows")
 
 # ---------- Prompt-chaining without Restate ----------
 
+
 def chain(input: str, prompts: List[str]) -> str:
     """Chain multiple LLM calls sequentially, passing results between steps."""
     result = input
@@ -26,9 +27,11 @@ def chain(input: str, prompts: List[str]) -> str:
 
 # ---------- Prompt-chaining with Restate ----------
 
+
 class ChainRequest(BaseModel):
     input: str
     prompts: List[str]
+
 
 @basic_workflows.handler()
 async def chain_restate(ctx: restate.Context, req: ChainRequest) -> str:
@@ -36,14 +39,14 @@ async def chain_restate(ctx: restate.Context, req: ChainRequest) -> str:
     for i, prompt in enumerate(req.prompts, 1):
         print(f"\nStep {i}:")
         result = await ctx.run(
-            f"LLM call ${i}",
-            lambda: llm_call(f"{prompt}\nInput: {result}")
+            f"LLM call ${i}", lambda: llm_call(f"{prompt}\nInput: {result}")
         )
         print(result)
     return result
 
 
 # ---------- Parallelization without Restate ----------
+
 
 def parallel(prompt: str, inputs: List[str], n_workers: int = 3) -> List[str]:
     """Process multiple inputs concurrently with the same prompt."""
@@ -54,25 +57,28 @@ def parallel(prompt: str, inputs: List[str], n_workers: int = 3) -> List[str]:
 
 # ---------- Parallelization with Restate ----------
 
+
 class ParallelizationRequest(BaseModel):
     prompt: str
     inputs: List[str]
 
+
 @basic_workflows.handler()
-async def parallel_restate(ctx: restate.Context, req: ParallelizationRequest) -> List[str]:
+async def parallel_restate(
+    ctx: restate.Context, req: ParallelizationRequest
+) -> List[str]:
     futures = []
     for i, input in enumerate(req.inputs):
         sub_future = ctx.run(
-            f"LLM call ${i}",
-            lambda: llm_call(f"{req.prompt}\nInput: {input}")
+            f"LLM call ${i}", lambda: llm_call(f"{req.prompt}\nInput: {input}")
         )
         futures.append(sub_future)
 
     return [await future for future in futures]
 
 
-
 # ---------- Routing without Restate ----------
+
 
 def route(input: str, routes: Dict[str, str]) -> str:
     """Route input to specialized prompt using content classification."""
@@ -94,8 +100,8 @@ def route(input: str, routes: Dict[str, str]) -> str:
     Input: {input}""".strip()
 
     route_response = llm_call(selector_prompt)
-    reasoning = extract_xml(route_response, 'reasoning')
-    route_key = extract_xml(route_response, 'selection').strip().lower()
+    reasoning = extract_xml(route_response, "reasoning")
+    route_key = extract_xml(route_response, "selection").strip().lower()
 
     print("Routing Analysis:")
     print(reasoning)
@@ -107,6 +113,7 @@ def route(input: str, routes: Dict[str, str]) -> str:
 
 
 # ---------- Routing with Restate ----------
+
 
 class RouteRequest(BaseModel):
     input: str
@@ -134,8 +141,8 @@ async def route(ctx: Context, req: RouteRequest) -> str:
     Input: {req.input}""".strip()
 
     route_response = ctx.run("Determine routing", lambda: llm_call(selector_prompt))
-    reasoning = extract_xml(route_response, 'reasoning')
-    route_key = extract_xml(route_response, 'selection').strip().lower()
+    reasoning = extract_xml(route_response, "reasoning")
+    route_key = extract_xml(route_response, "selection").strip().lower()
 
     print("Routing Analysis:")
     print(reasoning)
@@ -148,7 +155,9 @@ async def route(ctx: Context, req: RouteRequest) -> str:
     # Option 2: In Restate, this could also be a call to instantiate a specific agent type and run a task
     selected_agent, task_name = req.routes[route_key].split("/")
     session_uuid = await ctx.run("Create session", lambda: str(uuid.uuid4()))
-    task_response = await ctx.generic_call(selected_agent, task_name, req.input.encode(), session_uuid)
+    task_response = await ctx.generic_call(
+        selected_agent, task_name, req.input.encode(), session_uuid
+    )
     return task_response.decode("utf-8")
 
 

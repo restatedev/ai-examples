@@ -2,6 +2,7 @@ import restate
 
 seat_object = restate.VirtualObject("SeatObject")
 
+
 @seat_object.handler()
 async def reserve(ctx: restate.ObjectContext) -> bool:
     status = await ctx.get("status") or "AVAILABLE"

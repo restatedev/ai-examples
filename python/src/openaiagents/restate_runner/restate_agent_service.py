@@ -1,13 +1,28 @@
 import typing
 
 import restate
-from agents import RunResult, RunHooks, RunConfig, TResponseInputItem, TContext, ItemHelpers, MessageOutputItem, \
-    HandoffOutputItem, ToolCallItem, ToolCallOutputItem, Agent
+from agents import (
+    RunResult,
+    RunHooks,
+    RunConfig,
+    TResponseInputItem,
+    TContext,
+    ItemHelpers,
+    MessageOutputItem,
+    HandoffOutputItem,
+    ToolCallItem,
+    ToolCallOutputItem,
+    Agent,
+)
 
 from src.openaiagents.restate_runner.restate_agent_runner import RestateRunner
-from src.openaiagents.restate_runner.restate_tool_router import TCustomContext, EnrichedContext
+from src.openaiagents.restate_runner.restate_tool_router import (
+    TCustomContext,
+    EnrichedContext,
+)
 
 # TYPES
+
 
 class RunOpts(typing.TypedDict):
     agents: typing.Dict[str, Agent]
@@ -18,7 +33,9 @@ class RunOpts(typing.TypedDict):
     hooks: RunHooks[TContext] | None
     run_config: RunConfig | None
 
+
 # RESTATE SERVICE
+
 
 async def execute_agent_call(ctx: restate.ObjectContext, args: RunOpts) -> RunResult:
     # Retrieve the current agent of this session
@@ -37,10 +54,13 @@ async def execute_agent_call(ctx: restate.ObjectContext, args: RunOpts) -> RunRe
     result: RunResult = await RestateRunner.run(
         current_agent,
         input_items,
-        context=EnrichedContext(custom_context=args.get("custom_context", None),restate_context=ctx),
+        context=EnrichedContext(
+            custom_context=args.get("custom_context", None), restate_context=ctx
+        ),
         max_turns=args.get("max_turns", 10),
         hooks=args.get("hooks", None),
-        run_config=args.get("run_config", None))
+        run_config=args.get("run_config", None),
+    )
     input_items = result.to_input_list()
     ctx.set("input_items", input_items)
     ctx.set("current_agent_name", result.last_agent.name)
@@ -69,5 +89,3 @@ def prettify_response(result: RunResult):
             print(f"{agent_name}: Skipping item: {new_item.__class__.__name__}")
             response += f"{agent_name}: Skipping item: {new_item.__class__.__name__}\n"
     return response
-
-
