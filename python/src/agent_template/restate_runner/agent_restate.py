@@ -31,6 +31,17 @@ RECOMMENDED_PROMPT_PREFIX = (
     " do not mention or draw attention to these transfers in your conversation with the user.\n"
 )
 
+SERVICE_HANDLER_TOOL_PREFIX = (
+    "# System context\n"
+    "This tool is part of a Virtual Object. Virtual Objects are keyed services that need to be addressed by specifying the key. "
+    "The key is a unique identifier for the object. "
+    "The key makes sure that you get access to the correct object so it is really important that this is correct. "
+    "The key is a string. In case there is the slightest doubt about the key, always ask the user for the key. "
+    "The key is part of the input schema of the tool. You can find the meaning of the key in the tool's input schema. "
+    "Keys usually present a unique identifier for the object: for example a booking virtual object might have the booking id as key. "
+)
+
+
 ServiceType = typing.Literal["Service", "VirtualObject", "Workflow"]
 
 
@@ -44,15 +55,16 @@ class Empty(BaseModel):
 #     input_type: Type[I]
 #     output_type: Type[O]
 
-class RestateTool(BaseModel):
+class RestateTool(BaseModel, Generic[I,O]):
     tool_call: Callable[[Any, I], Awaitable[O]]
     name: str = Field(default_factory=lambda data: getattr(data["tool_call"], '__name__', ''))
     description: str = Field(default_factory=lambda data: getattr(data["tool_call"], '__doc__', ''))
-    input_type: Type[I] = Field(default_factory=lambda data: getattr(data["tool_call"], '__annotations__', {}).get('req'))
-    output_type: Type[I] = Field(default_factory=lambda data: getattr(data["tool_call"], '__annotations__', {}).get('return'))
+    input_type: Type[I] = Field(default_factory=lambda data: get_input_type_from_handler(data["tool_call"]))
+    output_type: Type[I] = Field(default_factory=lambda data: Type[getattr(data["tool_call"], '__annotations__', {}).get('return')])
     service_type: ServiceType = Field(default_factory=lambda data: get_service_type_from_handler(data["tool_call"]))
 
     def to_tool_schema(self) -> dict[str, Any]:
+        print(self.tool_call)
         return {
             "type": "function",
             "name": format_name(self.name),
@@ -82,6 +94,14 @@ class Agent(BaseModel):
 class ChatResponse(BaseModel):
     agent: Optional[str]
     messages: list[dict[str, Any]]
+
+
+def get_input_type_from_handler(handler: Callable[[Any, I], Awaitable[O]]) -> Type[I]:
+    handler_annotations = getattr(handler, '__annotations__', {})
+    input_type = handler_annotations.get('req')
+    if input_type is None:
+        return Empty
+    return Type[input_type]
 
 
 def get_service_type_from_handler(handler: Callable[[Any, I], Awaitable[O]]) -> ServiceType:
@@ -176,11 +196,16 @@ async def run(
 async def execute_tool_call(ctx: restate.ObjectContext,
                             command_message: ResponseFunctionToolCall,
                             tool_to_call: RestateTool):
+    if tool_to_call.input_type == Empty:
+        arg = None
+    else:
+        arg = tool_to_call.input_type(**json.loads(command_message.arguments))
+
     if tool_to_call.service_type == "Service":
-        return await ctx.service_call(tool_to_call.tool_call, arg=tool_to_call.input_type(**json.loads(command_message.arguments)))
+        return await ctx.service_call(tool_to_call.tool_call, arg=arg)
     elif tool_to_call.service_type == "VirtualObject":
-        return await ctx.object_call(tool_to_call.tool_call, key="123", arg=tool_to_call.input_type(**json.loads(command_message.arguments)))
+        return await ctx.object_call(tool_to_call.tool_call, key="123", arg=arg)
     elif tool_to_call.service_type == "Workflow":
-        return await ctx.workflow_call(tool_to_call.tool_call, key="123", arg=tool_to_call.input_type(**json.loads(command_message.arguments)))
+        return await ctx.workflow_call(tool_to_call.tool_call, key="123", arg=arg)
     else:
         TerminalError(f"Cannot invoke tool with service type {tool_to_call.service_type}")

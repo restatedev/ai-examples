@@ -2,7 +2,8 @@ import restate
 
 from restate.serde import PydanticJsonSerde
 from pydantic import BaseModel
-from src.openaiagents.services import seat_object
+
+from src.agent_template.services.seat_object import reserve, unreserve
 
 
 class Booking(BaseModel):
@@ -29,17 +30,20 @@ booking_object = restate.VirtualObject("BookingObject")
 async def update_seat(ctx: restate.ObjectContext, new_seat_number: str) -> str:
     """Update the seat for a given customer
 
+    This tool is part of a virtual object that represents a booking for a flight for a passenger.
+    The Virtual Object is keyed by booking ID.
+
     Args:
         new_seat_number: The new seat to update to.
     """
     booking: Booking = await get_info(ctx)
-    success = await ctx.object_call(seat_object.reserve,
+    success = await ctx.object_call(reserve,
                                     key=f"{booking.flight_number}-{new_seat_number}",
                                     arg=None)
     if not success:
         return f"Seat {new_seat_number} is not available"
     else:
-        await ctx.object_call(seat_object.unreserve,
+        await ctx.object_call(unreserve,
                               key=f"{booking.flight_number}-{booking.seat_number}",
                               arg=None)
         booking.seat_number = new_seat_number
@@ -49,7 +53,12 @@ async def update_seat(ctx: restate.ObjectContext, new_seat_number: str) -> str:
 
 @booking_object.handler(kind="shared")
 async def send_invoice(ctx: restate.ObjectContext) -> str:
-    """Send an invoice to a customer."""
+    """
+    This tool sends an invoice to a customer.
+
+    This tool is part of a virtual object that represents a booking for a flight for a passenger.
+    The Virtual Object is keyed by booking ID.
+    """
     booking: Booking = await get_info(ctx)
     print(f"Sending invoice to {booking.passenger_name} at {booking.passenger_email}")
     # Send invoice logic here
@@ -58,7 +67,12 @@ async def send_invoice(ctx: restate.ObjectContext) -> str:
 
 @booking_object.handler(kind="shared", output_serde=PydanticJsonSerde(Booking))
 async def get_info(ctx: restate.ObjectContext) -> Booking | None:
-    """Get the booking information."""
+    """
+    This tool gets the booking information.
+
+    This tool is part of a virtual object that represents a booking for a flight for a passenger.
+    The Virtual Object is keyed by booking ID.
+    """
     return await ctx.get("booking", PydanticJsonSerde(Booking)) or Booking(
         confirmation_number="12345",
         flight_number="FL-123",
