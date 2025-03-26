@@ -8,6 +8,7 @@ from agents import (
     function_tool,
     handoff,
     RunContextWrapper,
+    WebSearchTool
 )
 from agents.extensions.handoff_prompt import RECOMMENDED_PROMPT_PREFIX
 from agents.strict_schema import ensure_strict_json_schema
@@ -98,12 +99,14 @@ faq_agent = Agent[EnrichedContext[Booking]](
     # Routine
     1. Identify the last question asked by the customer.
     2. Use the faq_lookup_tool to answer the question. Do not rely on your own knowledge.
-    3. If you cannot answer the question, transfer back to the triage agent.
+    3. If you cannot answer the question with the faq_lookup_tool then use the WebSearchTool to find the answer.
+    3. If you cannot answer the question with any of the tools, then transfer back to the triage agent.
     """,
     tools=[FunctionTool(name="faq_lookup_tool",
                         description="A tool that can answer questions about the airline.",
                         on_invoke_tool=restate_tool_router,
-                        params_json_schema=ensure_strict_json_schema(EmbeddedRequest[LookupRequest].model_json_schema()))],
+                        params_json_schema=ensure_strict_json_schema(EmbeddedRequest[LookupRequest].model_json_schema())),
+           WebSearchTool(user_location={"type": "approximate", "city": "Berlin", "country": "DE"})],
 )
 
 booking_info_agent = Agent[EnrichedContext[Booking]](

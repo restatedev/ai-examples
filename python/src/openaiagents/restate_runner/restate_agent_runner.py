@@ -5,13 +5,13 @@ import logging
 import pickle
 import typing
 
+from agents.util._error_tracing import attach_error_to_span, attach_error_to_current_span
 from restate.serde import Serde
 from restate.exceptions import TerminalError
 from dataclasses import dataclass, field
 from typing import Any, cast
 
 from agents.tracing import agent_span
-from agents import _utils
 from agents._run_impl import (
     RunImpl,
     SingleStepResult,
@@ -203,7 +203,7 @@ class RestateRunner:
 
                     current_turn += 1
                     if current_turn > max_turns:
-                        _utils.attach_error_to_span(
+                        attach_error_to_span(
                             current_span,
                             SpanError(
                                 message="Max turns exceeded",
@@ -379,7 +379,7 @@ class RestateRunner:
 
         for result in guardrail_results:
             if result.output.tripwire_triggered:
-                _utils.attach_error_to_current_span(
+                attach_error_to_current_span(
                     SpanError(
                         message="Guardrail tripwire triggered",
                         data={"guardrail": result.guardrail.get_name()},
@@ -406,7 +406,7 @@ class RestateRunner:
 
         for result in guardrail_results:
             if result.output.tripwire_triggered:
-                _utils.attach_error_to_current_span(
+                attach_error_to_current_span(
                     SpanError(
                         message="Guardrail tripwire triggered",
                         data={"guardrail": result.guardrail.get_name()},

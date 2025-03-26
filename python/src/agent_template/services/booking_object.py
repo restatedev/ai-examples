@@ -57,7 +57,7 @@ async def send_invoice(ctx: restate.ObjectContext) -> str:
 
 
 @booking_object.handler(kind="shared", output_serde=PydanticJsonSerde(Booking))
-async def get_info(ctx: restate.ObjectContext) -> Booking:
+async def get_info(ctx: restate.ObjectContext) -> Booking | None:
     """Get the booking information."""
     return await ctx.get("booking", PydanticJsonSerde(Booking)) or Booking(
         confirmation_number="12345",
