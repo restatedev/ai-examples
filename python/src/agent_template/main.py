@@ -6,8 +6,17 @@ from chat_session import chat_service
 from services.faq_service import faq_service
 from services.booking_object import booking_object
 from services.seat_object import seat_object
+from services.loan_approval_workflow import loan_approval_workflow
 
-app = restate.app(services=[chat_service, faq_service, booking_object, seat_object])
+app = restate.app(
+    services=[
+        chat_service,
+        faq_service,
+        booking_object,
+        seat_object,
+        loan_approval_workflow,
+    ]
+)
 
 if __name__ == "__main__":
     conf = hypercorn.Config()

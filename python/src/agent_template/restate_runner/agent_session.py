@@ -31,8 +31,8 @@ RECOMMENDED_PROMPT_PREFIX = (
     "coordination and execution easy. Agents uses two primary abstraction: **Agents** and "
     "**Handoffs**. An agent encompasses instructions and tools and can hand off a "
     "conversation to another agent when appropriate. "
-    "Handoffs are achieved by calling a handoff function, generally named "
-    "`transfer_to_<agent_name>`. Transfers between agents are handled seamlessly in the background;"
+    "Handoffs are achieved by calling a handoff function, generally having the word 'agent' in their name. "
+    "Transfers between agents are handled seamlessly in the background;"
     " do not mention or draw attention to these transfers in your conversation with the user.\n"
 )
 
@@ -57,7 +57,6 @@ WORKFLOW_HANDLER_TOOL_PREFIX = (
 )
 
 
-# TODO I don't think we need this. Strip it out.
 class Empty(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -173,23 +172,30 @@ def format_name(name: str) -> str:
     return name.replace(" ", "_").lower()
 
 
-async def run(
-    ctx: restate.ObjectContext, starting_agent: Agent, agents: list[Agent], message: str
-) -> ChatResponse:
+agent_session = restate.VirtualObject("AgentSession")
 
+
+class AgentInput(BaseModel):
+    starting_agent: Agent
+    agents: list[Agent]
+    message: str
+
+
+@agent_session.handler()
+async def run(ctx: restate.ObjectContext, req: AgentInput) -> ChatResponse:
     current_agent_name: str = await ctx.get("current_agent_name") or format_name(
-        starting_agent.name
+        req.starting_agent.name
     )
     ctx.set("current_agent_name", current_agent_name)
     logger.info(f"Running chat workflow for: {current_agent_name}")
 
-    agents_dict = {format_name(agent.name): agent for agent in agents}
+    agents_dict = {format_name(agent.name): agent for agent in req.agents}
     agent = agents_dict[current_agent_name]
     logger.info(f"Agent at disposal: {agents_dict}")
 
     # TODO make the input items a separate class
     input_items = await ctx.get("input_items") or []
-    input_items.append({"role": "user", "content": message})
+    input_items.append({"role": "user", "content": req.message})
     logger.info(f"Current input items: {input_items}")
 
     while True:

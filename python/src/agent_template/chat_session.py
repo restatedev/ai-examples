@@ -2,12 +2,14 @@ import restate
 from pydantic import BaseModel
 from typing import Any
 
-from restate_runner.agent_restate import (
+from restate_runner.agent_session import (
     run,
     Agent,
     RestateTool,
     RECOMMENDED_PROMPT_PREFIX,
+    AgentInput,
 )
+from restate_runner import agent_session
 from services import faq_service, booking_object
 
 # AGENTS
@@ -112,18 +114,19 @@ class CustomerChatRequest(BaseModel):
 async def chat(
     ctx: restate.ObjectContext, req: CustomerChatRequest
 ) -> list[dict[str, Any]]:
-    print("chat handler called")
-    result = await run(
-        ctx=ctx,
-        starting_agent=triage_agent,
-        agents=[
-            triage_agent,
-            faq_agent,
-            booking_info_agent,
-            send_invoice_agent,
-            update_seat_agent,
-        ],
-        message=req.user_input,  # this is the input for the LLM call
+    result = await ctx.object_call(
+        agent_session.run,
+        key=ctx.key(),
+        arg=AgentInput(
+            starting_agent=triage_agent,
+            agents=[
+                triage_agent,
+                faq_agent,
+                booking_info_agent,
+                send_invoice_agent,
+                update_seat_agent,
+            ],
+            message=req.user_input,  # this is the input for the LLM call
+        ),
     )
-
     return result.messages
