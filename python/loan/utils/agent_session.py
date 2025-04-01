@@ -10,7 +10,9 @@ from openai.lib._pydantic import to_strict_json_schema
 from openai.types.responses import (
     ResponseFunctionToolCall,
     Response,
-    ResponseOutputMessage, ResponseInputParam, ResponseOutputItem,
+    ResponseOutputMessage,
+    ResponseInputParam,
+    ResponseOutputItem,
 )
 from pydantic import BaseModel, ConfigDict, Field
 from restate import TerminalError
@@ -108,7 +110,9 @@ def restate_tool(tool_call: Callable[[Any, I], Awaitable[O]]) -> RestateTool:
     target_handler = handler_from_callable(tool_call)
     service_type = get_service_type_from_handler(tool_call)
     if service_type == "VirtualObject":
-        description = f"{VIRTUAL_OBJECT_HANDLER_TOOL_PREFIX} \n{target_handler.description}"
+        description = (
+            f"{VIRTUAL_OBJECT_HANDLER_TOOL_PREFIX} \n{target_handler.description}"
+        )
     elif service_type == "Workflow":
         description = f"{WORKFLOW_HANDLER_TOOL_PREFIX} \n{target_handler.description}"
     else:
@@ -150,7 +154,9 @@ class Agent(BaseModel):
 
 def agent_as_tool(agent: Agent, name: str, description: str):
     tool = restate_tool(run)
-    tool.description = f"{description} \n {agent.handoff_description} \n {tool.description}"
+    tool.description = (
+        f"{description} \n {agent.handoff_description} \n {tool.description}"
+    )
     tool.name = f"{name}_as_tool"
     return tool
 
@@ -196,6 +202,7 @@ class AgentInput(BaseModel):
         message (str): input message for the agent
         input_items (ResponseInputParam): input items to use for the agents
     """
+
     starting_agent: Agent
     agents: list[Agent]
     message: str
@@ -260,16 +267,10 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> ChatResponse:
         print(output)
 
         new_items.extend(
-            [
-                {"role": "system", "content": item.model_dump_json()}
-                for item in output
-            ]
+            [{"role": "system", "content": item.model_dump_json()} for item in output]
         )
         input_items.extend(
-            [
-                {"role": "system", "content": item.model_dump_json()}
-                for item in output
-            ]
+            [{"role": "system", "content": item.model_dump_json()} for item in output]
         )
         ctx.set("input_items", input_items)
 
@@ -277,8 +278,7 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> ChatResponse:
         # === 2. handle (parallel) tool calls ===
 
         response_output_messages = [
-            item for item in output
-            if isinstance(item, ResponseOutputMessage)
+            item for item in output if isinstance(item, ResponseOutputMessage)
         ]
 
         # TODO should we still run the tools if we already have an output message?
@@ -289,12 +289,12 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> ChatResponse:
             logger.warning("Multiple output messages in the LLM response.")
 
         response_tool_calls_and_handoffs: List[ResponseFunctionToolCall] = [
-            item for item in output
-            if not isinstance(item, ResponseOutputMessage)
+            item for item in output if not isinstance(item, ResponseOutputMessage)
         ]
 
         handoffs = [
-            item for item in response_tool_calls_and_handoffs
+            item
+            for item in response_tool_calls_and_handoffs
             if item.name in agents_dict.keys()
         ]
         if len(handoffs) == 1:
@@ -315,16 +315,17 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> ChatResponse:
             raise TerminalError("Multiple handoffs in the LLM response.")
 
         tool_calls = [
-            item for item in response_tool_calls_and_handoffs
+            item
+            for item in response_tool_calls_and_handoffs
             if item.name not in agents_dict.keys()
         ]
 
         parallel_tools = []
         for command in tool_calls:
             msg = {
-                    "role": "system",
-                    "content": f"Executing tool {command.name} with arguments {command.arguments}.",
-                }
+                "role": "system",
+                "content": f"Executing tool {command.name} with arguments {command.arguments}.",
+            }
             new_items.append(msg)
             input_items.append(msg)
             ctx.set("input_items", input_items)
@@ -361,14 +362,16 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> ChatResponse:
                 new_items.append(msg)
                 input_items.append(msg)
 
-
         if len(parallel_tools) > 0:
             results_done = await restate.gather(*parallel_tools)
             results = [(await result).decode() for result in results_done]
-            result_msgs = [{
-                "role": "system",
-                "content": result,
-            } for result in results]
+            result_msgs = [
+                {
+                    "role": "system",
+                    "content": result,
+                }
+                for result in results
+            ]
             new_items.extend(result_msgs)
             input_items.extend(result_msgs)
 

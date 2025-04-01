@@ -6,13 +6,17 @@ import restate
 from pydantic import BaseModel, Field
 
 from loan_review_workflow import LoanRequest, LoanDecision
-from loan_review_workflow import run as run_loan_review_workflow, get_status as get_status_loan_review_workflow
+from loan_review_workflow import (
+    run as run_loan_review_workflow,
+    get_status as get_status_loan_review_workflow,
+)
 
 # Keyed by customer ID
 account = restate.VirtualObject("Account")
 
 
 # --------------------Models--------------------
+
 
 class Transaction(BaseModel):
     reason: str
@@ -52,6 +56,7 @@ class CustomerLoanOverview(BaseModel):
     Args:
         loans (Dict[str, Loan]): The list of loans.
     """
+
     loans: Dict[str, Loan] = Field(default={})
 
 
@@ -107,9 +112,7 @@ async def get_transaction_history(ctx: restate.ObjectContext) -> TransactionHist
     Get the transaction history of the customer.
     """
     # If there is no transaction history, return a default history of some salary payments
-    history = await ctx.get(
-        TRANSACTION_HISTORY, type_hint=TransactionHistory
-    )
+    history = await ctx.get(TRANSACTION_HISTORY, type_hint=TransactionHistory)
     if history is None:
         history = await ctx.run(
             "generate transactions",
@@ -121,14 +124,18 @@ async def get_transaction_history(ctx: restate.ObjectContext) -> TransactionHist
 
 
 @account.handler()
-async def submit_loan_request(ctx: restate.ObjectContext, loan_request: LoanRequest) -> str:
+async def submit_loan_request(
+    ctx: restate.ObjectContext, loan_request: LoanRequest
+) -> str:
     """
     Submit a loan request.
 
     Args:
         loan_request (LoanRequest): The loan request object.
     """
-    all_customer_loans = await ctx.get(LOANS, type_hint=CustomerLoanOverview) or CustomerLoanOverview()
+    all_customer_loans = (
+        await ctx.get(LOANS, type_hint=CustomerLoanOverview) or CustomerLoanOverview()
+    )
 
     loan_id = await ctx.run("Generate Loan ID", lambda: str(random.randint(1000, 9999)))
     all_customer_loans.loans[loan_id] = Loan(
@@ -146,7 +153,9 @@ async def get_customer_loans(ctx: restate.ObjectContext) -> CustomerLoanOverview
     """
     Get the ongoing loan requests and loan payments for the customer.
     """
-    all_customer_loans = await ctx.get(LOANS, type_hint=CustomerLoanOverview) or CustomerLoanOverview()
+    all_customer_loans = (
+        await ctx.get(LOANS, type_hint=CustomerLoanOverview) or CustomerLoanOverview()
+    )
     return all_customer_loans
 
 
@@ -155,17 +164,23 @@ async def process_loan_decision(ctx: restate.ObjectContext, decision: LoanDecisi
     """
     Update the loan status.
     """
-    all_customer_loans = await ctx.get(LOANS, type_hint=CustomerLoanOverview) or CustomerLoanOverview()
+    all_customer_loans = (
+        await ctx.get(LOANS, type_hint=CustomerLoanOverview) or CustomerLoanOverview()
+    )
     loan = all_customer_loans.loans.get(decision.loan_id)
     loan.loan_decision = decision
     this_loan_request = loan.loan_request
     loan.loan_payment = RecurringLoanPayment(
-        monthly_amount=this_loan_request.loan_amount / this_loan_request.loan_duration_months,
+        monthly_amount=this_loan_request.loan_amount
+        / this_loan_request.loan_duration_months,
         months_left=this_loan_request.loan_duration_months,
     )
     ctx.set(LOANS, all_customer_loans)
 
-    await notify_customer(ctx, f"Loan {decision.loan_id} was {'approved' if decision.approved else 'rejected'} for the reason: {decision.reason}")
+    await notify_customer(
+        ctx,
+        f"Loan {decision.loan_id} was {'approved' if decision.approved else 'rejected'} for the reason: {decision.reason}",
+    )
 
 
 @account.handler()
@@ -177,13 +192,13 @@ async def calculate_credit_score(ctx: restate.ObjectContext) -> int:
 
 
 @account.handler()
-async def on_recurring_loan_payment(
-    ctx: restate.ObjectContext, loan_id: str
-):
+async def on_recurring_loan_payment(ctx: restate.ObjectContext, loan_id: str):
     """
     Pay the loan amount.
     """
-    all_customer_loans = await ctx.get(LOANS, type_hint=CustomerLoanOverview) or CustomerLoanOverview()
+    all_customer_loans = (
+        await ctx.get(LOANS, type_hint=CustomerLoanOverview) or CustomerLoanOverview()
+    )
     loan = all_customer_loans.loans.get(loan_id)
 
     # Do the transfer back to the bank
@@ -216,17 +231,19 @@ async def on_recurring_loan_payment(
 
 # --------------------UTILS--------------------
 
+
 async def notify_customer(ctx: restate.ObjectContext, message: str):
     """
     Notify the customer about the loan decision.
     """
     # This could be any preferred contact method. Here we only have chat, so we send a chat message.
     from chat import ChatMessage, receive_message
+
     time_now = await ctx.run("time", lambda: round(datetime.now().timestamp() * 1000))
     chat_message = ChatMessage(
         role="system",
         content=message,
-        timestamp= time_now,
+        timestamp=time_now,
     )
     ctx.object_send(receive_message, key=ctx.key(), arg=chat_message)
 
