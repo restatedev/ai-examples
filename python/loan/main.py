@@ -2,16 +2,16 @@ import hypercorn
 import asyncio
 import restate
 
-from chat_session import chat_service
-from loan_approval_workflow import loan_approval_wf
+from chat import chat_service
+from loan_review_workflow import loan_review_workflow
+from account import account
 from utils.agent_session import agent_session
-from utils.account import account
 from utils.credit_worthiness_tools import credit_worthiness_svc
 
 app = restate.app(
     services=[
         chat_service,
-        loan_approval_wf,
+        loan_review_workflow,
         agent_session,
         account,
         credit_worthiness_svc,

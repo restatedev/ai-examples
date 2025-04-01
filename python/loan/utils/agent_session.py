@@ -1,7 +1,6 @@
 import copy
 import json
 import logging
-import typing
 from datetime import timedelta
 from typing import Optional, Any, Callable, Awaitable, TypeVar, Type, List, Literal
 
@@ -27,6 +26,7 @@ O = TypeVar("O", bound=BaseModel)
 
 client = OpenAI()
 
+# prompt prefix for agents
 RECOMMENDED_PROMPT_PREFIX = (
     "# System context\n"
     "You are part of a multi-agent system called the Agents SDK, designed to make agent "
@@ -39,6 +39,7 @@ RECOMMENDED_PROMPT_PREFIX = (
     "You can run tools in parallel but you can only hand off to at most one agent. Never suggest handing off to two or more."
 )
 
+# prompt prefix for tools; gets added to the tool description
 VIRTUAL_OBJECT_HANDLER_TOOL_PREFIX = (
     "# System context\n"
     "This tool is part of a Virtual Object. Virtual Objects are keyed services that need to be addressed by specifying the key. "
@@ -47,6 +48,7 @@ VIRTUAL_OBJECT_HANDLER_TOOL_PREFIX = (
     "The key is a string. In case there is the slightest doubt about the key, always ask the user for the key. "
     "The key is part of the input schema of the tool. You can find the meaning of the key in the tool's input schema. "
     "Keys usually present a unique identifier for the object: for example a customer virtual object might have the customer id as key. "
+    "Unless the agent really explicitly asks to only schedule the task, set delay to None because then you will be able to retrieve the response."
 )
 
 WORKFLOW_HANDLER_TOOL_PREFIX = (
@@ -77,7 +79,7 @@ class RestateRequest(BaseModel, Generic[I]):
 
     key: str
     req: I | Empty
-    delay_in_millis: int | None = None
+    delay_in_millis: int | None
 
 
 ServiceType = Literal["Service", "VirtualObject", "Workflow"]
@@ -104,6 +106,14 @@ def get_input_type_from_handler(handler: Callable[[Any, I], Awaitable[O]]) -> Ty
 
 def restate_tool(tool_call: Callable[[Any, I], Awaitable[O]]) -> RestateTool:
     target_handler = handler_from_callable(tool_call)
+    service_type = get_service_type_from_handler(tool_call)
+    if service_type == "VirtualObject":
+        description = f"{VIRTUAL_OBJECT_HANDLER_TOOL_PREFIX} \n{target_handler.description}"
+    elif service_type == "Workflow":
+        description = f"{WORKFLOW_HANDLER_TOOL_PREFIX} \n{target_handler.description}"
+    else:
+        description = target_handler.description
+
     return RestateTool(
         service_name=target_handler.service_tag.name,
         name=target_handler.name,
@@ -112,7 +122,7 @@ def restate_tool(tool_call: Callable[[Any, I], Awaitable[O]]) -> RestateTool:
         tool_schema={
             "type": "function",
             "name": f"{target_handler.name}",
-            "description": target_handler.description,
+            "description": description,
             "parameters": to_strict_json_schema(
                 RestateRequest[get_input_type_from_handler(tool_call)]
             ),
@@ -219,7 +229,6 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> ChatResponse:
     input_items = await ctx.get("input_items") or []
     input_items.extend(req.input_items)
     input_items.append({"role": "user", "content": req.message})
-    logger.info(f"1. Current input items: {input_items}")
 
     new_items = []
 
@@ -248,6 +257,8 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> ChatResponse:
 
         output: List[ResponseOutputItem] = copy.deepcopy(response.output)
 
+        print(output)
+
         new_items.extend(
             [
                 {"role": "system", "content": item.model_dump_json()}
@@ -261,7 +272,6 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> ChatResponse:
             ]
         )
         ctx.set("input_items", input_items)
-        logger.info(f"2. Current input items: {input_items}")
 
         print(f"{agent.name}:", output)
         # === 2. handle (parallel) tool calls ===
@@ -297,7 +307,6 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> ChatResponse:
             }
             new_items.append(msg)
             input_items.append(msg)
-            logger.info(f"3. Current input items: {input_items}")
             ctx.set("current_agent_name", format_name(agent.name))
             ctx.set("input_items", input_items)
 
@@ -318,7 +327,6 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> ChatResponse:
                 }
             new_items.append(msg)
             input_items.append(msg)
-            logger.info(f"4. Current input items: {input_items}")
             ctx.set("input_items", input_items)
 
             # This can either return a sync response or a call handle
@@ -330,7 +338,15 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> ChatResponse:
             else:
                 input_serialized = json.dumps(tool_request["req"]).encode()
 
-            if tool_request.get("delay_in_millis") is not None:
+            if tool_request.get("delay_in_millis") is None:
+                handle = ctx.generic_call(
+                    service=tool_to_call.service_name,
+                    handler=tool_to_call.name,
+                    arg=input_serialized,
+                    key=tool_request["key"],
+                )
+                parallel_tools.append(handle)
+            else:
                 ctx.generic_send(
                     service=tool_to_call.service_name,
                     handler=tool_to_call.name,
@@ -344,14 +360,7 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> ChatResponse:
                 }
                 new_items.append(msg)
                 input_items.append(msg)
-            else:
-                handle = ctx.generic_call(
-                    service=tool_to_call.service_name,
-                    handler=tool_to_call.name,
-                    arg=input_serialized,
-                    key=tool_request["key"],
-                )
-                parallel_tools.append(handle)
+
 
         if len(parallel_tools) > 0:
             results_done = await restate.gather(*parallel_tools)
@@ -363,7 +372,6 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> ChatResponse:
             new_items.extend(result_msgs)
             input_items.extend(result_msgs)
 
-        logger.info(f"5. Current input items: {input_items}")
         ctx.set("input_items", input_items)
 
     return ChatResponse(agent=agent.name, messages=new_items)
