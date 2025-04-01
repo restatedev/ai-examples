@@ -71,36 +71,8 @@ credit_worthiness_svc = restate.Service("CreditWorthinessTools")
 
 
 @credit_worthiness_svc.handler()
-async def calculate_credit_worthiness(
-    ctx: restate.Context, transaction_history: EnrichedTransactionHistory
-) -> CreditMetric:
-    """
-    Calculate the credit worthiness of a customer based on their transaction history.
-    Args:
-        transaction_history (TransactionHistory): The user's transaction history
-    """
-    montly_spend = ctx.run(
-        "average_monthly_spending",
-        lambda: average_monthly_spending(transaction_history),
-    )
-    debt_to_income = ctx.run(
-        "debt_to_income_ratio", lambda: debt_to_income_ratio(transaction_history)
-    )
-    high_risk = ctx.run(
-        "high_risk_transactions", lambda: high_risk_transactions(transaction_history)
-    )
-    large_purch = ctx.run(
-        "large_purchases", lambda: large_purchases(transaction_history)
-    )
-
-    results = await restate.gather(
-        montly_spend, debt_to_income, high_risk, large_purch
-    )
-    return CreditMetricList(metrics=[await result for result in results])
-
-
-def average_monthly_spending(
-    transaction_history: EnrichedTransactionHistory,
+async def average_monthly_spending(
+    ctx: restate.Context, transaction_history: EnrichedTransactionHistory,
 ) -> CreditMetric:
     """
     Calculate the average monthly spending over the last 12 months.
@@ -113,8 +85,9 @@ def average_monthly_spending(
     return CreditMetric(label="average_monthly_spending", value=abs(sum(expenses) / 12))
 
 
-def debt_to_income_ratio(
-    transaction_history: EnrichedTransactionHistory,
+@credit_worthiness_svc.handler()
+async def debt_to_income_ratio(
+    ctx: restate.Context, transaction_history: EnrichedTransactionHistory,
 ) -> CreditMetric:
     """
     Calculate the debt-to-income ratio.
@@ -137,8 +110,9 @@ def debt_to_income_ratio(
     )
 
 
-def high_risk_transactions(
-    transaction_history: EnrichedTransactionHistory,
+@credit_worthiness_svc.handler()
+async def high_risk_transactions(
+    ctx: restate.Context, transaction_history: EnrichedTransactionHistory,
 ) -> CreditMetric:
     """
     Calculate the number of high-risk transactions: gambling, payday loans, and cash withdrawals.
@@ -154,7 +128,8 @@ def high_risk_transactions(
     )
 
 
-def large_purchases(transaction_history: EnrichedTransactionHistory) -> CreditMetric:
+@credit_worthiness_svc.handler()
+async def large_purchases(ctx: restate.Context, transaction_history: EnrichedTransactionHistory) -> CreditMetric:
     """
     Calculate the number of transactions that exceed 20% of the total income.
 

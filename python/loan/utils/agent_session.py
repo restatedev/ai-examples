@@ -1,8 +1,9 @@
+import copy
 import json
 import logging
 import typing
 from datetime import timedelta
-from typing import Optional, Any, Callable, Awaitable, TypeVar, Type
+from typing import Optional, Any, Callable, Awaitable, TypeVar, Type, List, Literal
 
 import restate
 from openai import OpenAI
@@ -10,12 +11,12 @@ from openai.lib._pydantic import to_strict_json_schema
 from openai.types.responses import (
     ResponseFunctionToolCall,
     Response,
-    ResponseOutputMessage,
+    ResponseOutputMessage, ResponseInputParam, ResponseOutputItem,
 )
 from pydantic import BaseModel, ConfigDict, Field
 from restate import TerminalError
-from restate.handler import handler_from_callable, TypeHint
-from restate.serde import PydanticJsonSerde, Serde
+from restate.handler import handler_from_callable
+from restate.serde import PydanticJsonSerde
 from typing_extensions import Generic
 
 logger = logging.getLogger(__name__)
@@ -32,9 +33,10 @@ RECOMMENDED_PROMPT_PREFIX = (
     "coordination and execution easy. Agents uses two primary abstraction: **Agents** and "
     "**Handoffs**. An agent encompasses instructions and tools and can hand off a "
     "conversation to another agent when appropriate. "
-    "Handoffs are achieved by calling a handoff function, generally having the word 'agent' in their name. "
+    "Handoffs are achieved by calling a handoff function, generally having the word '_agent' in their name. "
     "Transfers between agents are handled seamlessly in the background;"
     " do not mention or draw attention to these transfers in your conversation with the user.\n"
+    "You can run tools in parallel but you can only hand off to at most one agent. Never suggest handing off to two or more."
 )
 
 VIRTUAL_OBJECT_HANDLER_TOOL_PREFIX = (
@@ -78,7 +80,7 @@ class RestateRequest(BaseModel, Generic[I]):
     delay_in_millis: int | None = None
 
 
-ServiceType = typing.Literal["Service", "VirtualObject", "Workflow"]
+ServiceType = Literal["Service", "VirtualObject", "Workflow"]
 
 
 class RestateTool(BaseModel, Generic[I, O]):
@@ -91,6 +93,9 @@ class RestateTool(BaseModel, Generic[I, O]):
 
 def get_input_type_from_handler(handler: Callable[[Any, I], Awaitable[O]]) -> Type[I]:
     handler_annotations = getattr(handler, "__annotations__", {})
+    # The annotations contain the context type (key "ctx"), request type and return type (key "return").
+    # The input type is in the annotations with as key the name of the variable in the function.
+    # Since this can be anything, we search for the value that is not called "ctx" or "return".
     input_type = next(
         (v for k, v in handler_annotations.items() if k not in {"ctx", "return"}), Empty
     )
@@ -133,6 +138,13 @@ class Agent(BaseModel):
         }
 
 
+def agent_as_tool(agent: Agent, name: str, description: str):
+    tool = restate_tool(run)
+    tool.description = f"{description} \n {agent.handoff_description} \n {tool.description}"
+    tool.name = f"{name}_as_tool"
+    return tool
+
+
 class ChatResponse(BaseModel):
     agent: Optional[str]
     messages: list[dict[str, Any]]
@@ -165,13 +177,34 @@ agent_session = restate.VirtualObject("AgentSession")
 
 
 class AgentInput(BaseModel):
+    """
+    The input of an agent session run.
+
+    Args:
+        starting_agent (Agent): the agent to start the interaction with
+        agents (list[Agent]): all the agents that can be part of the interaction
+        message (str): input message for the agent
+        input_items (ResponseInputParam): input items to use for the agents
+    """
     starting_agent: Agent
     agents: list[Agent]
     message: str
+    input_items: ResponseInputParam = Field(default=[])
 
 
 @agent_session.handler()
 async def run(ctx: restate.ObjectContext, req: AgentInput) -> ChatResponse:
+    """
+    Runs an end-to-end agent interaction:
+    1. calls the LLM with the input
+    2. runs all tools and handoffs
+    3. keeps track of the session data: history and current agent
+
+    returns the new items generated
+
+    Args:
+        req (AgentInput): The input for the agent
+    """
     current_agent_name: str = await ctx.get("current_agent_name") or format_name(
         req.starting_agent.name
     )
@@ -184,8 +217,11 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> ChatResponse:
 
     # TODO make the input items a separate class
     input_items = await ctx.get("input_items") or []
+    input_items.extend(req.input_items)
     input_items.append({"role": "user", "content": req.message})
-    logger.info(f"Current input items: {input_items}")
+    logger.info(f"1. Current input items: {input_items}")
+
+    new_items = []
 
     while True:
         tools = {format_name(tool.name): tool for tool in agent.tools}
@@ -197,94 +233,137 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> ChatResponse:
             ]
         )
 
-        response = await ctx.run(
+        response: Response = await ctx.run(
             "Call LLM",
             lambda: client.responses.create(
                 model="gpt-4o",
                 instructions=agent.instructions,
                 input=input_items,
                 tools=tool_and_handoffs_list,
+                parallel_tool_calls=True,
                 stream=False,
             ),
             serde=PydanticJsonSerde(Response),
         )
 
+        output: List[ResponseOutputItem] = copy.deepcopy(response.output)
+
+        new_items.extend(
+            [
+                {"role": "system", "content": item.model_dump_json()}
+                for item in output
+            ]
+        )
         input_items.extend(
             [
                 {"role": "system", "content": item.model_dump_json()}
-                for item in response.output
+                for item in output
             ]
         )
         ctx.set("input_items", input_items)
+        logger.info(f"2. Current input items: {input_items}")
 
-        # TODO this is a list; handle the other output items
-        command = response.output[0]
-        print(f"{agent.name}:", command)
+        print(f"{agent.name}:", output)
+        # === 2. handle (parallel) tool calls ===
 
-        # === 2. handle tool calls ===
-        if isinstance(command, ResponseFunctionToolCall):
-            # Handoffs
-            if command.name in agents_dict.keys():
-                agent = agents_dict[command.name]
-                input_items.append(
-                    {
-                        "role": "system",
-                        "content": f"Transferred to {agent.name}.",
-                    }
-                )
-                ctx.set("input_items", input_items)
-            # Execute handler tool
-            else:
-                input_items.append(
-                    {
-                        "role": "system",
-                        "content": f"Executing tool {command.name}.",
-                    }
-                )
-                ctx.set("input_items", input_items)
+        response_output_messages = [
+            item for item in output
+            if isinstance(item, ResponseOutputMessage)
+        ]
 
-                result = await execute_tool_call(ctx, command, tools[command.name])
-                input_items.append(
-                    {
-                        "role": "system",
-                        "content": result,
-                    }
-                )
-                ctx.set("input_items", input_items)
-        if isinstance(command, ResponseOutputMessage):
+        # TODO should we still run the tools if we already have an output message?
+        # If so, this needs to be moved lower.
+        if len(response_output_messages) == 1:
             break
+        elif len(response_output_messages) > 1:
+            logger.warning("Multiple output messages in the LLM response.")
 
-    ctx.set("input_items", input_items)
-    ctx.set("current_agent_name", format_name(agent.name))
+        response_tool_calls_and_handoffs: List[ResponseFunctionToolCall] = [
+            item for item in output
+            if not isinstance(item, ResponseOutputMessage)
+        ]
 
-    return ChatResponse(agent=agent.name, messages=input_items)
+        handoffs = [
+            item for item in response_tool_calls_and_handoffs
+            if item.name in agents_dict.keys()
+        ]
+        if len(handoffs) == 1:
+            handoff_command = handoffs[0]
+            agent = agents_dict[handoff_command.name]
 
+            msg = {
+                "role": "system",
+                "content": f"Transferred to {agent.name}.",
+            }
+            new_items.append(msg)
+            input_items.append(msg)
+            logger.info(f"3. Current input items: {input_items}")
+            ctx.set("current_agent_name", format_name(agent.name))
+            ctx.set("input_items", input_items)
 
-async def execute_tool_call(
-    ctx: restate.ObjectContext,
-    command_message: ResponseFunctionToolCall,
-    tool_to_call: RestateTool,
-):
-    request = json.loads(command_message.arguments)
-    if request.get("req") is None:
-        input_serialized = bytes({})
-    else:
-        input_serialized = json.dumps(request["req"]).encode()
+        if len(handoffs) > 1:
+            # What to do in this case? This shouldn't happen...
+            raise TerminalError("Multiple handoffs in the LLM response.")
 
-    if request.get("delay_in_millis") is not None:
-        ctx.generic_send(
-            service=tool_to_call.service_name,
-            handler=tool_to_call.name,
-            arg=input_serialized,
-            key=request["key"],
-            send_delay=timedelta(milliseconds=request["delay_in_millis"]),
-        )
-        return "Task was scheduled"
-    else:
-        result = await ctx.generic_call(
-            service=tool_to_call.service_name,
-            handler=tool_to_call.name,
-            arg=input_serialized,
-            key=request["key"],
-        )
-        return result.decode()
+        tool_calls = [
+            item for item in response_tool_calls_and_handoffs
+            if item.name not in agents_dict.keys()
+        ]
+
+        parallel_tools = []
+        for command in tool_calls:
+            msg = {
+                    "role": "system",
+                    "content": f"Executing tool {command.name} with arguments {command.arguments}.",
+                }
+            new_items.append(msg)
+            input_items.append(msg)
+            logger.info(f"4. Current input items: {input_items}")
+            ctx.set("input_items", input_items)
+
+            # This can either return a sync response or a call handle
+            # If it is a call handle then we add it to the list
+            tool_to_call = tools[command.name]
+            tool_request = json.loads(command.arguments)
+            if tool_request.get("req") is None:
+                input_serialized = bytes({})
+            else:
+                input_serialized = json.dumps(tool_request["req"]).encode()
+
+            if tool_request.get("delay_in_millis") is not None:
+                ctx.generic_send(
+                    service=tool_to_call.service_name,
+                    handler=tool_to_call.name,
+                    arg=input_serialized,
+                    key=tool_request["key"],
+                    send_delay=timedelta(milliseconds=tool_request["delay_in_millis"]),
+                )
+                msg = {
+                    "role": "system",
+                    "content": f"Task {tool_to_call.name} was scheduled",
+                }
+                new_items.append(msg)
+                input_items.append(msg)
+            else:
+                handle = ctx.generic_call(
+                    service=tool_to_call.service_name,
+                    handler=tool_to_call.name,
+                    arg=input_serialized,
+                    key=tool_request["key"],
+                )
+                parallel_tools.append(handle)
+
+        if len(parallel_tools) > 0:
+            results_done = await restate.gather(*parallel_tools)
+            results = [(await result).decode() for result in results_done]
+            result_msgs = [{
+                "role": "system",
+                "content": result,
+            } for result in results]
+            new_items.extend(result_msgs)
+            input_items.extend(result_msgs)
+
+        logger.info(f"5. Current input items: {input_items}")
+        ctx.set("input_items", input_items)
+
+    return ChatResponse(agent=agent.name, messages=new_items)

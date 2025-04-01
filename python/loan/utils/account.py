@@ -38,7 +38,7 @@ async def deposit(ctx: restate.ObjectContext, transaction: Transaction):
     Deposit money into the customer's account.
     """
     balance = await get_balance(ctx)
-    balance += transaction.amount
+    balance += abs(transaction.amount)
     ctx.set("balance", balance)
 
     history = await get_transaction_history(ctx)
@@ -52,9 +52,11 @@ async def withdraw(ctx: restate.ObjectContext, transaction: Transaction):
     Withdraw money from the customer's account.
     """
     balance = await get_balance(ctx)
-    balance -= transaction.amount
+    balance -= abs(transaction.amount)
     ctx.set("balance", balance)
 
+    # Make sure this is a negative transaction
+    transaction.amount = -abs(transaction.amount)
     history = await get_transaction_history(ctx)
     history.transactions.append(transaction)
     ctx.set("transaction_history", history, serde=PydanticJsonSerde(TransactionHistory))
@@ -76,7 +78,11 @@ async def on_recurring_loan_payment(
     Pay the loan amount.
     """
     # Do the transfer back to the bank
-    transaction = Transaction(reason=f"loan payment {ctx.key()}", amount=req.monthly_amount, timestamp=datetime.now().strftime("%Y-%m-%d"))
+    transaction = Transaction(
+        reason=f"loan payment {ctx.key()}",
+        amount=req.monthly_amount,
+        timestamp=datetime.now().strftime("%Y-%m-%d"),
+    )
     await withdraw(ctx, transaction)
     ctx.object_send(deposit, key="TrustworthyBank", arg=transaction)
 
@@ -102,10 +108,18 @@ async def get_transaction_history(ctx: restate.ObjectContext) -> TransactionHist
     Get the transaction history of the customer.
     """
     # If there is no transaction history, return a default history of some salary payments
-    history = await ctx.get("transaction_history", PydanticJsonSerde(TransactionHistory))
+    history = await ctx.get(
+        "transaction_history", PydanticJsonSerde(TransactionHistory)
+    )
     if history is None:
-        history = await ctx.run("generate transactions", lambda: generate_transactions(), serde=PydanticJsonSerde(TransactionHistory))
-        ctx.set("transaction_history", history, serde=PydanticJsonSerde(TransactionHistory))
+        history = await ctx.run(
+            "generate transactions",
+            lambda: generate_transactions(),
+            serde=PydanticJsonSerde(TransactionHistory),
+        )
+        ctx.set(
+            "transaction_history", history, serde=PydanticJsonSerde(TransactionHistory)
+        )
     return history
 
 
@@ -140,6 +154,10 @@ def generate_transactions() -> TransactionHistory:
         category = random.choice(list(categories.keys()))
         reason = random.choice(categories[category])
         amount = round(random.uniform(-1000, 1000), 2)
+        if category == "income":
+            amount = abs(amount)
+        else:
+            amount = -abs(amount)
         date = start_date + timedelta(days=random.randint(0, 365))
         transactions.append(
             Transaction(
