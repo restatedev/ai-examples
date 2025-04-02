@@ -16,12 +16,12 @@ type Message = {
 export default function ChatApp() {
   const [messages, setMessages] = useState<Message[]>([])
   const [inputMessage, setInputMessage] = useState("")
-  const [sessionId, setSessionId] = useState("") // Example session ID
+  const [customerId, setCustomerId] = useState("") // Example session ID
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     // set session id to session plus random number
-    setSessionId("session" + Math.floor(Math.random() * 1000))
+    setCustomerId("customer-" + Math.floor(Math.random() * 1000))
   }, [])
 
   // Function to send a message
@@ -44,7 +44,7 @@ export default function ChatApp() {
 
     try {
       // Send message to the specified endpoint
-      const response = await fetch(`http://localhost:8080/ChatService/${sessionId}/send_message`, {
+      const response = await fetch(`http://localhost:8080/ChatService/${customerId}/send_message`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -62,9 +62,9 @@ export default function ChatApp() {
 
   // Function to poll for new messages
   const pollForMessages = async () => {
-    console.log("Polling for messages for session:", sessionId)
+    console.log("Polling for messages for session:", customerId)
     try {
-      const response = await fetch(`http://localhost:8080/ChatService/${sessionId}/get_chat_history`, {
+      const response = await fetch(`http://localhost:8080/ChatService/${customerId}/get_chat_history`, {
         method: "GET",
       })
 
@@ -100,7 +100,7 @@ export default function ChatApp() {
   useEffect(() => {
     const interval = setInterval(pollForMessages, 3000)
     return () => clearInterval(interval)
-  }, [sessionId])
+  }, [customerId])
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -115,7 +115,7 @@ export default function ChatApp() {
         {/* Session ID input */}
         <div className="mb-4">
           <div className="flex items-center bg-white dark:bg-[#2c2c2e] rounded-xl shadow-sm overflow-hidden">
-            <span className="pl-3 text-[#86868b] text-sm">Session: {sessionId}</span>
+            <span className="pl-3 text-[#86868b] text-sm">Customer ID: {customerId}</span>
           </div>
         </div>
 

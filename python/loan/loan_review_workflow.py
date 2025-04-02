@@ -1,9 +1,8 @@
+import restate
 import datetime
 
-import restate
-from pydantic import BaseModel, Field
-from restate.serde import PydanticJsonSerde
-
+from utils.pydantic_models import LoanReviewRequest, LoanDecision, LoanDecisionSerde
+from utils.utils import time_now, time_now_string
 from utils.agent_session import (
     AgentInput,
     RECOMMENDED_PROMPT_PREFIX,
@@ -17,129 +16,63 @@ from utils.credit_worthiness_tools import (
     high_risk_transactions,
     large_purchases,
 )
-import chat
-
-# ----- MODELS ------
-
-
-class LoanRequest(BaseModel):
-    """
-    A loan request object.
-
-    Args:
-        customer_id (str): The customer ID who requested the loan.
-        loan_amount (int): The amount of the loan.
-        loan_duration_months (int): The duration of the loan in months.
-    """
-
-    customer_id: str
-    loan_amount: int
-    loan_duration_months: int
-
-
-class LoanStatus(BaseModel):
-    """
-    A loan status object.
-
-    Args:
-        status (str): The current status of the loan approval process.
-    """
-
-    events: list[str] = Field(default=[])
-
-
-class LoanDecision(BaseModel):
-    """
-    A loan decision object.
-
-    Args:
-        loan_id (str): The ID of the loan.
-        approved (bool): Whether the loan was approved or not.
-        reason (str): The reason for the decision.
-    """
-
-    loan_id: str
-    approved: bool
-    reason: str
-
-
-DecisionSerde = PydanticJsonSerde(LoanDecision)
-
-# ----- LOAN APPROVAL WORKFLOW ------
+from account import (
+    Transaction,
+    process_loan_decision,
+    withdraw as account_withdraw,
+    deposit as account_deposit,
+    on_recurring_loan_payment as account_loan_payment,
+)
 
 loan_review_workflow = restate.Workflow("LoanApprovalWorkflow")
 
 
 @loan_review_workflow.main()
-async def run(ctx: restate.WorkflowContext, loan_request: LoanRequest) -> LoanDecision:
+async def run(ctx: restate.WorkflowContext, loan_review_request: LoanReviewRequest) -> LoanDecision:
     """
     Run the loan approval workflow.
 
     Args:
-        loan_request (LoanRequest): The loan request object.
+        req (LoanRequest): The loan request object.
     """
-    from account import (
-        Transaction,
-        process_loan_decision,
-        withdraw as account_withdraw,
-        deposit as account_deposit,
-        on_recurring_loan_payment as account_loan_payment,
-        get_transaction_history as account_get_transaction_history,
-    )
-
-    customer_id = loan_request.customer_id
-    await update_status(ctx, "Submitted")
-
-    # 1. Gather extra info on the customer
-    # TODO this can move to the account service
-    transaction_history = await ctx.object_call(
-        account_get_transaction_history, key=customer_id, arg=None
-    )
-
-    # 2. Run the loan approval process
-    if loan_request.loan_amount < 1000000:
+    req = loan_review_request.loan_request
+    # 1. Assess the loan request
+    if req.loan_amount < 1000000:
         # Loans under 1M can be approved by the AI agent
-        await update_status(ctx, "Running AI-based assessment")
+        history = loan_review_request.transaction_history.model_dump_json()
         loan_intake_data = (
             f"Loan approval workflow ID: {ctx.key()} --> Use this key to communicate back to the workflow."
-            f"Review the loan request: {loan_request.model_dump_json()};"
-            f"transaction history: {transaction_history.model_dump_json()};"
+            f"Review the loan request: {req.model_dump_json()};"
+            f"transaction history: {history};"
         )
         await invoke_agent(ctx, loan_intake_data)
     else:
         # Loans over 1M require human assessment
-        await update_status(ctx, "Waiting for human assessment")
         await ctx.run("Request human assessment", request_human_assessment)
 
-    # 3. Wait for the loan decision and notify the customer
-    decision = await ctx.promise("loan_decision", serde=DecisionSerde).value()
-    ctx.object_send(process_loan_decision, key=customer_id, arg=decision)
-    await update_status(ctx, f"Loan decision: {decision.model_dump_json()}")
+    # 2. Wait for the loan decision and notify the customer
+    decision = await ctx.promise("loan_decision", serde=LoanDecisionSerde).value()
+    ctx.object_send(process_loan_decision, key=req.customer_id, arg=decision)
 
     if not decision.approved:
         return decision
 
-    # 4. Deposit the loan amount to the customer account
-    tx_time = await ctx.run(
-        "tx time", lambda: datetime.datetime.now().strftime("%Y-%m-%d")
-    )
+    # 3. Deposit the loan amount to the customer account
     loan_transfer = Transaction(
-        reason=f"Loan transfer {customer_id}",
-        amount=loan_request.loan_amount,
-        timestamp=tx_time,
+        reason=f"Loan transfer {req.customer_id}",
+        amount=req.loan_amount,
+        timestamp=await time_now_string(ctx),
     )
     await ctx.object_call(account_withdraw, key="TrustworthyBank", arg=loan_transfer)
-    await ctx.object_call(account_deposit, key=customer_id, arg=loan_transfer)
-    await update_status(ctx, f"Money transferred to customer account {customer_id}")
+    await ctx.object_call(account_deposit, key=req.customer_id, arg=loan_transfer)
 
-    # 5. Schedule recurring loan payments to start in one month
+    # 4. Schedule recurring loan payments to start in one month
     ctx.object_send(
         account_loan_payment,
-        key=customer_id,
+        key=req.customer_id,
         arg=ctx.key(),
         send_delay=datetime.timedelta(days=30),
     )
-    await update_status(ctx, f"Recurring loan payment scheduled for {customer_id}")
     return decision
 
 
@@ -151,16 +84,7 @@ async def on_loan_decision(ctx: restate.WorkflowSharedContext, decision: LoanDec
     Args:
         decision (LoanDecision): The result of the loan approval decision.
     """
-    print(f"Approving loan {ctx.key()} with decision {decision.model_dump_json()}")
-    await ctx.promise("loan_decision", serde=DecisionSerde).resolve(decision)
-
-
-@loan_review_workflow.handler()
-async def get_status(ctx: restate.WorkflowSharedContext) -> LoanStatus:
-    """
-    Get the current status of the loan approval process.
-    """
-    return await ctx.get("status", type_hint=LoanStatus) or LoanStatus()
+    await ctx.promise("loan_decision", serde=LoanDecisionSerde).resolve(decision)
 
 
 # ----- AGENTS ------
@@ -207,15 +131,6 @@ def request_human_assessment():
     # request a loan assessor to have a look
     # ... to be implemented ...
     pass
-
-
-async def update_status(ctx: restate.WorkflowContext, msg):
-    """
-    Update the status of the loan approval process.
-    """
-    status = await ctx.get("status", type_hint=LoanStatus) or LoanStatus(events=[])
-    status.events.append(msg)
-    ctx.set("status", status)
 
 
 async def invoke_agent(ctx: restate.ObjectContext, msg: str):
