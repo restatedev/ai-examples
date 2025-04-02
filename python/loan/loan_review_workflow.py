@@ -1,15 +1,16 @@
 import restate
-import datetime
+
+from datetime import timedelta
 
 from utils.pydantic_models import LoanReviewRequest, LoanDecision, LoanDecisionSerde
-from utils.utils import time_now, time_now_string
+from utils.utils import time_now_string
 from utils.agent_session import (
     AgentInput,
     RECOMMENDED_PROMPT_PREFIX,
     Agent,
     restate_tool,
+    run as agent_session_run,
 )
-from utils.agent_session import run as agent_session_run
 from utils.credit_worthiness_tools import (
     average_monthly_spending,
     debt_to_income_ratio,
@@ -52,7 +53,7 @@ async def run(
         # Loans over 1M require human assessment
         await ctx.run("Request human assessment", request_human_assessment)
 
-    # 2. Wait for the loan decision and notify the customer
+    # 2. Wait for the loan decision and add the info to the customer account
     decision = await ctx.promise("loan_decision", serde=LoanDecisionSerde).value()
     ctx.object_send(process_loan_decision, key=req.customer_id, arg=decision)
 
@@ -73,7 +74,7 @@ async def run(
         account_loan_payment,
         key=req.customer_id,
         arg=ctx.key(),
-        send_delay=datetime.timedelta(days=30),
+        send_delay=timedelta(days=30),
     )
     return decision
 

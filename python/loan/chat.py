@@ -61,6 +61,7 @@ loan_request_manager_agent = Agent(
     You can find all the required information in the input parameters of the loan_approval_workflow run tool: loan amount, and duration.
     Don't ask for other info besides that.
     2. Once you have all the loan request information, submit the workflow with the submit_loan_request tool, and use the customer ID as the key.
+    3. Use the response of the submit_loan_request tool to retrieve the loan ID and mention that in your communication back to the customer.
 
     # Routine #2
     Alternatively, if the customer wants to get the status of his ongoing loan payments, loan requests, and loan decisions:
@@ -102,6 +103,16 @@ CHAT_HISTORY = "chat_history"
 
 @chat_service.handler()
 async def send_message(ctx: restate.ObjectContext, req: ChatMessage) -> ChatMessage:
+    """
+    Send a message from the customer to the ChatService.
+    This will be used as input to start an agent session.
+
+    Args:
+        req (ChatMessage): The message to send to the ChatService.
+
+    Returns:
+        ChatMessage: The synchronous response from the ChatService.
+    """
     history = await ctx.get(CHAT_HISTORY, type_hint=ChatHistory) or ChatHistory()
     history.entries.append(req)
     ctx.set(CHAT_HISTORY, history)
@@ -116,11 +127,8 @@ async def send_message(ctx: restate.ObjectContext, req: ChatMessage) -> ChatMess
         ),
     )
 
-    print(result)
-
-    content = json.loads(result.messages[-1]["content"])["content"][-1]["text"]
     new_message = ChatMessage(
-        role="system", content=content, timestamp=await time_now(ctx)
+        role="system", content=result.final_output, timestamp=await time_now(ctx)
     )
     history.entries.append(new_message)
     ctx.set(CHAT_HISTORY, history)
@@ -128,7 +136,7 @@ async def send_message(ctx: restate.ObjectContext, req: ChatMessage) -> ChatMess
 
 
 @chat_service.handler()
-async def receive_message(ctx: restate.ObjectContext, req: ChatMessage):
+async def process_async_message(ctx: restate.ObjectContext, req: ChatMessage):
     """
     Add a message to the chat history of this chat session.
     This can be used to let the bank send messages to the customer.

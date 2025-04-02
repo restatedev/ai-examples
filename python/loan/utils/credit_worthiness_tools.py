@@ -2,7 +2,9 @@ import restate
 
 from utils.pydantic_models import EnrichedTransactionHistory, CreditMetric
 
-
+"""
+Tools to calculate credit worthiness metrics based on transaction history.
+"""
 credit_worthiness_svc = restate.Service("CreditWorthinessTools")
 
 
@@ -16,6 +18,9 @@ async def average_monthly_spending(
 
     Args:
         transaction_history (TransactionHistory): The user's transaction history.
+
+    Returns:
+        CreditMetric: The average monthly spending metric.
     """
     transactions = transaction_history.transactions
     expenses = [t.amount for t in transactions if t.amount < 0]
@@ -32,6 +37,9 @@ async def debt_to_income_ratio(
 
     Args:
         transaction_history (TransactionHistory): The user's transaction history
+
+    Returns:
+        CreditMetric: The debt-to-income ratio metric.
     """
     transactions = transaction_history.transactions
     total_debt_payments = sum(
@@ -58,6 +66,9 @@ async def high_risk_transactions(
 
     Args:
         transaction_history (TransactionHistory): The user's transaction history
+
+    Returns:
+        CreditMetric: The number of high-risk transactions metric.
     """
     transactions = transaction_history.transactions
     risky_categories = {"gambling", "payday_loan", "cash_withdrawal"}
@@ -76,7 +87,9 @@ async def large_purchases(
 
     Args:
         transaction_history (TransactionHistory): The user's transaction history
-        threshold (float): The threshold for large purchases
+
+    Returns:
+        CreditMetric: The number of large purchases metric.
     """
     transactions = transaction_history.transactions
     total_income = sum(

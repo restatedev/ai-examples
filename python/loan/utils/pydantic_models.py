@@ -11,7 +11,7 @@ class ChatMessage(BaseModel):
     """
     A chat message object.
 
-    Args:
+    Attributes:
         role (str): The role of the sender (user, assistant, system).
         content (str): The message to send.
         timestamp (int): The timestamp of the message in millis.
@@ -26,7 +26,7 @@ class ChatHistory(BaseModel):
     """
     A chat history object.
 
-    Args:
+    Attributes:
         entries (list[ChatMessage]): The list of chat messages.
     """
 
@@ -61,7 +61,7 @@ class EnrichedTransaction(BaseModel):
     """
     A single transaction in a customer account.
 
-    Args:
+    Attributes:
         amount (float): The amount of the transaction. Negative for expenses, positive for income
         category (TransactionCategory): The category of the transaction.  # e.g., "income", "loan_payment", "gambling", etc.
         timestamp (str): The timestamp of the transaction in YYYY-MM-DD format
@@ -78,7 +78,7 @@ class EnrichedTransactionHistory(BaseModel):
     """
     A customer account's transaction history enriched with categories.
 
-    Args:
+    Attributes:
         transactions (List[Transaction]): A list of transactions
     """
 
@@ -97,7 +97,7 @@ class LoanRequest(BaseModel):
     """
     A loan request object.
 
-    Args:
+    Attributes:
         customer_id (str): The customer ID who requested the loan.
         loan_amount (int): The amount of the loan.
         loan_duration_months (int): The duration of the loan in months.
@@ -112,7 +112,7 @@ class LoanReviewRequest(BaseModel):
     """
     A loan request object.
 
-    Args:
+    Attributes:
         loan_request (LoanRequest): the loan request itself
         transaction_history (TransactionHistory): The transaction history of the customer
     """
@@ -125,7 +125,7 @@ class LoanStatus(BaseModel):
     """
     A loan status object.
 
-    Args:
+    Attributes:
         events (list[str]): The events that happened during the loan approval process.
     """
 
@@ -136,7 +136,7 @@ class LoanDecision(BaseModel):
     """
     A loan decision object.
 
-    Args:
+    Attributes:
         loan_id (str): The ID of the loan.
         approved (bool): Whether the loan was approved or not.
         reason (str): The reason for the decision.
@@ -154,7 +154,7 @@ class Loan(BaseModel):
     """
     A loan object.
 
-    Args:
+    Attributes:
         loan_id (str): The ID of the loan.
         loan_request (LoanRequest): The initial loan request.
         loan_decision (LoanDecision): Information about whether the loan was approved or not, and the reason.
@@ -171,7 +171,7 @@ class CustomerLoanOverview(BaseModel):
     """
     The ongoing loan requests and loan payments for the customer.
 
-    Args:
+    Attributes:
         loans (Dict[str, Loan]): The list of loans.
     """
 
@@ -185,7 +185,7 @@ class CreditMetric(BaseModel):
     """
     The result of a credit worthiness metric.
 
-    Args:
+    Attributes:
         value (float): The value of the outcome
         label (str): The name of the metric
     """
@@ -198,7 +198,7 @@ class CreditMetricList(BaseModel):
     """
     A list of credit worthiness outcomes.
 
-    Args:
+    Attributes:
         metrics (List[CreditMetric]): A list of credit worthiness outcomes
     """
 

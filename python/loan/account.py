@@ -30,6 +30,9 @@ LOANS = "loans"
 async def deposit(ctx: restate.ObjectContext, transaction: Transaction):
     """
     Deposit money into the customer's account.
+
+    Args:
+        transaction (Transaction): The transaction object.
     """
     balance = await get_balance(ctx)
     balance += abs(transaction.amount)
@@ -44,6 +47,9 @@ async def deposit(ctx: restate.ObjectContext, transaction: Transaction):
 async def withdraw(ctx: restate.ObjectContext, transaction: Transaction):
     """
     Withdraw money from the customer's account.
+
+    Args:
+        transaction (Transaction): The transaction object.
     """
     balance = await get_balance(ctx)
     balance -= abs(transaction.amount)
@@ -63,6 +69,9 @@ async def submit_loan_request(ctx: restate.ObjectContext, req: LoanRequest) -> s
 
     Args:
         req (LoanRequest): The loan request object.
+
+    Returns:
+        str: Message indicating the loan ID.
     """
     loan_id = await ctx.run("Generate Loan ID", lambda: str(random.randint(1000, 9999)))
     all_loans = await get_customer_loans(ctx)
@@ -85,6 +94,9 @@ async def submit_loan_request(ctx: restate.ObjectContext, req: LoanRequest) -> s
 async def process_loan_decision(ctx: restate.ObjectContext, decision: LoanDecision):
     """
     Update the loan status.
+
+    Args:
+        decision (LoanDecision): The loan decision object of whether the loan was approved or rejected.
     """
     all_loans = await get_customer_loans(ctx)
     loan = all_loans.loans.get(decision.loan_id)
@@ -105,7 +117,10 @@ async def process_loan_decision(ctx: restate.ObjectContext, decision: LoanDecisi
 @account.handler()
 async def on_recurring_loan_payment(ctx: restate.ObjectContext, loan_id: str):
     """
-    Pay the loan amount.
+    Handle a scheduled payment for a loan.
+
+    Args:
+        loan_id (str): The ID of the loan.
     """
     all_loans = await get_customer_loans(ctx)
     loan = all_loans.loans.get(loan_id)
@@ -141,6 +156,9 @@ async def on_recurring_loan_payment(ctx: restate.ObjectContext, loan_id: str):
 async def get_customer_loans(ctx: restate.ObjectContext) -> CustomerLoanOverview:
     """
     Get the ongoing loan requests and loan payments for the customer.
+
+    Returns:
+        CustomerLoanOverview: The overview of the customer's outstanding loans and loan requests.
     """
     return (
         await ctx.get(LOANS, type_hint=CustomerLoanOverview) or CustomerLoanOverview()
@@ -151,6 +169,9 @@ async def get_customer_loans(ctx: restate.ObjectContext) -> CustomerLoanOverview
 async def get_balance(ctx: restate.ObjectContext) -> float:
     """
     Get the balance of the customer.
+
+    Returns:
+        float: The balance of the customer.
     """
     return await ctx.get(BALANCE) or 100000.0
 
@@ -159,6 +180,9 @@ async def get_balance(ctx: restate.ObjectContext) -> float:
 async def get_transaction_history(ctx: restate.ObjectContext) -> TransactionHistory:
     """
     Get the transaction history of the customer.
+
+    Returns:
+        TransactionHistory: The transaction history of the customer.
     """
     # If there is no transaction history, return a default history of some salary payments
     history = await ctx.get(TRANSACTION_HISTORY, type_hint=TransactionHistory)
@@ -175,13 +199,16 @@ async def get_transaction_history(ctx: restate.ObjectContext) -> TransactionHist
 async def notify_customer(ctx: restate.ObjectContext, message: str):
     """
     Notify the customer of a message.
+
+    Args:
+        message (str): The message to send to the customer.
     """
     # This could be any preferred contact method. Here we only have chat, so we send a chat message.
-    from chat import ChatMessage, receive_message
+    from chat import ChatMessage, process_async_message
 
     chat_message = ChatMessage(
         role="system",
         content=message,
         timestamp=await time_now(ctx),
     )
-    ctx.object_send(receive_message, key=ctx.key(), arg=chat_message)
+    ctx.object_send(process_async_message, key=ctx.key(), arg=chat_message)

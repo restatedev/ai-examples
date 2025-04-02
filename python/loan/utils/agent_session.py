@@ -1,4 +1,3 @@
-import copy
 import json
 import logging
 import restate
@@ -21,7 +20,10 @@ from openai.types.responses import (
     ResponseFunctionToolCall,
     Response,
     ResponseOutputMessage,
-    ResponseOutputItem,
+    ResponseFileSearchToolCall,
+    ResponseFunctionWebSearch,
+    ResponseReasoningItem,
+    ResponseComputerToolCall, ResponseOutputText,
 )
 from pydantic import BaseModel, ConfigDict, Field
 from restate import TerminalError
@@ -103,6 +105,18 @@ class RestateRequest(BaseModel, Generic[I]):
 
 
 class RestateTool(BaseModel, Generic[I, O]):
+    """
+    Represents a Restate tool.
+
+    Attributes:
+        service_name (str): The name of the service that provides the tool.
+        name (str): The name of the tool, equal to the name of the service handler.
+        description (str): A description of the tool, to be used by the agent.
+        service_type (ServiceType): The type of the service (Service, VirtualObject, or Workflow).
+        tool_schema (dict[str, Any]): The schema for the tool's input and output.
+        formatted_name (str): The formatted name of the tool without spaces and lowercase, used for the LLM.
+    """
+
     service_name: str
     name: str
     description: str
@@ -112,6 +126,18 @@ class RestateTool(BaseModel, Generic[I, O]):
 
 
 class Agent(BaseModel):
+    """
+    Represents an agent in the system.
+
+    Attributes:
+        name (str): The name of the agent.
+        handoff_description (str): A description of the agent, to be used by the LLM.
+        instructions (str): Instructions for the agent, to be used by the LLM.
+        tools (list[RestateTool]): A list of tools that the agent can use.
+        handoffs (list[str]): A list of handoff agents to which the agent can hand off the conversation.
+        formatted_name (str): The formatted name of the agent without spaces and lowercase, used for the LLM.
+    """
+
     name: str
     handoff_description: str
     instructions: str
@@ -141,7 +167,7 @@ class AgentInput(BaseModel):
     """
     The input of an agent session run.
 
-    Args:
+    Attributes:
         starting_agent (Agent): the agent to start the interaction with
         agents (list[Agent]): all the agents that can be part of the interaction
         message (str): input message for the agent
@@ -155,15 +181,25 @@ class AgentInput(BaseModel):
 class AgentResponse(BaseModel):
     """
     Represents the response from an agent session.
+
+    Attributes:
+        agent (str): The name of the agent that generated the response.
+        messages (list[dict[str, Any]]): The messages generated during the session.
+        final_output (str): The final output of the agent.
     """
 
     agent: Optional[str]
     messages: list[dict[str, Any]]
+    final_output: str
 
 
 class SessionItem(TypedDict):
     """
     Represents a single item in the session.
+
+    Attributes:
+        role (str): The role of who generated the item, either "user", "assistant", or "system".
+        content (str): The content of the item.
     """
 
     role: Literal["user", "assistant", "system"]
@@ -228,6 +264,8 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> AgentResponse:
     Args:
         req (AgentInput): The input for the agent
     """
+
+    # === 1. initialize the agent session ===
     session_state = SessionState(input_items=await ctx.get("input_items"))
     session_state.add_user_message(ctx, req.message)
 
@@ -236,8 +274,9 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> AgentResponse:
     agents_dict = {agent.formatted_name: agent for agent in req.agents}
     agent = agents_dict[agent_name]
 
-    # The agent loop
+    # === 2. Run the agent loop ===
     while True:
+        # Get the tools in the right format for the LLM
         tools = {tool.formatted_name: tool for tool in agent.tools}
         tool_and_handoffs_list = [tool.tool_schema for tool in agent.tools]
         tool_and_handoffs_list.extend(
@@ -247,6 +286,7 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> AgentResponse:
             ]
         )
 
+        # Call the LLM - OpenAPI Responses API
         response: Response = await ctx.run(
             "Call LLM",
             lambda: client.responses.create(
@@ -257,60 +297,65 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> AgentResponse:
                 parallel_tool_calls=True,
                 stream=False,
             ),
-            serde=PydanticJsonSerde(Response),  # does not work with type_hint
+            serde=PydanticJsonSerde(Response),
         )
 
-        output = copy.deepcopy(response.output)
+        # Register the output in the session state
         session_state.add_system_messages(
-            ctx, [item.model_dump_json() for item in output]
+            ctx, [item.model_dump_json() for item in response.output]
         )
 
-        # === 2. handle (parallel) tool calls ===
-        response_output_messages = [
-            item for item in output if isinstance(item, ResponseOutputMessage)
-        ]
+        # Parse LLM response
+        tool_calls = []
+        run_handoffs = []
+        output_messages = []
 
-        # TODO should we still run the tools if we already have an output message?
-        # If so, this needs to be moved lower.
-        if len(response_output_messages) == 1:
-            break
-        elif len(response_output_messages) > 1:
-            logger.warning("Multiple output messages in the LLM response.")
+        for item in response.output:
+            if isinstance(item, ResponseOutputMessage):
+                output_messages.append(item)
+            elif (
+                isinstance(item, ResponseFileSearchToolCall)
+                or isinstance(item, ResponseFunctionWebSearch)
+                or isinstance(item, ResponseReasoningItem)
+                or isinstance(item, ResponseComputerToolCall)
+            ):
+                logger.warning(
+                    "This implementation does not support file search, web search, computer tools, or reasoning yet."
+                )
+                # We add it to the session_state to feed it back into the next LLM call
+                session_state.add_system_message(
+                    ctx,
+                    "This agent cannot handle file search, web search, computer tools, or reasoning. Use another tool or handoff.",
+                )
+            elif isinstance(item, ResponseFunctionToolCall):
+                if item.name in agents_dict.keys():
+                    # Handoffs
+                    run_handoffs.append(item)
+                else:
+                    # Tool calls
+                    if item.name not in tools.keys():
+                        logger.warning(f"Unkown tool, ignoring: {item.name}")
+                        session_state.add_system_message(
+                            ctx,
+                            f"This agent does not have access to this tool: {item.name}. Use another tool or handoff.",
+                        )
+                    tool_calls.append(item)
+            else:
+                logger.warning(f"Unexpected output type, ignoring: {type(item)}")
+                # We add it to the session_state to feed it back into the next LLM call
+                session_state.add_system_message(
+                    ctx,
+                    f"This agent cannot handle this output type {type(item)}. Use another tool or handoff.",
+                )
+                continue
 
-        response_tool_calls_and_handoffs: List[ResponseFunctionToolCall] = [
-            item for item in output if not isinstance(item, ResponseOutputMessage)
-        ]
-
-        handoffs = [
-            item
-            for item in response_tool_calls_and_handoffs
-            if item.name in agents_dict.keys()
-        ]
-        if len(handoffs) == 1:
-            handoff_command = handoffs[0]
-            agent = agents_dict[handoff_command.name]
-
-            session_state.add_system_message(ctx, f"Transferred to {agent.name}.")
-            ctx.set("agent_name", format_name(agent.name))
-
-        if len(handoffs) > 1:
-            # What to do in this case? This shouldn't happen...
-            raise TerminalError("Multiple handoffs in the LLM response.")
-
-        tool_calls = [
-            item
-            for item in response_tool_calls_and_handoffs
-            if item.name not in agents_dict.keys()
-        ]
-
+        # Execute (parallel) tool calls
         parallel_tools = []
         for command in tool_calls:
             session_state.add_system_message(
                 ctx, f"Executing tool {command.name} with args {command.arguments}."
             )
 
-            # This can either return a sync response or a call handle
-            # If it is a call handle then we add it to the list
             tool_to_call = tools[command.name]
             tool_request = json.loads(command.arguments)
             if tool_request.get("req") is None:
@@ -327,6 +372,7 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> AgentResponse:
                 )
                 parallel_tools.append(handle)
             else:
+                # Used for scheduling tasks in the future or long-running tasks like workflows
                 ctx.generic_send(
                     service=tool_to_call.service_name,
                     handler=tool_to_call.name,
@@ -343,7 +389,46 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> AgentResponse:
             results = [(await result).decode() for result in results_done]
             session_state.add_system_messages(ctx, results)
 
-    return AgentResponse(agent=agent.name, messages=session_state.get_new_items())
+        # Handle handoffs
+        if len(run_handoffs) > 0:
+            # Only one agent can be in charge of the conversation at a time.
+            # So if there are multiple handoffs in the response, only run the first one.
+            # For the others, we add a tool response that we will not handle them.
+            if len(run_handoffs) > 1:
+                session_state.add_system_messages(
+                    ctx,
+                    [
+                        f"Multiple handoffs detected, ignoring this one: {handoff.name} with arguments {handoff.arguments}."
+                        for handoff in run_handoffs[1:]
+                    ],
+                )
+
+            handoff_command = run_handoffs[0]
+
+            # Determine the new agent in charge
+            agent = agents_dict[handoff_command.name]
+            session_state.add_system_message(ctx, f"Transferred to {agent.name}.")
+            ctx.set("agent_name", format_name(agent.name))
+
+            # Start a new agent loop with the new agent
+            continue
+
+        # Handle output messages
+        # If there are no output messages, then we just continue the loop
+        if len(output_messages) > 0:
+            if len(output_messages) > 1:
+                logger.warning("Multiple output messages in the LLM response.")
+
+            # Use the last output message as the final output
+            # If that is a refusal, then just run the loop again
+            last_content = output_messages[-1].content[-1]
+            if isinstance(last_content, ResponseOutputText):
+                final_output = last_content.text
+                return AgentResponse(
+                    agent=agent.name,
+                    messages=session_state.get_new_items(),
+                    final_output=final_output,
+                )
 
 
 # UTILS
@@ -356,20 +441,23 @@ def format_name(name: str) -> str:
 def restate_tool(tool_call: Callable[[Any, I], Awaitable[O]]) -> RestateTool:
     target_handler = handler_from_callable(tool_call)
     service_type = get_service_type_from_handler(tool_call)
-    if service_type == "VirtualObject":
-        description = (
-            f"{VIRTUAL_OBJECT_HANDLER_TOOL_PREFIX} \n{target_handler.description}"
-        )
-    elif service_type == "Workflow":
-        description = f"{WORKFLOW_HANDLER_TOOL_PREFIX} \n{target_handler.description}"
-    else:
-        description = target_handler.description
+    match service_type:
+        case "VirtualObject":
+            description = (
+                f"{VIRTUAL_OBJECT_HANDLER_TOOL_PREFIX} \n{target_handler.description}"
+            )
+        case "Workflow":
+            description = (
+                f"{WORKFLOW_HANDLER_TOOL_PREFIX} \n{target_handler.description}"
+            )
+        case _:
+            description = target_handler.description
 
     return RestateTool(
         service_name=target_handler.service_tag.name,
         name=target_handler.name,
         description=target_handler.description,
-        service_type=get_service_type_from_handler(tool_call),
+        service_type=service_type,
         tool_schema={
             "type": "function",
             "name": f"{target_handler.name}",
@@ -397,16 +485,19 @@ def get_service_type_from_handler(
     handler: Callable[[Any, I], Awaitable[O]],
 ) -> ServiceType:
     handler_annotations = getattr(handler, "__annotations__", {})
-    context_type = handler_annotations.get("ctx")
-    if issubclass(context_type, restate.Context):
-        return "Service"
-    elif issubclass(context_type, restate.ObjectContext) or issubclass(
-        context_type, restate.ObjectSharedContext
-    ):
-        return "VirtualObject"
-    elif issubclass(context_type, restate.WorkflowContext) or issubclass(
-        context_type, restate.WorkflowSharedContext
-    ):
-        return "Workflow"
-    else:
-        raise TerminalError(f"Could not determine service type for handler {handler}")
+    ctx_type = handler_annotations.get("ctx")
+    match ctx_type:
+        case _ if issubclass(ctx_type, restate.Context):
+            return "Service"
+        case _ if issubclass(ctx_type, restate.ObjectContext) or issubclass(
+            ctx_type, restate.ObjectSharedContext
+        ):
+            return "VirtualObject"
+        case _ if issubclass(ctx_type, restate.WorkflowContext) or issubclass(
+            ctx_type, restate.WorkflowSharedContext
+        ):
+            return "Workflow"
+        case _:
+            raise TerminalError(
+                f"Could not determine service type for handler {handler}"
+            )
