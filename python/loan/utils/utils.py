@@ -9,8 +9,10 @@ from utils.pydantic_models import TransactionHistory, Transaction
 async def time_now(ctx: restate.WorkflowContext | restate.ObjectContext) -> int:
     return await ctx.run("time", lambda: round(datetime.now().timestamp() * 1000))
 
+
 async def time_now_string(ctx: restate.WorkflowContext | restate.ObjectContext) -> str:
     return await ctx.run("time", lambda: datetime.now().strftime("%Y-%m-%d"))
+
 
 regular_categories = {
     "income": ["Salary", "Bonus", "Freelance"],
@@ -24,6 +26,7 @@ high_risk_categories = {
     "gambling": ["Casino", "Lottery"],
     "payday_loan": ["Payday Loan Repayment"],
 }
+
 
 def generate_transactions() -> TransactionHistory:
     """

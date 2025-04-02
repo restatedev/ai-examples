@@ -28,7 +28,9 @@ loan_review_workflow = restate.Workflow("LoanApprovalWorkflow")
 
 
 @loan_review_workflow.main()
-async def run(ctx: restate.WorkflowContext, loan_review_request: LoanReviewRequest) -> LoanDecision:
+async def run(
+    ctx: restate.WorkflowContext, loan_review_request: LoanReviewRequest
+) -> LoanDecision:
     """
     Run the loan approval workflow.
 

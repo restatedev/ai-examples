@@ -1,7 +1,12 @@
 import json
 import restate
 
-from account import get_customer_loans, submit_loan_request, get_balance, get_transaction_history
+from account import (
+    get_customer_loans,
+    submit_loan_request,
+    get_balance,
+    get_transaction_history,
+)
 from utils.pydantic_models import ChatMessage, ChatHistory
 from utils.utils import time_now
 from utils.agent_session import (

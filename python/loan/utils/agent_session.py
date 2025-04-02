@@ -4,7 +4,17 @@ import logging
 import restate
 
 from datetime import timedelta
-from typing import Optional, Any, Callable, Awaitable, TypeVar, Type, List, Literal, TypedDict
+from typing import (
+    Optional,
+    Any,
+    Callable,
+    Awaitable,
+    TypeVar,
+    Type,
+    List,
+    Literal,
+    TypedDict,
+)
 from openai import OpenAI
 from openai.lib._pydantic import to_strict_json_schema
 from openai.types.responses import (
@@ -101,7 +111,6 @@ class RestateTool(BaseModel, Generic[I, O]):
     formatted_name: str = Field(default_factory=lambda data: format_name(data["name"]))
 
 
-
 class Agent(BaseModel):
     name: str
     handoff_description: str
@@ -147,6 +156,7 @@ class AgentResponse(BaseModel):
     """
     Represents the response from an agent session.
     """
+
     agent: Optional[str]
     messages: list[dict[str, Any]]
 
@@ -181,7 +191,6 @@ class SessionState:
         ctx.set("input_items", self._input_items)
         self._new_items.extend(user_messages)
 
-
     def add_system_message(self, ctx: restate.ObjectContext, item: str):
         system_message = SessionItem(content=item, role="system")
         self._input_items.append(system_message)
@@ -194,13 +203,11 @@ class SessionState:
         ctx.set("input_items", self._input_items)
         self._new_items.extend(system_messages)
 
-
     def get_input_items(self) -> List[SessionItem]:
         return self._input_items
 
     def get_new_items(self) -> List[SessionItem]:
         return self._new_items
-
 
 
 # AGENT SESSION
@@ -250,11 +257,13 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> AgentResponse:
                 parallel_tool_calls=True,
                 stream=False,
             ),
-            serde=PydanticJsonSerde(Response), # does not work with type_hint
+            serde=PydanticJsonSerde(Response),  # does not work with type_hint
         )
 
         output = copy.deepcopy(response.output)
-        session_state.add_system_messages(ctx, [item.model_dump_json() for item in output])
+        session_state.add_system_messages(
+            ctx, [item.model_dump_json() for item in output]
+        )
 
         # === 2. handle (parallel) tool calls ===
         response_output_messages = [
@@ -296,7 +305,9 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> AgentResponse:
 
         parallel_tools = []
         for command in tool_calls:
-            session_state.add_system_message(ctx, f"Executing tool {command.name} with args {command.arguments}.")
+            session_state.add_system_message(
+                ctx, f"Executing tool {command.name} with args {command.arguments}."
+            )
 
             # This can either return a sync response or a call handle
             # If it is a call handle then we add it to the list
@@ -323,7 +334,9 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> AgentResponse:
                     key=tool_request["key"],
                     send_delay=timedelta(milliseconds=tool_request["delay_in_millis"]),
                 )
-            session_state.add_system_message(ctx, f"Task {tool_to_call.name} was scheduled")
+            session_state.add_system_message(
+                ctx, f"Task {tool_to_call.name} was scheduled"
+            )
 
         if len(parallel_tools) > 0:
             results_done = await restate.gather(*parallel_tools)
@@ -335,8 +348,10 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> AgentResponse:
 
 # UTILS
 
+
 def format_name(name: str) -> str:
     return name.replace(" ", "_").lower()
+
 
 def restate_tool(tool_call: Callable[[Any, I], Awaitable[O]]) -> RestateTool:
     target_handler = handler_from_callable(tool_call)
