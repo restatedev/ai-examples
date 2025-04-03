@@ -25,6 +25,49 @@ from account import (
     on_recurring_loan_payment as account_loan_payment,
 )
 
+"""
+The loan review workflow implements the process of reviewing a loan request.
+The following steps are taken:
+
+            +----------------------+
+            | Receive Loan Request |
+            +----------------------+
+                      |
+                      v
+            +---------------------+
+            | Loan Amount < 1M?   |
+            +---------------------+
+              /                    \
+            Yes                     No
+            /                        \
+           v                          v
++---------------------+   +----------------------+
+|  Invoke AI Agent    |   | Request Human Review |
++---------------------+   +----------------------+
+             \                  /
+              v                v  
+            +------------------------+  
+            | Wait for Loan Decision |  
+            +------------------------+  
+                      |                     
+                      v                     
+            +---------------------+   
+            | Decision Approved?  |   
+            +---------------------+   
+                /         \        
+               No         Yes      
+              /             \      
+             v               v     
++---------------------+   +---------------------+
+| Return Decision     |   | Deposit Loan Amount |
++---------------------+   +---------------------+
+                                  |
+                                  v
+                         +---------------------+
+                         | Schedule Payments   |
+                         +---------------------+
+ """
+
 loan_review_workflow = restate.Workflow("LoanApprovalWorkflow")
 
 
