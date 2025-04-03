@@ -71,7 +71,7 @@ async def submit_loan_request(ctx: restate.ObjectContext, req: LoanRequest) -> s
         req (LoanRequest): The loan request object.
 
     Returns:
-        str: Message indicating the loan ID.
+        str: The loan ID
     """
     loan_id = await ctx.run("Generate Loan ID", lambda: str(random.randint(1000, 9999)))
     all_loans = await get_customer_loans(ctx)
@@ -87,7 +87,7 @@ async def submit_loan_request(ctx: restate.ObjectContext, req: LoanRequest) -> s
         loan_request=req, transaction_history=await get_transaction_history(ctx)
     )
     ctx.workflow_send(run, key=loan_id, arg=loan_review_request)
-    return f"Loan request submitted successfully with ID {loan_id}."
+    return loan_id
 
 
 @account.handler()
@@ -204,11 +204,11 @@ async def notify_customer(ctx: restate.ObjectContext, message: str):
         message (str): The message to send to the customer.
     """
     # This could be any preferred contact method. Here we only have chat, so we send a chat message.
-    from chat import ChatMessage, process_async_message
+    from chat import ChatMessage, add_async_response
 
     chat_message = ChatMessage(
         role="system",
         content=message,
         timestamp=await time_now(ctx),
     )
-    ctx.object_send(process_async_message, key=ctx.key(), arg=chat_message)
+    ctx.object_send(add_async_response, key=ctx.key(), arg=chat_message)

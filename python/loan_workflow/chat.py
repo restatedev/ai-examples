@@ -1,4 +1,3 @@
-import json
 import restate
 
 from account import (
@@ -10,7 +9,7 @@ from account import (
 from utils.pydantic_models import ChatMessage, ChatHistory
 from utils.utils import time_now
 from utils.agent_session import (
-    run,
+    run as agent_session_run,
     AgentInput,
     restate_tool,
     Agent,
@@ -37,8 +36,8 @@ account_manager_agent = Agent(
     4. If the customer asks a question that is not related to these routines, transfer back to the intake agent.
     """,
     tools=[
-        restate_tool(tool_call=get_balance),
-        restate_tool(tool_call=get_transaction_history),
+        restate_tool(get_balance),
+        restate_tool(get_transaction_history),
     ],
 )
 
@@ -61,7 +60,7 @@ loan_request_manager_agent = Agent(
     You can find all the required information in the input parameters of the loan_approval_workflow run tool: loan amount, and duration.
     Don't ask for other info besides that.
     2. Once you have all the loan request information, submit the workflow with the submit_loan_request tool, and use the customer ID as the key.
-    3. Use the response of the submit_loan_request tool to retrieve the loan ID and mention that in your communication back to the customer.
+    3. Mention the loan ID in your communication back to the customer. You can find the loan ID as the response of the submit_loan_request tool.
 
     # Routine #2
     Alternatively, if the customer wants to get the status of his ongoing loan payments, loan requests, and loan decisions:
@@ -72,8 +71,8 @@ loan_request_manager_agent = Agent(
     3. If the customer asks a question that is not related to these routines, transfer back to the intake agent.
     """,
     tools=[
-        restate_tool(tool_call=submit_loan_request),
-        restate_tool(tool_call=get_customer_loans),
+        restate_tool(submit_loan_request),
+        restate_tool(get_customer_loans),
     ],
 )
 
@@ -111,14 +110,14 @@ async def send_message(ctx: restate.ObjectContext, req: ChatMessage) -> ChatMess
         req (ChatMessage): The message to send to the ChatService.
 
     Returns:
-        ChatMessage: The synchronous response from the ChatService.
+        ChatMessage: The response from the ChatService.
     """
     history = await ctx.get(CHAT_HISTORY, type_hint=ChatHistory) or ChatHistory()
     history.entries.append(req)
     ctx.set(CHAT_HISTORY, history)
 
     result = await ctx.object_call(
-        run,
+        agent_session_run,
         key=ctx.key(),  # use the customer ID as the key
         arg=AgentInput(
             starting_agent=intake_agent,
@@ -136,7 +135,7 @@ async def send_message(ctx: restate.ObjectContext, req: ChatMessage) -> ChatMess
 
 
 @chat_service.handler()
-async def process_async_message(ctx: restate.ObjectContext, req: ChatMessage):
+async def add_async_response(ctx: restate.ObjectContext, req: ChatMessage):
     """
     Add a message to the chat history of this chat session.
     This can be used to let the bank send messages to the customer.

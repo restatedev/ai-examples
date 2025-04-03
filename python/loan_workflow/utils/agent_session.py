@@ -13,6 +13,7 @@ from typing import (
     List,
     Literal,
     TypedDict,
+    Dict,
 )
 from openai import OpenAI
 from openai.lib._pydantic import to_strict_json_schema
@@ -23,7 +24,9 @@ from openai.types.responses import (
     ResponseFileSearchToolCall,
     ResponseFunctionWebSearch,
     ResponseReasoningItem,
-    ResponseComputerToolCall, ResponseOutputText,
+    ResponseComputerToolCall,
+    ResponseOutputText,
+    ResponseOutputItem,
 )
 from pydantic import BaseModel, ConfigDict, Field
 from restate import TerminalError
@@ -193,6 +196,14 @@ class AgentResponse(BaseModel):
     final_output: str
 
 
+class ToolCall(BaseModel):
+    name: str
+    tool: RestateTool
+    key: str | None
+    input_bytes: bytes
+    delay_in_millis: int | None
+
+
 class SessionItem(TypedDict):
     """
     Represents a single item in the session.
@@ -306,82 +317,33 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> AgentResponse:
         )
 
         # Parse LLM response
-        tool_calls = []
-        run_handoffs = []
-        output_messages = []
-
-        for item in response.output:
-            if isinstance(item, ResponseOutputMessage):
-                output_messages.append(item)
-            elif (
-                isinstance(item, ResponseFileSearchToolCall)
-                or isinstance(item, ResponseFunctionWebSearch)
-                or isinstance(item, ResponseReasoningItem)
-                or isinstance(item, ResponseComputerToolCall)
-            ):
-                logger.warning(
-                    "This implementation does not support file search, web search, computer tools, or reasoning yet."
-                )
-                # We add it to the session_state to feed it back into the next LLM call
-                session_state.add_system_message(
-                    ctx,
-                    "This agent cannot handle file search, web search, computer tools, or reasoning. Use another tool or handoff.",
-                )
-            elif isinstance(item, ResponseFunctionToolCall):
-                if item.name in agents_dict.keys():
-                    # Handoffs
-                    run_handoffs.append(item)
-                else:
-                    # Tool calls
-                    if item.name not in tools.keys():
-                        logger.warning(f"Unkown tool, ignoring: {item.name}")
-                        session_state.add_system_message(
-                            ctx,
-                            f"This agent does not have access to this tool: {item.name}. Use another tool or handoff.",
-                        )
-                    tool_calls.append(item)
-            else:
-                logger.warning(f"Unexpected output type, ignoring: {type(item)}")
-                # We add it to the session_state to feed it back into the next LLM call
-                session_state.add_system_message(
-                    ctx,
-                    f"This agent cannot handle this output type {type(item)}. Use another tool or handoff.",
-                )
-                continue
+        output_messages, run_handoffs, tool_calls = await parse_llm_response(
+            ctx, agents_dict, response.output, session_state, tools
+        )
 
         # Execute (parallel) tool calls
         parallel_tools = []
-        for command in tool_calls:
-            session_state.add_system_message(
-                ctx, f"Executing tool {command.name} with args {command.arguments}."
-            )
-
-            tool_to_call = tools[command.name]
-            tool_request = json.loads(command.arguments)
-            if tool_request.get("req") is None:
-                input_serialized = bytes({})
-            else:
-                input_serialized = json.dumps(tool_request["req"]).encode()
-
-            if tool_request.get("delay_in_millis") is None:
+        for tool_call in tool_calls:
+            session_state.add_system_message(ctx, f"Executing tool {tool_call.name}.")
+            if tool_call.delay_in_millis is None:
                 handle = ctx.generic_call(
-                    service=tool_to_call.service_name,
-                    handler=tool_to_call.name,
-                    arg=input_serialized,
-                    key=tool_request["key"],
+                    service=tool_call.tool.service_name,
+                    handler=tool_call.tool.name,
+                    arg=tool_call.input_bytes,
+                    key=tool_call.key,
                 )
                 parallel_tools.append(handle)
             else:
                 # Used for scheduling tasks in the future or long-running tasks like workflows
                 ctx.generic_send(
-                    service=tool_to_call.service_name,
-                    handler=tool_to_call.name,
-                    arg=input_serialized,
-                    key=tool_request["key"],
-                    send_delay=timedelta(milliseconds=tool_request["delay_in_millis"]),
+                    service=tool_call.tool.service_name,
+                    handler=tool_call.tool.name,
+                    arg=tool_call.input_bytes,
+                    key=tool_call.key,
+                    send_delay=timedelta(milliseconds=tool_call.delay_in_millis),
                 )
             session_state.add_system_message(
-                ctx, f"Task {tool_to_call.name} was scheduled"
+                ctx, f"Task {tool_call.name} was scheduled"
             )
 
         if len(parallel_tools) > 0:
@@ -395,13 +357,11 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> AgentResponse:
             # So if there are multiple handoffs in the response, only run the first one.
             # For the others, we add a tool response that we will not handle them.
             if len(run_handoffs) > 1:
-                session_state.add_system_messages(
-                    ctx,
-                    [
-                        f"Multiple handoffs detected, ignoring this one: {handoff.name} with arguments {handoff.arguments}."
-                        for handoff in run_handoffs[1:]
-                    ],
-                )
+                for handoff in run_handoffs[1:]:
+                    session_state.add_system_message(
+                        ctx,
+                        f"Multiple handoffs detected, ignoring this one: {handoff.name} with arguments {handoff.arguments}.",
+                    )
 
             handoff_command = run_handoffs[0]
 
@@ -429,6 +389,73 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> AgentResponse:
                     messages=session_state.get_new_items(),
                     final_output=final_output,
                 )
+
+
+async def parse_llm_response(
+    ctx: restate.ObjectContext,
+    agents_dict: Dict[str, Agent],
+    output: List[ResponseOutputItem],
+    session_state: SessionState,
+    tools: Dict[str, RestateTool],
+):
+    tool_calls = []
+    run_handoffs = []
+    output_messages = []
+    for item in output:
+        if isinstance(item, ResponseOutputMessage):
+            output_messages.append(item)
+        elif (
+            isinstance(item, ResponseFileSearchToolCall)
+            or isinstance(item, ResponseFunctionWebSearch)
+            or isinstance(item, ResponseReasoningItem)
+            or isinstance(item, ResponseComputerToolCall)
+        ):
+            logger.warning(
+                "This implementation does not support file search, web search, computer tools, or reasoning yet."
+            )
+            # We add it to the session_state to feed it back into the next LLM call
+            session_state.add_system_message(
+                ctx,
+                "This agent cannot handle file search, web search, computer tools, or reasoning. Use another tool or handoff.",
+            )
+        elif isinstance(item, ResponseFunctionToolCall):
+            if item.name in agents_dict.keys():
+                # Handoffs
+                run_handoffs.append(item)
+            else:
+                # Tool calls
+                if item.name not in tools.keys():
+                    logger.warning(f"Unkown tool, ignoring: {item.name}")
+                    session_state.add_system_message(
+                        ctx,
+                        f"This agent does not have access to this tool: {item.name}. Use another tool or handoff.",
+                    )
+                tool = tools[item.name]
+                tool_request = json.loads(item.arguments)
+                if tool_request.get("req") is None:
+                    input_serialized = bytes({})
+                else:
+                    input_serialized = json.dumps(tool_request["req"]).encode()
+                key = tool_request.get("key")
+                delay_in_millis = tool_request.get("delay_in_millis")
+                tool_calls.append(
+                    ToolCall(
+                        name=item.name,
+                        tool=tool,
+                        key=key,
+                        input_bytes=input_serialized,
+                        delay_in_millis=delay_in_millis,
+                    )
+                )
+        else:
+            logger.warning(f"Unexpected output type, ignoring: {type(item)}")
+            # We add it to the session_state to feed it back into the next LLM call
+            session_state.add_system_message(
+                ctx,
+                f"This agent cannot handle this output type {type(item)}. Use another tool or handoff.",
+            )
+            continue
+    return output_messages, run_handoffs, tool_calls
 
 
 # UTILS

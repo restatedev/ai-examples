@@ -34,3 +34,4 @@ docker build .
 # What is missing for the Restate Agent Session Template (Loan example)
 - Output schema validation of the LLM response
 - Robustness against tools which are not available
+- Passing context around between agents and tools

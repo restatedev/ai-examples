@@ -119,11 +119,11 @@ loan_review_agent = Agent(
     5. When you get a question or command that you don't understand, or you get asked to notify the customer, then transfer back to the Loan Request Processing Agent.
     """,
     tools=[
-        restate_tool(tool_call=on_loan_decision),
-        restate_tool(tool_call=average_monthly_spending),
-        restate_tool(tool_call=high_risk_transactions),
-        restate_tool(tool_call=debt_to_income_ratio),
-        restate_tool(tool_call=large_purchases),
+        restate_tool(on_loan_decision),
+        restate_tool(average_monthly_spending),
+        restate_tool(high_risk_transactions),
+        restate_tool(debt_to_income_ratio),
+        restate_tool(large_purchases),
     ],
 )
 
