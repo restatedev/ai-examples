@@ -89,7 +89,11 @@ intake_agent = Agent(
 loan_request_manager_agent.handoffs.append(intake_agent.name)
 account_manager_agent.handoffs.append(intake_agent.name)
 
-chat_agents = [account_manager_agent, loan_request_manager_agent, intake_agent]
+chat_agents = [
+    account_manager_agent,
+    loan_request_manager_agent,
+    intake_agent,
+]
 
 # CHAT SERVICE
 
