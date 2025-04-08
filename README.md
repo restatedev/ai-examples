@@ -27,11 +27,11 @@ This example shows how to implement Anthropic's [agents cookbook](https://github
 The patterns in this example show how you can use Restate to harden LLM-based routing decisions and tool executions with Restate.
 
 The patterns included here:
-- [Chaining LLM calls](a_patterns_cookbook/a_chaining/chaining.py)
-- [Parallelizing tool calls](a_patterns_cookbook/b_parallelization/parallelization.py)
-- [Dynamic routing based on LLM output](a_patterns_cookbook/c_routing/routing.py)
-- [Orchestrator-worker pattern](a_patterns_cookbook/d_orchestrator_workers/orchestrator_workers.py)
-- [Evaluator-optimizer pattern](a_patterns_cookbook/e_evaluator_optimizer/evaluator_optimizer.py)
+- [Chaining LLM calls](a_orchestrating_llm_calls/a_chaining/chaining.py)
+- [Parallelizing tool calls](a_orchestrating_llm_calls/b_parallelization/parallelization.py)
+- [Dynamic routing based on LLM output](a_orchestrating_llm_calls/c_routing/routing.py)
+- [Orchestrator-worker pattern](a_orchestrating_llm_calls/d_orchestrator_workers/orchestrator_workers.py)
+- [Evaluator-optimizer pattern](a_orchestrating_llm_calls/e_evaluator_optimizer/evaluator_optimizer.py)
 
 For example, parallelization in the orchestrator-worker pattern can be implemented as follows:
 ```python
@@ -68,7 +68,7 @@ This is a feedback loop that can be used to improve the quality of the LLM's out
 
 Instead of letting another LLM do the evaluation, you can also ask a human to evaluate the output of the LLM.
 
-In this example, we track the generated responses and the chain of thought in a Restate Virtual Object, and let the user repeatedly invoke the handler with new insights ([full code example](a_patterns_cookbook/f_human_evaluator_optimizer/human_evaluator_optimizer.py))
+In this example, we track the generated responses and the chain of thought in a Restate Virtual Object, and let the user repeatedly invoke the handler with new insights ([full code example](a_orchestrating_llm_calls/f_human_evaluator_optimizer/human_evaluator_optimizer.py))
 
 ```python
 human_evaluator_optimizer = restate.VirtualObject("HumanEvaluatorOptimizer")
@@ -349,7 +349,7 @@ pip install -r requirements.txt
 Run the patterns examples:
 
 ```shell
-python3 patterns_cookbook/main.py
+python3 a_orchestrating_llm_calls/main.py
 ```
 
 #### Chaining
@@ -357,7 +357,7 @@ python3 patterns_cookbook/main.py
 Send an HTTP request to the service by running the following script:
 
 ```shell
-python3 patterns_cookbook/a_chaining/client.py
+python3 a_orchestrating_llm_calls/a_chaining/client.py
 ```
 
 <details>
@@ -420,7 +420,7 @@ Here's the sorted data formatted as a markdown table:
 Send an HTTP request to the service by running the following script:
 
 ```shell
-python3 patterns_cookbook/b_parallelization/client.py
+python3 a_orchestrating_llm_calls/b_parallelization/client.py
 ```
 
 <details>
@@ -656,7 +656,7 @@ Suppliers must proactively address capacity constraints and price pressures to r
 Send an HTTP request to the service by running the following script:
 
 ```shell
-python3 patterns_cookbook/c_routing/client.py
+python3 a_orchestrating_llm_calls/c_routing/client.py
 ```
 
 <details>
@@ -791,7 +791,7 @@ Please let us know if you need any additional help.
 Send an HTTP request to the service by running the following script:
 
 ```shell
-python3 patterns_cookbook/d_orchestrator_workers/client.py
+python3 a_orchestrating_llm_calls/d_orchestrator_workers/client.py
 ```
 
 <details>
@@ -919,7 +919,7 @@ python3 patterns_cookbook/d_orchestrator_workers/client.py
 Send an HTTP request to the service by running the following script:
 
 ```shell
-python3 patterns_cookbook/e_evaluator_optimizer/client.py
+python3 a_orchestrating_llm_calls/e_evaluator_optimizer/client.py
 ```
 
 <details>
