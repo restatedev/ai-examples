@@ -1,6 +1,5 @@
 import restate
 from pydantic import BaseModel
-from typing import List
 from util.util import llm_call
 
 """
@@ -20,7 +19,7 @@ call_chaining_svc = restate.Service("CallChainingService")
 
 class ChainRequest(BaseModel):
     input: str
-    prompts: List[str]
+    prompts: list[str]
 
 
 @call_chaining_svc.handler()

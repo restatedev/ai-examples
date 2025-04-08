@@ -325,27 +325,39 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> AgentResponse:
         parallel_tools = []
         for tool_call in tool_calls:
             session_state.add_system_message(ctx, f"Executing tool {tool_call.name}.")
-            if tool_call.delay_in_millis is None:
-                handle = ctx.generic_call(
-                    service=tool_call.tool.service_name,
-                    handler=tool_call.tool.name,
-                    arg=tool_call.input_bytes,
-                    key=tool_call.key,
+            try:
+                if tool_call.delay_in_millis is None:
+                    handle = ctx.generic_call(
+                        service=tool_call.tool.service_name,
+                        handler=tool_call.tool.name,
+                        arg=tool_call.input_bytes,
+                        key=tool_call.key,
+                    )
+                    parallel_tools.append(handle)
+                else:
+                    # Used for scheduling tasks in the future or long-running tasks like workflows
+                    ctx.generic_send(
+                        service=tool_call.tool.service_name,
+                        handler=tool_call.tool.name,
+                        arg=tool_call.input_bytes,
+                        key=tool_call.key,
+                        send_delay=timedelta(milliseconds=tool_call.delay_in_millis),
+                    )
+                session_state.add_system_message(
+                    ctx, f"Task {tool_call.name} was scheduled"
                 )
-                parallel_tools.append(handle)
-            else:
-                # Used for scheduling tasks in the future or long-running tasks like workflows
-                ctx.generic_send(
-                    service=tool_call.tool.service_name,
-                    handler=tool_call.tool.name,
-                    arg=tool_call.input_bytes,
-                    key=tool_call.key,
-                    send_delay=timedelta(milliseconds=tool_call.delay_in_millis),
-                )
-            session_state.add_system_message(
-                ctx, f"Task {tool_call.name} was scheduled"
-            )
-
+            except Exception as e:
+                if not isinstance(e, restate.vm.SuspendedException):
+                    logger.warning(
+                        f"Failed to execute tool {tool_call.name}: {str(e)}"
+                    )
+                    session_state.add_system_message(
+                        ctx,
+                        f"Failed to execute tool {tool_call.name}: {str(e)}",
+                    )
+                    # We add it to the session_state to feed it back into the next LLM call
+                else:
+                    raise e
         if len(parallel_tools) > 0:
             results_done = await restate.gather(*parallel_tools)
             results = [(await result).decode() for result in results_done]
@@ -431,22 +443,7 @@ async def parse_llm_response(
                         f"This agent does not have access to this tool: {item.name}. Use another tool or handoff.",
                     )
                 tool = tools[item.name]
-                tool_request = json.loads(item.arguments)
-                if tool_request.get("req") is None:
-                    input_serialized = bytes({})
-                else:
-                    input_serialized = json.dumps(tool_request["req"]).encode()
-                key = tool_request.get("key")
-                delay_in_millis = tool_request.get("delay_in_millis")
-                tool_calls.append(
-                    ToolCall(
-                        name=item.name,
-                        tool=tool,
-                        key=key,
-                        input_bytes=input_serialized,
-                        delay_in_millis=delay_in_millis,
-                    )
-                )
+                tool_calls.append(to_tool_call(tool, item))
         else:
             logger.warning(f"Unexpected output type, ignoring: {type(item)}")
             # We add it to the session_state to feed it back into the next LLM call
@@ -528,3 +525,19 @@ def get_service_type_from_handler(
             raise TerminalError(
                 f"Could not determine service type for handler {handler}"
             )
+
+def to_tool_call(tool: RestateTool, item: ResponseFunctionToolCall) -> ToolCall:
+    tool_request = json.loads(item.arguments)
+    if tool_request.get("req") is None:
+        input_serialized = bytes({})
+    else:
+        input_serialized = json.dumps(tool_request["req"]).encode()
+    key = tool_request.get("key")
+    delay_in_millis = tool_request.get("delay_in_millis")
+    return ToolCall(
+        name=item.name,
+        tool=tool,
+        key=key,
+        input_bytes=input_serialized,
+        delay_in_millis=delay_in_millis,
+    )

@@ -19,7 +19,7 @@ routing_svc = restate.Service("RoutingService")
 
 class RouteRequest(BaseModel):
     input: str
-    routes: Dict[str, str]
+    routes: dict[str, str]
 
 
 @routing_svc.handler()

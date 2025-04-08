@@ -57,6 +57,9 @@ r = httpx.post(
     timeout=60,
 )
 
+if r.is_error:
+    raise ValueError(f"{r.status_code} : {r.text}")
+
 print("\nResult:")
 print("-"*40)
 print(r.json()[0])

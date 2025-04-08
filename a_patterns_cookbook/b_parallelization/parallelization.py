@@ -1,6 +1,5 @@
 import restate
 from pydantic import BaseModel
-from typing import List
 from util.util import llm_call
 
 """
@@ -21,13 +20,13 @@ parallelization_svc = restate.Service("ParallelizationService")
 
 class ParallelizationRequest(BaseModel):
     prompt: str
-    inputs: List[str]
+    inputs: list[str]
 
 
 @parallelization_svc.handler()
 async def run_in_parallel(
     ctx: restate.Context, req: ParallelizationRequest
-) -> List[str]:
+) -> list[str]:
     futures = [
         ctx.run(
             f"LLM call {item}",

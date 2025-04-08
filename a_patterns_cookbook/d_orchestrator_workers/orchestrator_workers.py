@@ -1,6 +1,6 @@
 import restate
-from pydantic import BaseModel
-from typing import Dict, List, Optional
+from pydantic import BaseModel, Field
+from typing import Dict, List, Optional, Any
 from util.util import llm_call, extract_xml
 
 """
@@ -22,7 +22,7 @@ class OrchestrationRequest(BaseModel):
     orchestrator_prompt: str
     worker_prompt: str
     task: str
-    llm_context: Optional[Dict] = None
+    llm_context: dict[str, Any] | None = None
 
 
 @flexible_orchestrator.handler()

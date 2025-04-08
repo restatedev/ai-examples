@@ -9,20 +9,22 @@ The integration goes from loose integration (calling LLMs or Agent SDKs from Res
 
 At this point, we see each of these proposed integrations as a valid way of using Restate for AI applications, depending on the use case and desired behavior. 
 
+We are interested in understanding which of these appeals most to users.
+
 The options:
-1. Using Restate for orchestrating LLM calls
-2. Using Restate together with Agent SDKs for scalable, resilient agent loops
-3. Using Restate for agentic workflows
-4. Mixing static, code-defined workflows with agentic workflows
-5. Long-lived multi-agent setups
+1. [Using Restate for orchestrating LLM calls](https://github.com/restatedev/restate-ai-agents/tree/main?tab=readme-ov-file#using-restate-for-orchestrating-llm-calls)
+2. [Using Restate for stateful, explicit control flow over LLM feedback loops](https://github.com/restatedev/restate-ai-agents/tree/main?tab=readme-ov-file#using-restate-for-stateful-explicit-control-flow-and-llm-feedback-loops) 
+3. [Using Restate together with Agent SDKs for scalable, resilient agent loops](https://github.com/restatedev/restate-ai-agents/tree/main?tab=readme-ov-file#using-restate-together-with-agent-sdks-for-scalable-resilient-agent-loops)
+4. [Using Restate for agentic workflows](https://github.com/restatedev/restate-ai-agents/tree/main?tab=readme-ov-file#using-restate-for-agentic-workflows)
+5. [Mixing static, code-defined workflows with agentic workflows](https://github.com/restatedev/restate-ai-agents/tree/main?tab=readme-ov-file#mixing-static-code-defined-workflows-with-agentic-workflows)
+6. [Long-lived multi-agent setups](https://github.com/restatedev/restate-ai-agents/tree/main?tab=readme-ov-file#long-lived-multi-agent-setups)
 
 
 ## Using Restate for orchestrating LLM calls
 
 This example shows how to implement Anthropic's [agents cookbook](https://github.com/anthropics/anthropic-cookbook/tree/main/patterns/agents) patterns using Restate.
-It contains a collection of patterns that can be used to build LLM-based apps or agents with Restate.
 
-The patterns in this example show how you can use Restate to harden LLM-based routing decisions and tool executions.
+The patterns in this example show how you can use Restate to harden LLM-based routing decisions and tool executions with Restate.
 
 The patterns included here:
 - [Chaining LLM calls](a_patterns_cookbook/a_chaining/chaining.py)
@@ -47,9 +49,6 @@ await restate.gather(*futures)
 worker_responses = [await future for future in futures]
 ```
 
-These patterns can be implemented together with SDKs that help with calling LLMs: OpenAI Responses API, or Anthropic's API. 
-Note that this does not use an Agent SDK.
-
 The benefits of using Restate here are:
 - **Automatic retries** of failed tasks: LLM API down, timeouts, long-running tasks, infrastructure failures, etc.
 - **Recovery of previous progress**: After a failure, Restate recovers the progress the execution did before the cash. 
@@ -58,10 +57,18 @@ As opposed to executing all tasks again, Restate only re-executes the tasks that
 - **Management of the orchestration task and all parallel subtasks**: Restate guarantees all tasks run to completion exactly once.
 - **Idempotency**: Restate can deduplicate requests and tool executions.
 
-## Using Restate for stateful, explicit control flow and LLM feedback loops 
-You can take this one step further and use Restate's stateful entities, called Virtual Objects, to manage the state of interactions with the LLM.
+Note that this does not use an Agent SDK.
+These patterns can be implemented together with SDKs that help with calling LLMs: OpenAI Responses API, or Anthropic's API. 
 
-You can implement a feedback loop between a user and an LLM session as follows ([full code example](a_patterns_cookbook/f_human_evaluator_optimizer/human_evaluator_optimizer.py)):
+## Using Restate for stateful, explicit control flow and LLM feedback loops 
+You can integrate Restate one step deeper into your LLM-based apps by using Restate's stateful entities, called Virtual Objects, to manage the session state of the interactions with the LLM.
+
+In the patterns cookbook, we included the evaluator-optimizer pattern which implements a loop of letting the LLM generate a response, and then asking the LLM to evaluate the response, then generate a new response based on the evaluation, and so on.
+This is a feedback loop that can be used to improve the quality of the LLM's output.
+
+Instead of letting another LLM do the evaluation, you can also ask a human to evaluate the output of the LLM.
+
+In this example, we track the generated responses and the chain of thought in a Restate Virtual Object, and let the user repeatedly invoke the handler with new insights ([full code example](a_patterns_cookbook/f_human_evaluator_optimizer/human_evaluator_optimizer.py))
 
 ```python
 human_evaluator_optimizer = restate.VirtualObject("HumanEvaluatorOptimizer")
@@ -69,7 +76,6 @@ human_evaluator_optimizer = restate.VirtualObject("HumanEvaluatorOptimizer")
 
 @human_evaluator_optimizer.handler()
 async def run(ctx: restate.ObjectContext, req: MyRequest) -> tuple[str, list[dict]]:
-    """Keep generating and evaluating until requirements are met."""
     memory = await ctx.get("memory") or []
     chain_of_thought = await ctx.get("chain_of_thought") or []
 
@@ -83,6 +89,7 @@ async def run(ctx: restate.ObjectContext, req: MyRequest) -> tuple[str, list[dic
     return result, chain_of_thought
 ```
 
+This lets you durably implement human control over the decision made by the LLM.   
 This could be extended to including tool calls when the user approves their execution.
 This would give you a basic version of an agent loop with explicit user-control at each step. 
 
@@ -94,11 +101,11 @@ The state can also be queried from the outside and viewed in the Restate UI.
 
 
 ## Using Restate together with Agent SDKs for scalable, resilient agent loops
-
-In this example we show how to use Restate together with the OpenAI Agents SDK to build a scalable, resilient chat session. 
+Until now, we used the OpenAI Responses API and Anthropic's API directly to call the LLMs.
+In this example, we show how to use Restate together with the OpenAI Agents SDK to build a scalable, resilient agent sessions.
 
 Whereas in the patterns cookbook we called the LLM directly, in this example we use the OpenAI Agents SDK to run an agent loop for us. 
-And we use Restate's stateful entities called Virtual Objects to manage the session state for us. 
+And we use Restate's stateful entities called Virtual Objects to manage the session state and retries for us. 
 
 <img src="img/using_agent_sdk.png" alt="Using Agent SDK" width="650px"/>
 
@@ -133,23 +140,43 @@ async def run(ctx: restate.ObjectContext, req: InputItem) -> InputItem:
 It will make sure a single session processes requests in order, and that the state is consistent.
 - **Session/context management**: you can store the session state (input items) in Restate and have it consistent and durable across calls and failures. 
 The state can also be queried from the outside and viewed in the Restate UI.
-- **Resiliency**: retries and recovery of ongoing progress and state 
-- **Idempotency** for invocations: deduplicating requests to the same agent
+- **Resiliency**: retries and recovery of ongoing progress and state (see caveats below).
+- **Idempotency** for invocations: deduplicating requests to the same agent.
 
 **What you are missing out on if you don't integrate Restate into the agent loop** (see below):
 - You don't journal any of the operations that happen within the agent loop. 
 - The execution of an end-to-end agent loop is seen as a single non-deterministic `ctx.run` operation.
 - When something fails halfway through the loop, the loop is retried from the beginning, potentially leading to a different execution path and result.
 - No fine-grained retries of tool executions. 
-- You cannot use the Restate context directly in any of the tools. 
-- You could just use an HTTP call to schedule a handler execution within a tool, but this could get scheduled multiple times on retries. 
+- You cannot use the Restate context directly in any of the tools. Meaning, no access to Durable Execution, durable RPC, timers, etc.
+- From within a tool, you could execute an HTTP call to a Restate handler, but this could get scheduled multiple times on retries. 
 It's also seen as a new invocation, so the observability experience is less nice. 
-- Since the agent loop and tool calls are not journalled, it's also harder (although not impossible) to implement and execute rollback patterns when needed.  
+- Since the agent loop and tool calls do not take part in Durable Execution, it's also harder (although not impossible) to implement and execute rollback patterns when needed.  
 
 
 ## Using Restate for agentic workflows
 
-In this example, we show how you can use Restate to give your agentic workflow the same resiliency and capabilities of a "traditional" workflow.
+If you look at AI SDKs and agents today, most of the meat is in the agent loop. In essence, this is implemented as follows:
+
+1. A request (often in human language) gets forwarded to an LLM, together with a prompt describing the agent description/persona the LLM should impersonate, and which tasks it can order.
+2. The LLM then answers with a response. This can either be a human language response that needs to be sent back to the caller, or a structured format like JSON that describes a routing decision to:
+    1. Another agent: In this case, we change the agent the LLM should assume (basically changing the prompt), and the respective tools it can access, and loop back to point one.
+    2. A tool: Execute the tool and go back to point one. The request that gets send to the LLM now includes the tool output.
+
+This loop can easily be implemented with Restate constructs, to get avoid the caveats we mentioned in the previous example.
+
+Implementing the loop with Restate, gives your agentic workflow the same resiliency and capabilities of a "traditional" workflow.
+
+The benefits of using Restate for agentic workflows are:
+- **Flexibility and control over the loop implementation**: the agent loop we implemented here can be a starting point for resilient agent sessions, that can be adapted in any way desired for the use case: e.g. more control/feedback loops over decisions, etc. 
+- **Fine-grained retries and recovery**: Restate retries only the failed step and preserves the rest of the progress. This makes the system robust and fast at recovery. 
+- **Observability across agents, tools and other code execution**: Restate tracks the progress requests make in a journal, that includes the entire path through the agent loop, the tool execution, and any other code or workflows that get executed as part of the request. As opposed to traces with agent SDKs, the journal is not sampled and does includes the entire execution across services and tools. 
+- **Long-running workflows**: Workflows can run for days, weeks, or even months. Restate persists them durably and can resume them at any time. For example, human-in-the loop control flow or waiting on some event to happen before continuing.
+- **Scheduled operation**: Agents can schedule tasks for later on, for example "send me an invoice after my flight". Restate tracks timers durably. 
+- **Human-in-the-loop**: Restate gives you Durable Promises which make it easy to implement things like human feedback loops or external processes notifying the agent when something has happened/completed. 
+- **Exactly-once tool calls**: Restate deduplicates tool calls during retries. 
+- **Robust parallel tool calls**: Restate manages the execution of the parallel tool calls and retries them if they fail.
+- Run agent sessions and tools efficiently on **FaaS** (e.g. AWS Lambda): Restate lets your functions suspend when they are waiting for a long time. You can mix and match: slow processes like the LLM call can run on a long-running server, while the rest of the workflow can run on serverless for demand-based scaling.
 
 This example has a chat service similar to the previous example, but this time we don't use an Agent SDK to run the agent loop as a single step.
 Instead, we implement the agent loop with Restate and journal each of the decisions it makes and steps it does.
@@ -160,7 +187,7 @@ In this approach, the agent composes the workflow on the fly, and Restate persis
 
 The agent session on this diagram is a Restate Virtual Object that has a handler that runs the agent loop.
 
-In this example, users specify the agents and their descriptions and tools in a configuration similar to the OpenAI Agents SDK.
+In this example, you specify the agents and their descriptions and tools in a configuration similar to the OpenAI Agents SDK.
 But in this case, all the tools are Restate handlers:
 
 ```python
@@ -260,49 +287,42 @@ while True:
 
 ```
 
-The agent loop is implemented with Restate constructs to get the following benefits:
-
-- fine-grained retries
-- observability
-- long-running workflows
-- scheduled operation
-- callbacks / human in the loop of an agentic workflow
-- tools are called once
-- robust parallel tool calls
-- suspend/resume later
-==> needs you build your own agent framework on Restate or fork existing one
-
-
 ## Mixing static, code-defined workflows with agentic workflows
 
 **Note:** We didn't need to change anything in the agent loop to make this work.
 
+The agent session we implemented in the previous section is just a Restate Virtual Object. 
+It can be called from anywhere, also as part of a more traditional code-defined workflow. 
+
+Benefits of Restate here:
+- Benefits of previous section.
+- **A single workflow orchestrator that handles both agentic and traditional workflows and gives the same resiliency guarantees and observability across both.**
+
+For example, imaging a loan approval workflow where a step in the workflow is to wait on an agent to analyze the loan application and interact with the customer to request additional information.
+
 <img src="img/mixing_agentic_and_traditional.png" alt="Loan workflow with agentic step" width="650px"/>
 
-When a customer asks for a loan, the following approval workflow is run:
+An example workflow in detail:
 
 <img src="img/loan_workflow.png" alt="Loan workflow" width="650px"/>
 
-
-
-
-In the full example, the loan worfklow is also kicked off by an agentic chat session. 
+In the [full example](#running-the-loan-approval-app-mixing-agents-and-workflows), the loan worfklow is also kicked off by an agentic chat session. 
 It lets you interact with a [loan workflow agent](d_mixing_agents_and_workflows) that can apply for loans, check the status of loans, and provide information about bank accounts.
 
 The application looks as follows:
 
 <img src="img/overview.png" alt="Loan workflow app overview" width="650px"/>
 
+
 ## Long-lived multi-agent setups
 
 **Note:** We didn't need to change anything in the agent loop to make this work. 
 
+If you combine Restate's Virtual Object together with the scheduling capabilities, you can also build long-lived, more autonomous, proactive agents which periodically come to live (for example, because of a trigger or a timer), they then do some tasks and possibly schedule follow-up tasks for later. 
 
+Different agent session could communicate with each other and distribute work among them.
 
-Pro-active agents that periodically run and take action. 
-
-- continuously running specialized agents
-    - e.g., social media monitoring, marketing campaigning, etc.
+For example, you could have a crew of specialized agents continuously monitoring social media or marketing campaigns and taking action based on what happens.
 
 
 
@@ -992,7 +1012,6 @@ The code correctly implements a stack with push, pop, and getMin operations, all
 === EVALUATION END ===
 
 ```
-
 
 </details>
 
