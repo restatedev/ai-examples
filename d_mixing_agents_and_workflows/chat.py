@@ -130,8 +130,8 @@ loan_request_submitter = Agent(
     name="Loan Request Submitter Agent",
     handoff_description="A helpful agent that helps with submitting a request for a loan",
     instructions=f"""{RECOMMENDED_PROMPT_PREFIX}
-    You are a loan request submitting agent. You were probably transferred from the intake agent.
-    Use the following routine to support the customer.
+    You are a helpful agent that can submit loan requests. You were probably transferred from the intake agent.
+    Use the following routine to support the customer. Don't say, ask or respond anything that is not part of the routine. Follow it strictly.
     **Never say you submitted a loan request unless you finished the entire routine and executed the submit_loan_request tool!!!**
     # Routine
     1. Make sure you know the customer ID and all the loan request information you need to submit the request. 
@@ -142,8 +142,7 @@ loan_request_submitter = Agent(
     """,
     tools=[
         restate_tool(submit_loan_request),
-    ],
-    handoffs=[loan_status_retriever.name]
+    ]
 )
 
 clarifications_forwarder_agent = Agent(
@@ -191,6 +190,8 @@ intake_agent = Agent(
         f"{RECOMMENDED_PROMPT_PREFIX}"
         "You are a helpful intake agent. You use handoffs to delegate questions to other appropriate agents."
         "Don't draw attention to handoffs in your conversation with the customer."
+        "If the question is not related to loans, or bank accounts, then tell the customer you can't help him."
+        "Otherwise transfer to another agent, and don't answer directly!"
     ),
     handoffs=[loan_request_submitter.name, loan_status_retriever.name, account_manager_agent.name, clarifications_forwarder_agent.name],
 )

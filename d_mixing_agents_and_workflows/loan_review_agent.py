@@ -155,7 +155,7 @@ async def on_additional_info(
     msg: str,
 ) -> str:
     """
-    This tool lets you route additional info supplied by the customer back to the loan approval process.
+    This tool lets you route additional info/clarifications supplied by the customer back to the loan approval process.
     Keyed by the loan ID.
 
     Args:
@@ -163,9 +163,9 @@ async def on_additional_info(
     """
     awakeable_id = await ctx.get("awakeable_id")
     if awakeable_id is None:
-        raise TerminalError("Response could not be routed back. There was no additional info request ongoing for this key. Did you use the correct key? ")
+        return "Response could not be routed back. There was no additional info request ongoing for this key. Did you use the correct key? You need to use the loan ID as key."
 
-    ctx.resolve_awakeable(awakeable_id, msg)
+    ctx.resolve_awakeable(awakeable_id, f"ADDITIONAL INFO BY CUSTOMER: {msg}")
     return "Response routed back successfully."
 
 

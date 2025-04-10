@@ -83,11 +83,6 @@ WORKFLOW_HANDLER_TOOL_PREFIX = (
 
 
 # MODELS AND TYPES
-
-# Three types of Restate services
-ServiceType = Literal["Service", "VirtualObject", "Workflow"]
-
-
 class Empty(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -115,7 +110,7 @@ class RestateTool(BaseModel, Generic[I, O]):
         service_name (str): The name of the service that provides the tool.
         name (str): The name of the tool, equal to the name of the service handler.
         description (str): A description of the tool, to be used by the agent.
-        service_type (ServiceType): The type of the service (Service, VirtualObject, or Workflow).
+        service_type (str): The type of the service (service, object, or workflow).
         tool_schema (dict[str, Any]): The schema for the tool's input and output.
         formatted_name (str): The formatted name of the tool without spaces and lowercase, used for the LLM.
     """
@@ -123,7 +118,7 @@ class RestateTool(BaseModel, Generic[I, O]):
     service_name: str
     name: str
     description: str
-    service_type: ServiceType
+    service_type: str
     tool_schema: dict[str, Any]
     formatted_name: str = Field(default_factory=lambda data: format_name(data["name"]))
 
@@ -328,7 +323,6 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> AgentResponse:
                 tools=tool_and_handoffs_list,
                 parallel_tool_calls=True,
                 stream=False,
-                temperature=0.1
             ),
             serde=PydanticJsonSerde(Response),
         )
@@ -484,18 +478,21 @@ def format_name(name: str) -> str:
 
 def restate_tool(tool_call: Callable[[Any, I], Awaitable[O]]) -> RestateTool:
     target_handler = handler_from_callable(tool_call)
-    service_type = get_service_type_from_handler(tool_call)
+    service_type = target_handler.service_tag.kind
+    input_type = target_handler.handler_io.input_type.annotation
     match service_type:
-        case "VirtualObject":
+        case "object":
             description = (
                 f"{VIRTUAL_OBJECT_HANDLER_TOOL_PREFIX} \n{target_handler.description}"
             )
-        case "Workflow":
+        case "workflow":
             description = (
                 f"{WORKFLOW_HANDLER_TOOL_PREFIX} \n{target_handler.description}"
             )
-        case _:
+        case "service":
             description = target_handler.description
+        case _:
+            raise TerminalError(f"Unknown service type {service_type}")
 
     return RestateTool(
         service_name=target_handler.service_tag.name,
@@ -507,7 +504,7 @@ def restate_tool(tool_call: Callable[[Any, I], Awaitable[O]]) -> RestateTool:
             "name": f"{target_handler.name}",
             "description": description,
             "parameters": to_strict_json_schema(
-                RestateRequest[get_input_type_from_handler(tool_call)]
+                RestateRequest[input_type]
             ),
             "strict": True,
         },
@@ -525,27 +522,6 @@ def get_input_type_from_handler(handler: Callable[[Any, I], Awaitable[O]]) -> Ty
     return input_type
 
 
-def get_service_type_from_handler(
-    handler: Callable[[Any, I], Awaitable[O]],
-) -> ServiceType:
-    handler_annotations = getattr(handler, "__annotations__", {})
-    ctx_type = handler_annotations.get("ctx")
-    match ctx_type:
-        case _ if issubclass(ctx_type, restate.Context):
-            return "Service"
-        case _ if issubclass(ctx_type, restate.ObjectContext) or issubclass(
-            ctx_type, restate.ObjectSharedContext
-        ):
-            return "VirtualObject"
-        case _ if issubclass(ctx_type, restate.WorkflowContext) or issubclass(
-            ctx_type, restate.WorkflowSharedContext
-        ):
-            return "Workflow"
-        case _:
-            raise TerminalError(
-                f"Could not determine service type for handler {handler}"
-            )
-
 def to_tool_call(tool: RestateTool, item: ResponseFunctionToolCall) -> ToolCall:
     tool_request = json.loads(item.arguments)
 
@@ -554,7 +530,7 @@ def to_tool_call(tool: RestateTool, item: ResponseFunctionToolCall) -> ToolCall:
     else:
         input_serialized = json.dumps(tool_request["req"]).encode()
     key = None
-    if tool.service_type == "Workflow" or "VirtualObject":
+    if tool.service_type in {"workflow", "object"}:
         key = tool_request.get("key")
         if key is None:
             raise ValueError(
