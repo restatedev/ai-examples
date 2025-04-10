@@ -73,7 +73,7 @@ async def submit_loan_request(ctx: restate.ObjectContext, req: LoanRequest) -> s
     Returns:
         str: The loan ID
     """
-    loan_id = await ctx.run("Generate Loan ID", lambda: str(random.randint(1000, 9999)))
+    loan_id = await ctx.run("Generate Loan ID", lambda: "loan-" + str(random.randint(1000, 9999)))
     all_loans = await get_customer_loans(ctx)
     all_loans.loans[loan_id] = Loan(
         loan_id=loan_id,

@@ -271,8 +271,10 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> AgentResponse:
     Args:
         req (AgentInput): The input for the agent
     """
+    logging_prefix = f"Agent session {ctx.key()} - "
 
     # === 1. initialize the agent session ===
+    logging.info(f"{logging_prefix} Starting agent session")
     session_state = SessionState(input_items=await ctx.get("input_items"))
     session_state.add_user_message(ctx, req.message)
 
@@ -282,8 +284,11 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> AgentResponse:
     else:
         agent_name = await ctx.get("agent_name") or req.starting_agent.formatted_name
     ctx.set("agent_name", agent_name)
+    logging.info(f"{logging_prefix} Current agent is {agent_name}")
+
     agents_dict = {agent.formatted_name: agent for agent in req.agents}
     agent = agents_dict.get(agent_name)
+
     if agent is None:
         # Don't retry this. It's a configuration error
         session_state.add_system_message(
@@ -296,24 +301,25 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> AgentResponse:
 
     # === 2. Run the agent loop ===
     while True:
-        logger.info(f"New iteration agent loop {ctx.key()}")
         # Get the tools in the right format for the LLM
         tools = {tool.formatted_name: tool for tool in agent.tools}
         tool_and_handoffs_list = [tool.tool_schema for tool in agent.tools]
-        logger.info(f"Agent loop {ctx.key()} - agent: {agent.name} with tools {[tool.formatted_name for tool in agent.tools]}")
+        logger.info(f"{logging_prefix}  Starting iteration of agent loop with agent: {agent.name} and tools/handoffs: {[tool.formatted_name for tool in agent.tools]}")
+
         for handoff_agent_name in agent.handoffs:
             handoff_agent = agents_dict.get(format_name(handoff_agent_name))
+            # If the agent is not found, we ignore only use the other handoff agents.
             if handoff_agent is None:
-                # Don't retry this. It's a configuration error
                 logger.warning(f"Agent {handoff_agent_name} not found in the list of agents. Ignoring this agent. Available agents: {list(agents_dict.keys())}")
                 session_state.add_system_message(
                     ctx,
                     f"Agent {handoff_agent_name} not found in the list of agents. Available agents: {list(agents_dict.keys())}",
                 )
-                continue
-            tool_and_handoffs_list.append(handoff_agent.to_tool_schema())
+            else:
+                tool_and_handoffs_list.append(handoff_agent.to_tool_schema())
 
         # Call the LLM - OpenAPI Responses API
+        logger.info(f"{logging_prefix} Calling LLM")
         response: Response = await ctx.run(
             "Call LLM",
             lambda: client.responses.create(
@@ -338,7 +344,12 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> AgentResponse:
                 agents_dict, response.output, tools
             )
         except Exception as e:
-            logger.warning(f"Failed to parse LLM response: {str(e)}")
+            logger.info(f"""{logging_prefix} Output of LLM response parsing:
+                Tool calls: {tool_calls}
+                Run handoffs: {run_handoffs}
+                Output messages: {output_messages}
+                """)
+            logger.warning(f"{logging_prefix} Failed to parse LLM response: {str(e)}")
             session_state.add_system_message(
                 ctx, f"Failed to parse LLM response: {str(e)}"
             )
@@ -348,6 +359,7 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> AgentResponse:
         # Execute (parallel) tool calls
         parallel_tools = []
         for tool_call in tool_calls:
+            logger.info(f"{logging_prefix} Executing tool {tool_call.name}")
             session_state.add_system_message(ctx, f"Executing tool {tool_call.name}.")
             try:
                 if tool_call.delay_in_millis is None:
@@ -373,7 +385,7 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> AgentResponse:
             except Exception as e:
                 if not isinstance(e, restate.vm.SuspendedException):
                     logger.warning(
-                        f"Failed to execute tool {tool_call.name}: {str(e)}"
+                        f"{logging_prefix} Failed to execute tool {tool_call.name}: {str(e)}"
                     )
                     session_state.add_system_message(
                         ctx,
@@ -385,6 +397,7 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> AgentResponse:
         if len(parallel_tools) > 0:
             results_done = await restate.gather(*parallel_tools)
             results = [(await result).decode() for result in results_done]
+            logger.info(f"{logging_prefix} Gathered tool execution results: {results}")
             session_state.add_system_messages(ctx, results)
 
         # Handle handoffs
@@ -394,10 +407,7 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> AgentResponse:
             # For the others, we add a tool response that we will not handle them.
             if len(run_handoffs) > 1:
                 for handoff in run_handoffs[1:]:
-                    session_state.add_system_message(
-                        ctx,
-                        f"Multiple handoffs detected, ignoring this one: {handoff.name} with arguments {handoff.arguments}.",
-                    )
+                    logger.info(f"{logging_prefix} Multiple handoffs detected, ignoring this one: {handoff.name} with arguments {handoff.arguments}.")
 
             handoff_command = run_handoffs[0]
 
@@ -407,9 +417,10 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> AgentResponse:
                 session_state.add_system_message(ctx,
                     f"Agent {handoff_command.name} not found in the list of agents."
                 )
+                logger.info(f"{logging_prefix} Agent {handoff_command.name} not found in the list of agents.")
                 continue
 
-            logger.info("Handing off to agent %s", agent.name)
+            logger.info(f"{logging_prefix} Handing off to agent {agent.name}")
             session_state.add_system_message(ctx, f"Transferred to {agent.name}.")
             ctx.set("agent_name", format_name(agent.name))
 
@@ -421,7 +432,7 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> AgentResponse:
         if output_messages:
             last_content = output_messages[-1].content[-1] if output_messages[-1].content else None
             if isinstance(last_content, ResponseOutputText):
-                logger.info("Final output message: %s", last_content)
+                logger.info(f"{logging_prefix} Final output message: {last_content}")
                 return AgentResponse(
                     agent=agent.name,
                     messages=session_state.get_new_items(),
@@ -462,12 +473,6 @@ async def parse_llm_response(
                 tool_calls.append(to_tool_call(tool, item))
         else:
             raise ValueError(f"This agent cannot handle this output type {type(item)}. Use another tool or handoff.",)
-
-    logger.info(f"""Output of LLM response parsing:
-        Output messages: {output_messages}
-        Run handoffs: {run_handoffs}
-        Tool calls: {tool_calls}
-        """)
 
     return output_messages, run_handoffs, tool_calls
 

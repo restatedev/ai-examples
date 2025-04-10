@@ -122,10 +122,10 @@ async def request_additional_info(
     """
     This tool lets you send a message to the customer.
     The message will be sent to the customer with the given key.
+    Keyed by the loan ID.
 
     Args:
-        key (str): The customer ID.
-        message (str): The message to send.
+        req (AdditionalInfoRequest): The request for additional information.
     """
     from chat import add_async_response
 
@@ -136,7 +136,6 @@ async def request_additional_info(
     # Once the user will see the message and respond,
     # the agent which receives that message will route it back to us by resolving the promise.
     from chat import message_to_customer_agent, chat_agents
-    print("Sending message to customer")
     ctx.object_send(agent_session_run, key=req.customer_id, arg=AgentInput(
         starting_agent=message_to_customer_agent,
         agents=chat_agents,
