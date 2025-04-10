@@ -291,21 +291,30 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> AgentResponse:
     agent = agents_dict.get(agent_name)
     if agent is None:
         # Don't retry this. It's a configuration error
+        session_state.add_system_message(
+            ctx,
+            f"Current/starting agent not found in the list of agents {agent_name}. Available agents: {list(agents_dict.keys())}",
+        )
+        print(f"Current/starting agent not found in the list of agents {agent_name}. Available agents: {list(agents_dict.keys())}")
         raise TerminalError(
             f"Agent {agent_name} not found in the list of agents. Available agents: {list(agents_dict.keys())}"
         )
 
     # === 2. Run the agent loop ===
     while True:
+        print(f"New iteration agent loop {ctx.key()}")
         # Get the tools in the right format for the LLM
         tools = {tool.formatted_name: tool for tool in agent.tools}
         tool_and_handoffs_list = [tool.tool_schema for tool in agent.tools]
+        print(f"Agent loop {ctx.key()} - agent: {agent.name} with tools {[tool.formatted_name for tool in agent.tools]}")
         for agent_name in agent.handoffs:
             agent = agents_dict.get(format_name(agent_name))
             if agent is None:
                 # Don't retry this. It's a configuration error
-                raise TerminalError(
-                    f"Agent {agent_name} not found in the list of agents. Available agents: {list(agents_dict.keys())}"
+                print(f"Agent {agent_name} not found in the list of agents. Ignoring this agent. Available agents: {list(agents_dict.keys())}")
+                session_state.add_system_message(
+                    ctx,
+                    f"Agent {agent_name} not found in the list of agents. Available agents: {list(agents_dict.keys())}",
                 )
             tool_and_handoffs_list.append(agent.to_tool_schema())
 
@@ -319,6 +328,7 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> AgentResponse:
                 tools=tool_and_handoffs_list,
                 parallel_tool_calls=True,
                 stream=False,
+                temperature=0.1
             ),
             serde=PydanticJsonSerde(Response),
         )
@@ -385,6 +395,7 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> AgentResponse:
 
         # Handle handoffs
         if run_handoffs:
+            print("There are handoffs")
             # Only one agent can be in charge of the conversation at a time.
             # So if there are multiple handoffs in the response, only run the first one.
             # For the others, we add a tool response that we will not handle them.
@@ -414,6 +425,7 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> AgentResponse:
         # Handle output messages
         # If there are no output messages, then we just continue the loop
         if output_messages:
+            print("There are output messages")
             last_content = output_messages[-1].content[-1] if output_messages[-1].content else None
             if isinstance(last_content, ResponseOutputText):
                 return AgentResponse(
@@ -456,6 +468,10 @@ async def parse_llm_response(
                 tool_calls.append(to_tool_call(tool, item))
         else:
             raise ValueError(f"This agent cannot handle this output type {type(item)}. Use another tool or handoff.",)
+
+    print(f"Output messages: {output_messages}")
+    print(f"Run handoffs: {run_handoffs}")
+    print(f"Tool calls: {tool_calls}")
     return output_messages, run_handoffs, tool_calls
 
 

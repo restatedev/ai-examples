@@ -133,13 +133,19 @@ async def request_additional_info(
     ctx.set("awakeable_id", id)
 
     # Send the message to the customer via the agent session which started the loan request.
-    # Once the user will see the message and respond,<
+    # Once the user will see the message and respond,
     # the agent which receives that message will route it back to us by resolving the promise.
-    from chat import message_to_customer_agent
+    from chat import message_to_customer_agent, chat_agents
+    print("Sending message to customer")
     ctx.object_send(agent_session_run, key=req.customer_id, arg=AgentInput(
         starting_agent=message_to_customer_agent,
-        agents=[message_to_customer_agent],
-        message=req.message))
+        agents=chat_agents,
+        message=f"""
+        Use the add_async_response tool to send this CLARIFICATION REQUEST: {req.message}. 
+        Once the customer answers to this use the Clarifications Answer Forwarder Agent - on_additional_info tool to route the answer back to the loan review agent.
+        Don't respond to the customer directly. Just forward the answer.
+        """,
+        force_starting_agent=True))
     return await promise
 
 
@@ -183,18 +189,13 @@ loan_review_agent = Agent(
     - debt_to_income_ratio
     - high_risk_transactions
     - large_purchases
-    3. If any of these metrics are not good, then ask the customer for clarification:
+    3. If any of these metrics are not good, then ask the customer for clarification by executing the request_additional_info tool with the loan ID as the key:
     - In the case of high_risk_transactions, ask for the reason of the high risk transactions.
     - In the case of large_purchases, ask for the reason of the large purchases.
     - In the case of debt_to_income_ratio, ask for the which other debts the customer has.
-    Always stay kind when talking to the customer. 
-    Use the request_additional_info tool to send a message to the customer, and use the loan ID as the key to invoke the tool.
-    When you invoke this tool, it will send a message to the customer to ask for more information, so make sure you are clear in your description of what you need.
-    Clearly specify the loan ID for which you need this information, that it's a request for additional information to approve the loan, and what information you need.
-    Once you get the response, you can use this as additional input to your decision making process.
-    4. Based on the information you gathered you then make a decision to either approve or not. You can use your own judgement for this. 
-    5. Let the loan approval workflow know the decision you made with the on_loan_decision tool.
-    Use the loan ID as the key when you invoke the on_loan_decision handler. 
+    Be very clear in the message about what you need to be clarified.
+    4. Based on the metrics and clarifications,  make a decision to either approve or not. You can use your own judgement for this. 
+    5. Let the loan approval workflow know the decision you made with the on_loan_decision tool with the loan ID as the key.
     Your decision contains a boolean on whether you approve on not, and your reasoning, together with the output of each of the tool call you did to calculate the metrics. 
     Make sure your reasoning is a kind, formal chat message, personalized for the customer. 
     Be very clear in the reason you give so the customer can understand the decision you made.

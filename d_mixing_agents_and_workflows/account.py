@@ -87,7 +87,7 @@ async def submit_loan_request(ctx: restate.ObjectContext, req: LoanRequest) -> s
         loan_request=req, transaction_history=await get_transaction_history(ctx)
     )
     ctx.workflow_send(run, key=loan_id, arg=loan_review_request)
-    return loan_id
+    return f"The loan request with {loan_id} was scheduled for review."
 
 
 @account.handler()
