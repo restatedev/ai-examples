@@ -1,7 +1,4 @@
-import random
 import restate
-
-from datetime import timedelta
 
 from utils.pydantic_models import (
     Transaction,

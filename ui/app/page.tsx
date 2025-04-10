@@ -10,7 +10,7 @@ type Message = {
   id: string
   role: "user" | "assistant" | "system"
   content: string
-  timestamp: number
+  timestamp_millis: number
 }
 
 export default function ChatApp() {
@@ -36,7 +36,7 @@ export default function ChatApp() {
       id: timestamp.toString(),
       role: "user",
       content: inputMessage,
-      timestamp: timestamp,
+      timestamp_millis: timestamp,
     }
 
     setMessages((prev) => [...prev, userMessage])
@@ -49,7 +49,7 @@ export default function ChatApp() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ role: "user", content: inputMessage, timestamp: userMessage.timestamp }),
+        body: JSON.stringify({ role: "user", content: inputMessage, timestamp_millis: userMessage.timestamp_millis }),
       })
 
       if (!response.ok) {
@@ -83,7 +83,7 @@ export default function ChatApp() {
             id: Date.now().toString() + Math.random(),
             content: msg["content"],
             role: msg["role"],
-            timestamp: msg["timestamp"],
+            timestamp_millis: msg["timestamp_millis"],
           }
         })
 
@@ -135,7 +135,7 @@ export default function ChatApp() {
                 {message.content}
               </div>
               <div className={`text-xs mt-1 text-[#86868b] ${message.role === "user" ? "text-right" : "text-left"}`}>
-                {new Date(message.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                {new Date(message.timestamp_millis).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
               </div>
             </div>
           ))}

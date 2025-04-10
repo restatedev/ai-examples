@@ -144,8 +144,8 @@ class Agent(BaseModel):
     name: str
     handoff_description: str
     instructions: str
-    tools: list[RestateTool] = Field(default=[])
-    handoffs: list[str] = Field(default=[])  # agent names
+    tools: list[RestateTool] = Field(default_factory=list)
+    handoffs: list[str] = Field(default_factory=list)  # agent names
     formatted_name: str = Field(default_factory=lambda data: format_name(data["name"]))
 
     def to_tool_schema(self) -> dict[str, Any]:
@@ -179,6 +179,7 @@ class AgentInput(BaseModel):
     starting_agent: Agent
     agents: list[Agent]
     message: str
+    force_starting_agent: bool = False
 
 
 class AgentResponse(BaseModel):
@@ -280,22 +281,33 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> AgentResponse:
     session_state = SessionState(input_items=await ctx.get("input_items"))
     session_state.add_user_message(ctx, req.message)
 
-    agent_name = await ctx.get("agent_name") or req.starting_agent.formatted_name
+    if req.force_starting_agent:
+        # We ignore the current agent, and use the starting agent in the message
+        agent_name = req.starting_agent.formatted_name
+    else:
+        agent_name = await ctx.get("agent_name") or req.starting_agent.formatted_name
     ctx.set("agent_name", agent_name)
     agents_dict = {agent.formatted_name: agent for agent in req.agents}
-    agent = agents_dict[agent_name]
+    agent = agents_dict.get(agent_name)
+    if agent is None:
+        # Don't retry this. It's a configuration error
+        raise TerminalError(
+            f"Agent {agent_name} not found in the list of agents. Available agents: {list(agents_dict.keys())}"
+        )
 
     # === 2. Run the agent loop ===
     while True:
         # Get the tools in the right format for the LLM
         tools = {tool.formatted_name: tool for tool in agent.tools}
         tool_and_handoffs_list = [tool.tool_schema for tool in agent.tools]
-        tool_and_handoffs_list.extend(
-            [
-                agents_dict[format_name(agent_name)].to_tool_schema()
-                for agent_name in agent.handoffs
-            ]
-        )
+        for agent_name in agent.handoffs:
+            agent = agents_dict.get(format_name(agent_name))
+            if agent is None:
+                # Don't retry this. It's a configuration error
+                raise TerminalError(
+                    f"Agent {agent_name} not found in the list of agents. Available agents: {list(agents_dict.keys())}"
+                )
+            tool_and_handoffs_list.append(agent.to_tool_schema())
 
         # Call the LLM - OpenAPI Responses API
         response: Response = await ctx.run(
@@ -317,9 +329,17 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> AgentResponse:
         )
 
         # Parse LLM response
-        output_messages, run_handoffs, tool_calls = await parse_llm_response(
-            ctx, agents_dict, response.output, session_state, tools
-        )
+        try:
+            output_messages, run_handoffs, tool_calls = await parse_llm_response(
+                agents_dict, response.output, tools
+            )
+        except Exception as e:
+            logger.warning(f"Failed to parse LLM response: {str(e)}")
+            session_state.add_system_message(
+                ctx, f"Failed to parse LLM response: {str(e)}"
+            )
+            # Let the LLM evaluate what it did wrong and correct
+            continue
 
         # Execute (parallel) tool calls
         parallel_tools = []
@@ -364,7 +384,7 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> AgentResponse:
             session_state.add_system_messages(ctx, results)
 
         # Handle handoffs
-        if len(run_handoffs) > 0:
+        if run_handoffs:
             # Only one agent can be in charge of the conversation at a time.
             # So if there are multiple handoffs in the response, only run the first one.
             # For the others, we add a tool response that we will not handle them.
@@ -378,7 +398,13 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> AgentResponse:
             handoff_command = run_handoffs[0]
 
             # Determine the new agent in charge
-            agent = agents_dict[handoff_command.name]
+            agent = agents_dict.get(handoff_command.name)
+            if agent is None:
+                session_state.add_system_message(ctx,
+                    f"Agent {handoff_command.name} not found in the list of agents."
+                )
+                continue
+
             session_state.add_system_message(ctx, f"Transferred to {agent.name}.")
             ctx.set("agent_name", format_name(agent.name))
 
@@ -387,27 +413,19 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> AgentResponse:
 
         # Handle output messages
         # If there are no output messages, then we just continue the loop
-        if len(output_messages) > 0:
-            if len(output_messages) > 1:
-                logger.warning("Multiple output messages in the LLM response.")
-
-            # Use the last output message as the final output
-            # If that is a refusal, then just run the loop again
-            last_content = output_messages[-1].content[-1]
+        if output_messages:
+            last_content = output_messages[-1].content[-1] if output_messages[-1].content else None
             if isinstance(last_content, ResponseOutputText):
-                final_output = last_content.text
                 return AgentResponse(
                     agent=agent.name,
                     messages=session_state.get_new_items(),
-                    final_output=final_output,
+                    final_output=last_content.text,
                 )
 
 
 async def parse_llm_response(
-    ctx: restate.ObjectContext,
     agents_dict: Dict[str, Agent],
     output: List[ResponseOutputItem],
-    session_state: SessionState,
     tools: Dict[str, RestateTool],
 ):
     tool_calls = []
@@ -422,14 +440,10 @@ async def parse_llm_response(
             or isinstance(item, ResponseReasoningItem)
             or isinstance(item, ResponseComputerToolCall)
         ):
-            logger.warning(
+            raise ValueError(
                 "This implementation does not support file search, web search, computer tools, or reasoning yet."
             )
-            # We add it to the session_state to feed it back into the next LLM call
-            session_state.add_system_message(
-                ctx,
-                "This agent cannot handle file search, web search, computer tools, or reasoning. Use another tool or handoff.",
-            )
+
         elif isinstance(item, ResponseFunctionToolCall):
             if item.name in agents_dict.keys():
                 # Handoffs
@@ -437,21 +451,11 @@ async def parse_llm_response(
             else:
                 # Tool calls
                 if item.name not in tools.keys():
-                    logger.warning(f"Unkown tool, ignoring: {item.name}")
-                    session_state.add_system_message(
-                        ctx,
-                        f"This agent does not have access to this tool: {item.name}. Use another tool or handoff.",
-                    )
+                    raise ValueError(f"This agent does not have access to this tool: {item.name}. Use another tool or handoff.")
                 tool = tools[item.name]
                 tool_calls.append(to_tool_call(tool, item))
         else:
-            logger.warning(f"Unexpected output type, ignoring: {type(item)}")
-            # We add it to the session_state to feed it back into the next LLM call
-            session_state.add_system_message(
-                ctx,
-                f"This agent cannot handle this output type {type(item)}. Use another tool or handoff.",
-            )
-            continue
+            raise ValueError(f"This agent cannot handle this output type {type(item)}. Use another tool or handoff.",)
     return output_messages, run_handoffs, tool_calls
 
 
@@ -528,11 +532,19 @@ def get_service_type_from_handler(
 
 def to_tool_call(tool: RestateTool, item: ResponseFunctionToolCall) -> ToolCall:
     tool_request = json.loads(item.arguments)
+
     if tool_request.get("req") is None:
         input_serialized = bytes({})
     else:
         input_serialized = json.dumps(tool_request["req"]).encode()
-    key = tool_request.get("key")
+    key = None
+    if tool.service_type == "Workflow" or "VirtualObject":
+        key = tool_request.get("key")
+        if key is None:
+            raise ValueError(
+                f"Service key is required for {tool.service_type} ${tool.service_name} but not provided in the request."
+            )
+
     delay_in_millis = tool_request.get("delay_in_millis")
     return ToolCall(
         name=item.name,

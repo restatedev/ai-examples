@@ -6,6 +6,7 @@ from account import (
     get_balance,
     get_transaction_history,
 )
+from loan_review_agent import on_additional_info
 from utils.pydantic_models import ChatMessage, ChatHistory
 from utils.utils import time_now
 from utils.agent_session import (
@@ -16,84 +17,6 @@ from utils.agent_session import (
     RECOMMENDED_PROMPT_PREFIX,
 )
 
-# AGENTS
-
-account_manager_agent = Agent(
-    name="Account Manager Agent",
-    handoff_description="A helpful agent that can helps you with answering questions about your bank account: the balance and transaction history.",
-    instructions=f"""{RECOMMENDED_PROMPT_PREFIX}
-    You are an agent that helps with answering questions about the bank account: related to the balance and transaction history.
-    You are not able to help with anything else.
-    If you are speaking to a customer, you probably were transferred to from the intake agent.
-    You have the tools to retrieve the transaction history and the balance.
-    Use the following routine to support the customer.
-    # Routine #1
-    1. Make sure you know the customer ID. This will be the key for all interaction with the tools. 
-    Never use another key as the customer ID you find at the top of the chat message. 
-    2. Use the get_balance and get_transaction_history tools to retrieve the balance or the transaction history of the customer.
-    Depending on the customer question, use the right tool.
-    3. Analyze the response and return the right information to the customer in a kind, polite, formal message.
-    4. If the customer asks a question that is not related to these routines, transfer back to the intake agent.
-    """,
-    tools=[
-        restate_tool(get_balance),
-        restate_tool(get_transaction_history),
-    ],
-)
-
-loan_request_manager_agent = Agent(
-    name="Loan Request Manager Agent",
-    handoff_description="A helpful agent that can helps you with submitting a request for a loan and retrieving its status, and the decision made (approval and reason).",
-    instructions=f"""{RECOMMENDED_PROMPT_PREFIX}
-    You are an agent that helps with:
-     - submitting loan requests
-     - giving information on the status of the loan requests
-     - giving information on the decision made (approval and reason) of the loan requests
-     - giving information on the status of the loan payments (monthly amount, months left)
-    You are not able to help with anything else.
-    If you are speaking to a customer, you probably were transferred to from the intake agent.
-    You have the tools to either create new loan requests and retrieve the loan status and decision.
-    Use the following routine to support the customer.
-    # Routine #1
-    If the customer wants to submit a new loan request:
-    1. Make sure you know the customer ID and all the loan request information you need to submit the request. 
-    You can find all the required information in the input parameters of the loan_approval_workflow run tool: loan amount, and duration.
-    Don't ask for other info besides that.
-    2. Once you have all the loan request information, submit the workflow with the submit_loan_request tool, and use the customer ID as the key.
-    3. Mention the loan ID in your communication back to the customer. You can find the loan ID as the response of the submit_loan_request tool.
-
-    # Routine #2
-    Alternatively, if the customer wants to get the status of his ongoing loan payments, loan requests, and loan decisions:
-    1. Make sure you know the customer ID.
-    2. Use the get_customer_loans tool to retrieve the status of the loans of the customer.
-    3. Retrieve the right information from the response and return it to the customer.
-     
-    3. If the customer asks a question that is not related to these routines, transfer back to the intake agent.
-    """,
-    tools=[
-        restate_tool(submit_loan_request),
-        restate_tool(get_customer_loans),
-    ],
-)
-
-intake_agent = Agent(
-    name="Intake Agent",
-    handoff_description="An intake agent that can delegates a customer's request to the appropriate agent.",
-    instructions=(
-        f"{RECOMMENDED_PROMPT_PREFIX}"
-        "You are a helpful intake agent. You can use your handoffs to delegate questions to other appropriate agents."
-    ),
-    handoffs=[loan_request_manager_agent.name, account_manager_agent.name],
-)
-
-loan_request_manager_agent.handoffs.append(intake_agent.name)
-account_manager_agent.handoffs.append(intake_agent.name)
-
-chat_agents = [
-    account_manager_agent,
-    loan_request_manager_agent,
-    intake_agent,
-]
 
 # CHAT SERVICE
 
@@ -131,7 +54,7 @@ async def send_message(ctx: restate.ObjectContext, req: ChatMessage) -> ChatMess
     )
 
     new_message = ChatMessage(
-        role="system", content=result.final_output, timestamp=await time_now(ctx)
+        role="system", content=result.final_output, timestamp_millis=await time_now(ctx)
     )
     history.entries.append(new_message)
     ctx.set(CHAT_HISTORY, history)
@@ -155,3 +78,113 @@ async def add_async_response(ctx: restate.ObjectContext, req: ChatMessage):
 @chat_service.handler(kind="shared")
 async def get_chat_history(ctx: restate.ObjectSharedContext) -> ChatHistory:
     return await ctx.get(CHAT_HISTORY, type_hint=ChatHistory) or ChatHistory()
+
+
+# AGENTS
+
+account_manager_agent = Agent(
+    name="Account Manager Agent",
+    handoff_description="A helpful agent that helps with answering questions about your bank account: the balance and transaction history.",
+    instructions=f"""{RECOMMENDED_PROMPT_PREFIX}
+    You are an agent that helps with answering questions about the bank account: related to the balance and transaction history.
+    You are not able to help with anything else.
+    If you are speaking to a customer, you probably were transferred to from the intake agent.
+    You have the tools to retrieve the transaction history and the balance.
+    Use the following routine to support the customer.
+    # Routine #1
+    1. Make sure you know the customer ID. This will be the key for all interaction with the tools. 
+    Never use another key as the customer ID you find at the top of the chat message. 
+    2. Use the get_balance and get_transaction_history tools to retrieve the balance or the transaction history of the customer.
+    Depending on the customer question, use the right tool.
+    3. Analyze the response and return the right information to the customer in a kind, polite, formal message.
+    4. If the customer asks a question that is not related to these routines, transfer back to the intake agent.
+    """,
+    tools=[
+        restate_tool(get_balance),
+        restate_tool(get_transaction_history),
+    ],
+)
+
+loan_request_manager_agent = Agent(
+    name="Loan Request Manager Agent",
+    handoff_description="A helpful agent that helps with submitting a request for a loan, providing extra info, and retrieving its status, and the decision made (approval and reason).",
+    instructions=f"""{RECOMMENDED_PROMPT_PREFIX}
+    You are an agent that helps with:
+     - submitting loan requests
+     - giving information on the status of the loan requests
+     - giving information on the decision made (approval and reason) of the loan requests
+     - giving information on the status of the loan payments (monthly amount, months left)
+     - forwarding clarifications the customer provides to ongoing loan approval processes (routine 3)
+     
+    You are not able to help with anything else.
+    If you are speaking to a customer, you probably were transferred to from the intake agent.
+    You have the tools to either create new loan requests and retrieve the loan status and decision.
+    Use the following routine to support the customer.
+    
+    # Routine #1
+    If the customer wants to submit a new loan request:
+    1. Make sure you know the customer ID and all the loan request information you need to submit the request. 
+    You can find all the required information in the input parameters of the loan_approval_workflow run tool: loan amount, and duration.
+    Don't ask for other info besides that.
+    2. Once you have all the loan request information, submit the workflow with the submit_loan_request tool, and use the customer ID as the key.
+    3. Let the customer know the loan got submitted and include the loan ID. You can find the loan ID as the response of the submit_loan_request tool.
+    4. If the customer asks a question that is not related to these routines, transfer back to the intake agent.
+
+    # Routine #2
+    Alternatively, if the customer wants to get the status of his ongoing loan payments, loan requests, and loan decisions:
+    1. Make sure you know the customer ID.
+    2. Use the get_customer_loans tool to retrieve the status of the loans of the customer.
+    3. Retrieve the right information from the response and return it to the customer.
+    4. If the customer asks a question that is not related to these routines, transfer back to the intake agent.
+    
+    # Routine #3
+    If the customer is giving giving clarifications **on request of an ongoing loan approval process**.
+    Use this routine if the last two messages in the chat are:
+    - A system message asking the customer for clarifications on transactions, debts, etc
+    - A customer message with the clarifications.
+    1. Use the on_additional_info tool to route the additional information the customer gave back to the loan approval process. Use the loan ID as the key.
+    If you are not sure about the loan ID, ask the customer for it.
+    
+    2. If the customer asks a question that is not related to these routines, transfer back to the intake agent.
+    """,
+    tools=[
+        restate_tool(submit_loan_request),
+        restate_tool(get_customer_loans),
+        restate_tool(on_additional_info)
+    ],
+)
+
+intake_agent = Agent(
+    name="Intake Agent",
+    handoff_description="An intake agent that can delegates a customer's request to the appropriate agent.",
+    instructions=(
+        f"{RECOMMENDED_PROMPT_PREFIX}"
+        "You are a helpful intake agent. You can use your handoffs to delegate to other appropriate agents."
+    ),
+    handoffs=[loan_request_manager_agent.name, account_manager_agent.name],
+)
+
+loan_request_manager_agent.handoffs.append(intake_agent.name)
+account_manager_agent.handoffs.append(intake_agent.name)
+
+chat_agents = [
+    account_manager_agent,
+    loan_request_manager_agent,
+    intake_agent,
+]
+
+
+message_to_customer_agent = Agent(
+    name="Message to Customer Agent",
+    handoff_description="A helpful agent that can forwards messages to the customer.",
+    instructions=f"""{RECOMMENDED_PROMPT_PREFIX}
+    You are an agent that helps with forwarding messages to the customer.
+    You are not able to help with anything else.
+    Routine #1
+    1. Make sure you know the customer ID. 
+    2. Use the add_async_response tool with the Customer ID as key. Use the tool to send a message to the customer.
+    """,
+    tools=[
+        restate_tool(add_async_response),
+    ],
+)

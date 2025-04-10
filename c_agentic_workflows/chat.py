@@ -116,7 +116,7 @@ async def send_message(ctx: restate.ObjectContext, req: ChatMessage) -> ChatMess
     )
 
     new_message = ChatMessage(
-        role="system", content=result.final_output, timestamp=await time_now(ctx)
+        role="system", content=result.final_output, timestamp_millis=await time_now(ctx)
     )
     history.entries.append(new_message)
     ctx.set(CHAT_HISTORY, history)

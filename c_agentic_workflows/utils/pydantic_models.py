@@ -1,4 +1,4 @@
-from typing import Dict, List, Literal
+from datetime import datetime
 
 from pydantic import BaseModel, Field
 from restate.serde import PydanticJsonSerde
@@ -14,12 +14,14 @@ class ChatMessage(BaseModel):
     Attributes:
         role (str): The role of the sender (user, assistant, system).
         content (str): The message to send.
-        timestamp (int): The timestamp of the message in millis.
+        timestamp_millis (int): The timestamp of the message in millis.
+        timestamp (str): The timestamp of the message in YYYY-MM-DD format.
     """
 
     role: str
     content: str
-    timestamp: int
+    timestamp_millis: int
+    timestamp: str = Field(default_factory=lambda data: datetime.fromtimestamp(data["timestamp_millis"] / 1000).strftime("%Y-%m-%d"))
 
 
 class ChatHistory(BaseModel):
@@ -40,6 +42,7 @@ class Transaction(BaseModel):
     reason: str
     amount: float
     timestamp: str
+    timestamp_millis: int = Field(default_factory=lambda data: int(datetime.strptime(data["timestamp"], "%Y-%m-%d").timestamp()*1000))
 
 
 class TransactionHistory(BaseModel):
@@ -100,8 +103,8 @@ class Loan(BaseModel):
 
     loan_id: str
     loan_request: LoanRequest
-    loan_decision: LoanDecision | None = Field(default=None)
-    loan_payment: RecurringLoanPayment | None = Field(default=None)
+    loan_decision: LoanDecision | None = None
+    loan_payment: RecurringLoanPayment | None = None
 
 
 class CustomerLoanOverview(BaseModel):
@@ -112,4 +115,4 @@ class CustomerLoanOverview(BaseModel):
         loans (Dict[str, Loan]): The list of loans.
     """
 
-    loans: Dict[str, Loan] = Field(default={})
+    loans: dict[str, Loan] = Field(default=dict)

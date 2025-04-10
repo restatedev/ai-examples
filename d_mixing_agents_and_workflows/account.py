@@ -209,6 +209,6 @@ async def notify_customer(ctx: restate.ObjectContext, message: str):
     chat_message = ChatMessage(
         role="system",
         content=message,
-        timestamp=await time_now(ctx),
+        timestamp_millis=await time_now(ctx),
     )
     ctx.object_send(add_async_response, key=ctx.key(), arg=chat_message)

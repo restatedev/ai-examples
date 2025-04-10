@@ -6,16 +6,7 @@ from utils.pydantic_models import LoanReviewRequest, LoanDecision, LoanDecisionS
 from utils.utils import time_now_string
 from utils.agent_session import (
     AgentInput,
-    RECOMMENDED_PROMPT_PREFIX,
-    Agent,
-    restate_tool,
     run as agent_session_run,
-)
-from utils.credit_worthiness_tools import (
-    average_monthly_spending,
-    debt_to_income_ratio,
-    high_risk_transactions,
-    large_purchases,
 )
 from account import (
     Transaction,
@@ -91,7 +82,16 @@ async def run(
             f"Review the loan request: {req.model_dump_json()};"
             f"transaction history: {history};"
         )
-        await invoke_agent(ctx, loan_intake_data)
+        from loan_review_agent import loan_review_agent
+        ctx.object_send(
+            agent_session_run,
+            key=ctx.key(),
+            arg=AgentInput(
+                starting_agent=loan_review_agent,
+                agents=[loan_review_agent],
+                message=loan_intake_data,
+            )
+        )
     else:
         # Loans over 1M require human assessment
         await ctx.run("Request human assessment", request_human_assessment)
@@ -132,46 +132,6 @@ async def on_loan_decision(ctx: restate.WorkflowSharedContext, decision: LoanDec
     """
     await ctx.promise("loan_decision", serde=LoanDecisionSerde).resolve(decision)
 
-
-# ----- AGENTS ------
-
-loan_review_agent = Agent(
-    name="Loan Review Agent",
-    handoff_description="A helpful agent that can helps you with reviewing loan requests based on the customer's creditworthiness.",
-    instructions=f"""{RECOMMENDED_PROMPT_PREFIX}
-    You are an agent that helps with determining the creditworthiness of the customer.
-    You decide on whether or not he should get a loan.  
-    You were probably invoked by the loan approval workflow. 
-    Use the following routine to support the customer.
-    # Routine
-    1. The input the loan approval workflow gave you contains the transaction history of the customer. 
-    The first thing you should do is analyze the transaction history of the customer.
-    You do this by categorizing each of the transactions into: income, loan_payment, gambling, payday_loan, cash_withdrawal, basic_expense, other.    
-    2. If there are many transactions that can negatively impact the loan decision, then ask the customer for clarification. 
-    Always stay kind when talking to the customer. 
-    3. Then you invoke each of the tools in parallel to calculate the important metrics to base your decision on: 
-    - average_monthly_spending
-    - debt_to_income_ratio
-    - high_risk_transactions
-    - large_purchases
-    4. Based on the values you get back you then make a decision to either approve or not. You can use your own judgement for this. 
-    5. Invoke the on_loan_decision tool to then let the workflow know of your decision. This lets the workflow know the decision, not the customer!
-    Use the loan approval workflow ID as the key when you invoke the on_loan_decision handler. 
-    Your decision contains a boolean on whether you approve on not, and your reasoning, together with the output of each of the tool call you did to calculate the metrics. 
-    Make sure your reasoning is a kind, formal chat message, personalized for the customer. 
-    Be very clear in the reason you give so the customer can understand the decision you made.
-    In case of any doubt, reject the loan application, and give as reason "NOT ENOUGH INFORMATION" together with the output of each of the tools.
-    6. When you get a question or command that you don't understand, or you get asked to notify the customer, then transfer back to the Loan Request Processing Agent.
-    """,
-    tools=[
-        restate_tool(on_loan_decision),
-        restate_tool(average_monthly_spending),
-        restate_tool(high_risk_transactions),
-        restate_tool(debt_to_income_ratio),
-        restate_tool(large_purchases),
-    ],
-)
-
 # ----- UTILS ------
 
 
@@ -180,14 +140,3 @@ def request_human_assessment():
     # ... to be implemented ...
     pass
 
-
-async def invoke_agent(ctx: restate.ObjectContext, msg: str):
-    ctx.object_send(
-        agent_session_run,
-        key=ctx.key(),  # Same key as workflow
-        arg=AgentInput(
-            starting_agent=loan_review_agent,
-            agents=[loan_review_agent],
-            message=msg,
-        ),
-    )

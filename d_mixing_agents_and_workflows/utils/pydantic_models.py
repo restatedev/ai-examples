@@ -1,4 +1,5 @@
-from typing import Dict, List, Literal
+from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field
 from restate.serde import PydanticJsonSerde
@@ -14,12 +15,14 @@ class ChatMessage(BaseModel):
     Attributes:
         role (str): The role of the sender (user, assistant, system).
         content (str): The message to send.
-        timestamp (int): The timestamp of the message in millis.
+        timestamp_millis (int): The timestamp of the message in millis.
+        timestamp (str): The timestamp of the message in YYYY-MM-DD format.
     """
 
     role: str
     content: str
-    timestamp: int
+    timestamp_millis: int
+    timestamp: str = Field(default_factory=lambda data: datetime.fromtimestamp(data["timestamp_millis"] / 1000).strftime("%Y-%m-%d"))
 
 
 class ChatHistory(BaseModel):
@@ -40,6 +43,7 @@ class Transaction(BaseModel):
     reason: str
     amount: float
     timestamp: str
+    timestamp_millis: int = Field(default_factory=lambda data: int(datetime.strptime(data["timestamp"], "%Y-%m-%d").timestamp()*1000))
 
 
 class TransactionHistory(BaseModel):
@@ -79,10 +83,10 @@ class EnrichedTransactionHistory(BaseModel):
     A customer account's transaction history enriched with categories.
 
     Attributes:
-        transactions (List[Transaction]): A list of transactions
+        transactions (list[Transaction]): A list of transactions
     """
 
-    transactions: List[EnrichedTransaction]
+    transactions: list[EnrichedTransaction]
 
 
 # ------------ LOAN MODELS ------------
@@ -175,7 +179,7 @@ class CustomerLoanOverview(BaseModel):
         loans (Dict[str, Loan]): The list of loans.
     """
 
-    loans: Dict[str, Loan] = Field(default={})
+    loans: dict[str, Loan] = Field(default_factory=dict)
 
 
 # ------------ CREDIT WORTHINESS MODELS ------------
@@ -202,4 +206,17 @@ class CreditMetricList(BaseModel):
         metrics (List[CreditMetric]): A list of credit worthiness outcomes
     """
 
-    metrics: List[CreditMetric]
+    metrics: list[CreditMetric]
+
+
+
+class AdditionalInfoRequest(BaseModel):
+    """
+    A message to the customer to request additional information.
+
+    Args:
+        customer_id (str): The customer ID.
+        message (str): The message to send.
+    """
+    customer_id: str
+    message: str
