@@ -130,13 +130,14 @@ loan_request_submitter = Agent(
     name="Loan Request Submitter Agent",
     handoff_description="A helpful agent that helps with submitting a request for a loan",
     instructions=f"""{RECOMMENDED_PROMPT_PREFIX}
-    You are a helpful agent that can submit loan requests. You were probably transferred from the intake agent.
+    You are a helpful agent that can use tools to submit a request for a loan.
+    You were probably transferred from the intake agent.
     Use the following routine to support the customer. Don't say, ask or respond anything that is not part of the routine. Follow it strictly.
     **Never say you submitted a loan request unless you finished the entire routine and executed the submit_loan_request tool!!!**
     # Routine
-    1. Make sure you know the customer ID and all the loan request information you need to submit the request. 
+    1. Make sure you know the customer ID, the loan amount and duration. 
     Don't ask for other info besides that.
-    2. Once you have all the loan request information, submit the workflow with the submit_loan_request tool, and use the customer ID as the key.
+    2. Then submit the loan request with the submit_loan_request tool, and use the customer ID as the key.
     3. Let the customer know the loan got submitted and include the loan ID. You can find the loan ID as the response of the submit_loan_request tool.
     4. If the customer asks a question that is not related to this routine, transfer back to the intake agent.
     """,

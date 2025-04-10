@@ -83,11 +83,6 @@ WORKFLOW_HANDLER_TOOL_PREFIX = (
 
 
 # MODELS AND TYPES
-
-# Three types of Restate services
-ServiceType = Literal["Service", "VirtualObject", "Workflow"]
-
-
 class Empty(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -115,7 +110,7 @@ class RestateTool(BaseModel, Generic[I, O]):
         service_name (str): The name of the service that provides the tool.
         name (str): The name of the tool, equal to the name of the service handler.
         description (str): A description of the tool, to be used by the agent.
-        service_type (ServiceType): The type of the service (Service, VirtualObject, or Workflow).
+        service_type (str): The type of the service (service, object, or workflow).
         tool_schema (dict[str, Any]): The schema for the tool's input and output.
         formatted_name (str): The formatted name of the tool without spaces and lowercase, used for the LLM.
     """
@@ -123,7 +118,7 @@ class RestateTool(BaseModel, Generic[I, O]):
     service_name: str
     name: str
     description: str
-    service_type: ServiceType
+    service_type: str
     tool_schema: dict[str, Any]
     formatted_name: str = Field(default_factory=lambda data: format_name(data["name"]))
 
@@ -291,23 +286,32 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> AgentResponse:
     agent = agents_dict.get(agent_name)
     if agent is None:
         # Don't retry this. It's a configuration error
+        session_state.add_system_message(
+            ctx,
+            f"Current/starting agent not found in the list of agents {agent_name}. Available agents: {list(agents_dict.keys())}",
+        )
         raise TerminalError(
             f"Agent {agent_name} not found in the list of agents. Available agents: {list(agents_dict.keys())}"
         )
 
     # === 2. Run the agent loop ===
     while True:
+        logger.info(f"New iteration agent loop {ctx.key()}")
         # Get the tools in the right format for the LLM
         tools = {tool.formatted_name: tool for tool in agent.tools}
         tool_and_handoffs_list = [tool.tool_schema for tool in agent.tools]
-        for agent_name in agent.handoffs:
-            agent = agents_dict.get(format_name(agent_name))
-            if agent is None:
+        logger.info(f"Agent loop {ctx.key()} - agent: {agent.name} with tools {[tool.formatted_name for tool in agent.tools]}")
+        for handoff_agent_name in agent.handoffs:
+            handoff_agent = agents_dict.get(format_name(handoff_agent_name))
+            if handoff_agent is None:
                 # Don't retry this. It's a configuration error
-                raise TerminalError(
-                    f"Agent {agent_name} not found in the list of agents. Available agents: {list(agents_dict.keys())}"
+                logger.warning(f"Agent {handoff_agent_name} not found in the list of agents. Ignoring this agent. Available agents: {list(agents_dict.keys())}")
+                session_state.add_system_message(
+                    ctx,
+                    f"Agent {handoff_agent_name} not found in the list of agents. Available agents: {list(agents_dict.keys())}",
                 )
-            tool_and_handoffs_list.append(agent.to_tool_schema())
+                continue
+            tool_and_handoffs_list.append(handoff_agent.to_tool_schema())
 
         # Call the LLM - OpenAPI Responses API
         response: Response = await ctx.run(
@@ -405,6 +409,7 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> AgentResponse:
                 )
                 continue
 
+            logger.info("Handing off to agent %s", agent.name)
             session_state.add_system_message(ctx, f"Transferred to {agent.name}.")
             ctx.set("agent_name", format_name(agent.name))
 
@@ -416,6 +421,7 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> AgentResponse:
         if output_messages:
             last_content = output_messages[-1].content[-1] if output_messages[-1].content else None
             if isinstance(last_content, ResponseOutputText):
+                logger.info("Final output message: %s", last_content)
                 return AgentResponse(
                     agent=agent.name,
                     messages=session_state.get_new_items(),
@@ -456,6 +462,13 @@ async def parse_llm_response(
                 tool_calls.append(to_tool_call(tool, item))
         else:
             raise ValueError(f"This agent cannot handle this output type {type(item)}. Use another tool or handoff.",)
+
+    logger.info(f"""Output of LLM response parsing:
+        Output messages: {output_messages}
+        Run handoffs: {run_handoffs}
+        Tool calls: {tool_calls}
+        """)
+
     return output_messages, run_handoffs, tool_calls
 
 
@@ -468,18 +481,21 @@ def format_name(name: str) -> str:
 
 def restate_tool(tool_call: Callable[[Any, I], Awaitable[O]]) -> RestateTool:
     target_handler = handler_from_callable(tool_call)
-    service_type = get_service_type_from_handler(tool_call)
+    service_type = target_handler.service_tag.kind
+    input_type = target_handler.handler_io.input_type.annotation
     match service_type:
-        case "VirtualObject":
+        case "object":
             description = (
                 f"{VIRTUAL_OBJECT_HANDLER_TOOL_PREFIX} \n{target_handler.description}"
             )
-        case "Workflow":
+        case "workflow":
             description = (
                 f"{WORKFLOW_HANDLER_TOOL_PREFIX} \n{target_handler.description}"
             )
-        case _:
+        case "service":
             description = target_handler.description
+        case _:
+            raise TerminalError(f"Unknown service type {service_type}")
 
     return RestateTool(
         service_name=target_handler.service_tag.name,
@@ -491,7 +507,7 @@ def restate_tool(tool_call: Callable[[Any, I], Awaitable[O]]) -> RestateTool:
             "name": f"{target_handler.name}",
             "description": description,
             "parameters": to_strict_json_schema(
-                RestateRequest[get_input_type_from_handler(tool_call)]
+                RestateRequest[input_type]
             ),
             "strict": True,
         },
@@ -509,27 +525,6 @@ def get_input_type_from_handler(handler: Callable[[Any, I], Awaitable[O]]) -> Ty
     return input_type
 
 
-def get_service_type_from_handler(
-    handler: Callable[[Any, I], Awaitable[O]],
-) -> ServiceType:
-    handler_annotations = getattr(handler, "__annotations__", {})
-    ctx_type = handler_annotations.get("ctx")
-    match ctx_type:
-        case _ if issubclass(ctx_type, restate.Context):
-            return "Service"
-        case _ if issubclass(ctx_type, restate.ObjectContext) or issubclass(
-            ctx_type, restate.ObjectSharedContext
-        ):
-            return "VirtualObject"
-        case _ if issubclass(ctx_type, restate.WorkflowContext) or issubclass(
-            ctx_type, restate.WorkflowSharedContext
-        ):
-            return "Workflow"
-        case _:
-            raise TerminalError(
-                f"Could not determine service type for handler {handler}"
-            )
-
 def to_tool_call(tool: RestateTool, item: ResponseFunctionToolCall) -> ToolCall:
     tool_request = json.loads(item.arguments)
 
@@ -538,7 +533,7 @@ def to_tool_call(tool: RestateTool, item: ResponseFunctionToolCall) -> ToolCall:
     else:
         input_serialized = json.dumps(tool_request["req"]).encode()
     key = None
-    if tool.service_type == "Workflow" or "VirtualObject":
+    if tool.service_type in {"workflow", "object"}:
         key = tool_request.get("key")
         if key is None:
             raise ValueError(

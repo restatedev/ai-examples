@@ -65,7 +65,7 @@ async def withdraw(ctx: restate.ObjectContext, transaction: Transaction):
 @account.handler()
 async def submit_loan_request(ctx: restate.ObjectContext, req: LoanRequest) -> str:
     """
-    Submit a loan request.
+    Let the customer submit a loan request for a specified duration and amount.
 
     Args:
         req (LoanRequest): The loan request object.

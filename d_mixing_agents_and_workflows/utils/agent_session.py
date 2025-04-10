@@ -290,28 +290,28 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> AgentResponse:
             ctx,
             f"Current/starting agent not found in the list of agents {agent_name}. Available agents: {list(agents_dict.keys())}",
         )
-        print(f"Current/starting agent not found in the list of agents {agent_name}. Available agents: {list(agents_dict.keys())}")
         raise TerminalError(
             f"Agent {agent_name} not found in the list of agents. Available agents: {list(agents_dict.keys())}"
         )
 
     # === 2. Run the agent loop ===
     while True:
-        print(f"New iteration agent loop {ctx.key()}")
+        logger.info(f"New iteration agent loop {ctx.key()}")
         # Get the tools in the right format for the LLM
         tools = {tool.formatted_name: tool for tool in agent.tools}
         tool_and_handoffs_list = [tool.tool_schema for tool in agent.tools]
-        print(f"Agent loop {ctx.key()} - agent: {agent.name} with tools {[tool.formatted_name for tool in agent.tools]}")
-        for agent_name in agent.handoffs:
-            agent = agents_dict.get(format_name(agent_name))
-            if agent is None:
+        logger.info(f"Agent loop {ctx.key()} - agent: {agent.name} with tools {[tool.formatted_name for tool in agent.tools]}")
+        for handoff_agent_name in agent.handoffs:
+            handoff_agent = agents_dict.get(format_name(handoff_agent_name))
+            if handoff_agent is None:
                 # Don't retry this. It's a configuration error
-                print(f"Agent {agent_name} not found in the list of agents. Ignoring this agent. Available agents: {list(agents_dict.keys())}")
+                logger.warning(f"Agent {handoff_agent_name} not found in the list of agents. Ignoring this agent. Available agents: {list(agents_dict.keys())}")
                 session_state.add_system_message(
                     ctx,
-                    f"Agent {agent_name} not found in the list of agents. Available agents: {list(agents_dict.keys())}",
+                    f"Agent {handoff_agent_name} not found in the list of agents. Available agents: {list(agents_dict.keys())}",
                 )
-            tool_and_handoffs_list.append(agent.to_tool_schema())
+                continue
+            tool_and_handoffs_list.append(handoff_agent.to_tool_schema())
 
         # Call the LLM - OpenAPI Responses API
         response: Response = await ctx.run(
@@ -389,7 +389,6 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> AgentResponse:
 
         # Handle handoffs
         if run_handoffs:
-            print("There are handoffs")
             # Only one agent can be in charge of the conversation at a time.
             # So if there are multiple handoffs in the response, only run the first one.
             # For the others, we add a tool response that we will not handle them.
@@ -410,6 +409,7 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> AgentResponse:
                 )
                 continue
 
+            logger.info("Handing off to agent %s", agent.name)
             session_state.add_system_message(ctx, f"Transferred to {agent.name}.")
             ctx.set("agent_name", format_name(agent.name))
 
@@ -419,9 +419,9 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> AgentResponse:
         # Handle output messages
         # If there are no output messages, then we just continue the loop
         if output_messages:
-            print("There are output messages")
             last_content = output_messages[-1].content[-1] if output_messages[-1].content else None
             if isinstance(last_content, ResponseOutputText):
+                logger.info("Final output message: %s", last_content)
                 return AgentResponse(
                     agent=agent.name,
                     messages=session_state.get_new_items(),
@@ -463,9 +463,12 @@ async def parse_llm_response(
         else:
             raise ValueError(f"This agent cannot handle this output type {type(item)}. Use another tool or handoff.",)
 
-    print(f"Output messages: {output_messages}")
-    print(f"Run handoffs: {run_handoffs}")
-    print(f"Tool calls: {tool_calls}")
+    logger.info(f"""Output of LLM response parsing:
+        Output messages: {output_messages}
+        Run handoffs: {run_handoffs}
+        Tool calls: {tool_calls}
+        """)
+
     return output_messages, run_handoffs, tool_calls
 
 
