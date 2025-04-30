@@ -67,32 +67,33 @@ tickets = [
     Mike"""
 ]
 
-headers = {"Content-Type": "application/json", "Accept": "application/json"}
+def main():
+   print("Processing support tickets...\n")
+   for i, ticket in enumerate(tickets, 1):
+      print(f"\nTicket {i}:")
+      print("-" * 40)
+      print(ticket)
+      print("\nResponse:")
+      print("-" * 40)
 
-print("Processing support tickets...\n")
-for i, ticket in enumerate(tickets, 1):
-    print(f"\nTicket {i}:")
-    print("-" * 40)
-    print(ticket)
-    print("\nResponse:")
-    print("-" * 40)
+      data = {
+         "input": ticket,
+         "routes": support_routes
+      }
 
-    data = {
-        "input": ticket,
-        "routes": support_routes
-    }
+      r = httpx.post(
+         "http://localhost:8080/RoutingService/route",
+         json=data,
+         timeout=60,
+      )
 
-    r = httpx.post(
-        "http://localhost:8080/RoutingService/route",
-        json=data,
-        headers=headers,
-        timeout=60,
-    )
+      if r.is_error:
+         raise ValueError(f"{r.status_code} : {r.text}")
 
-    if r.is_error:
-        raise ValueError(f"{r.status_code} : {r.text}")
+      print(r.json())
 
-    print(r.json())
+if __name__ == "__main__":
+   main()
 
 """
 Example output:

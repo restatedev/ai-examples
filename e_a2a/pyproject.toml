@@ -1,0 +1,30 @@
+[project]
+name = "a2a"
+version = "0.1.0"
+description = "A2A submodule for Restate and GenAI integrations"
+readme = "README.md"
+requires-python = ">=3.12"
+
+dependencies = [
+    "httpx>=0.28.1",
+    "langchain-google-genai>=2.0.10",
+    "langgraph>=0.3.18",
+    "pydantic>=2.10.6",
+    "google-adk>=0.0.3",
+    "google-genai>=1.9.0",
+    "restate-sdk==0.6.0",
+    "hypercorn",
+    "openai>=1.74.0"
+]
+
+[project.optional-dependencies]
+dev = [
+    "black>=25.1.0"
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["common"]

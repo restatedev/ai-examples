@@ -29,19 +29,20 @@ data = {
     "inputs": stakeholders
 }
 
-headers = {"Content-Type": "application/json", "Accept": "application/json"}
+def main():
+   r = httpx.post(
+      "http://localhost:8080/ParallelizationService/run_in_parallel",
+      json=data,
+      timeout=60,
+   )
 
-r = httpx.post(
-    "http://localhost:8080/ParallelizationService/run_in_parallel",
-    json=data,
-    headers=headers,
-    timeout=60,
-)
+   r.raise_for_status()
 
-if r.is_error:
-    raise ValueError(f"{r.status_code} : {r.text}")
+   [print(item) for item in r.json()]
 
-[print(item) for item in r.json()]
+
+if __name__ == "__main__":
+   main()
 
 """
 The output should be something along the lines of: 

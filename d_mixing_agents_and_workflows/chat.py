@@ -1,15 +1,15 @@
 import restate
 
-from account import (
+from .account import (
     get_customer_loans,
     submit_loan_request,
     get_balance,
     get_transaction_history,
 )
-from loan_review_agent import on_additional_info
-from utils.pydantic_models import ChatMessage, ChatHistory
-from utils.utils import time_now
-from utils.agent_session import (
+from .loan_review_agent import on_additional_info
+from .utils.pydantic_models import ChatMessage, ChatHistory
+from .utils.utils import time_now
+from .utils.agent_session import (
     run as agent_session_run,
     AgentInput,
     restate_tool,

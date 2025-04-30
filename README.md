@@ -422,20 +422,12 @@ For all examples, you need to export your OPENAI API key as an environment varia
 export OPENAI_API_KEY=your_openai_api_key
 ```
 
-Create a venv and install the requirements file:
-
-```shell
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-```
-
 ### Using Restate for orchestrating LLM calls
 
 Run the app exposing the services for each of the patterns:
 
 ```shell
-python3 a_orchestrating_llm_calls/main.py
+uv run orchestrate_app
 ```
 
 #### Chaining LLM calls
@@ -443,7 +435,7 @@ python3 a_orchestrating_llm_calls/main.py
 Send an HTTP request to the service by running the following script:
 
 ```shell
-python3 a_orchestrating_llm_calls/a_chaining/client.py
+uv run chaining_client
 ```
 
 <details>
@@ -506,7 +498,7 @@ Here's the sorted data formatted as a markdown table:
 Send an HTTP request to the service by running the following script:
 
 ```shell
-python3 a_orchestrating_llm_calls/b_parallelization/client.py
+uv run parallelization_client
 ```
 
 <details>
@@ -742,7 +734,7 @@ Suppliers must proactively address capacity constraints and price pressures to r
 Send an HTTP request to the service by running the following script:
 
 ```shell
-python3 a_orchestrating_llm_calls/c_routing/client.py
+uv run routing_client
 ```
 
 <details>
@@ -877,7 +869,7 @@ Please let us know if you need any additional help.
 Send an HTTP request to the service by running the following script:
 
 ```shell
-python3 a_orchestrating_llm_calls/d_orchestrator_workers/client.py
+uv run orchestrator_client
 ```
 
 <details>
@@ -1005,7 +997,7 @@ python3 a_orchestrating_llm_calls/d_orchestrator_workers/client.py
 Send an HTTP request to the service by running the following script:
 
 ```shell
-python3 a_orchestrating_llm_calls/e_evaluator_optimizer/client.py
+uv run evaluator_client
 ```
 
 <details>

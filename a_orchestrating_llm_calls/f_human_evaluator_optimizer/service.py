@@ -1,60 +1,51 @@
 import pydantic
 import restate
 
-from util.util import llm_call, extract_xml
+from a_orchestrating_llm_calls.util.util import llm_call, extract_xml
 
 """
-Evaluator-optimizer pattern with Restate
+Human-based evaluator with LLM-based optimizer with Restate
 
-This example demonstrates how to use Restate to implement a loop of LLM calls, 
-in which the first LLM generates a solution, and the second LLM evaluates that solution.
-This loop is repeated until the solution meets the requirements.
-Restate persists the outcomes of each of the LLM calls and if this loop runs for a long time,
-and then fails, it will recover all the progress that was made until then.
+This example demonstrates how to use Restate to implement a feedback loop between a human operator and the LLM.
+The human operator sends a request, the LLM responds with the solution. 
+The human operator can then give feedback, which triggers another LLM-based optimization step, and so on. 
 
-This example is a translation of the Anthropic AI agents Python notebook examples:
+This is implemented with a stateful entity called Virtual Object which keeps track of the memory and the chain of thought.
+If the human answers one week or one month later, the session can be recovered and resumed. 
+
+This example is a next iteration of the Anthropic AI agents Python notebook examples:
 https://github.com/anthropics/anthropic-cookbook/blob/main/patterns/agents/
 """
 
-evaluator_optimizer = restate.Service("EvaluatorOptimizer")
+human_evaluator_optimizer = restate.VirtualObject("HumanEvaluatorOptimizer")
 
 
-class LoopRequest(pydantic.BaseModel):
+class GenerateRequest(pydantic.BaseModel):
     task: str
-    evaluator_prompt: str
     generator_prompt: str
 
 
-@evaluator_optimizer.handler()
-async def loop(ctx: restate.Context, req: LoopRequest) -> tuple[str, list[dict]]:
-    """Keep generating and evaluating until requirements are met."""
-    memory = []
-    chain_of_thought = []
+@human_evaluator_optimizer.handler()
+async def run(
+    ctx: restate.ObjectContext, req: GenerateRequest
+) -> tuple[str, list[dict]]:
+    memory = await ctx.get("memory") or []
+    chain_of_thought = await ctx.get("chain_of_thought") or []
 
     thoughts, result = await generate(ctx, req.generator_prompt, req.task)
     memory.append(result)
+    ctx.set("memory", memory)
     chain_of_thought.append({"thoughts": thoughts, "result": result})
+    ctx.set("chain_of_thought", chain_of_thought)
 
-    while True:
-        evaluation, feedback = await evaluate(
-            ctx, req.evaluator_prompt, result, req.task
-        )
-        if evaluation == "PASS":
-            return result, chain_of_thought
+    # There are two options here.
+    # 1. Let the human evaluator communicate the feedback via resolving a promise (see awakeables in docs.restate.dev)
+    # name, promise = ctx.awakeable()
+    # await ctx.run("ask for human feedback", lambda: ask_for_feedback(name))
+    # feedback = await promise
 
-        llm_context = "\n".join(
-            [
-                "Previous attempts:",
-                *[f"- {m}" for m in memory],
-                f"\nFeedback: {feedback}",
-            ]
-        )
-
-        thoughts, result = await generate(
-            ctx, req.generator_prompt, req.task, llm_context
-        )
-        memory.append(result)
-        chain_of_thought.append({"thoughts": thoughts, "result": result})
+    # 2. Or just end this handler execution and let the human respond via a new invocation
+    return result, chain_of_thought
 
 
 # UTILS
