@@ -1,41 +1,48 @@
-from agent import chat_agents, reimbursement_agent
-from common.types import AgentCard, AgentCapabilities, AgentSkill, MissingAPIKeyError
-from agent import reimbursement_service
-from common.server.a2a_server import a2a_services, GenericRestateAgent
 import os
-import logging
-import hypercorn
-import asyncio
 import restate
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+from fastapi import FastAPI
+
+from agent import chat_agents, reimbursement_agent
+from agent import reimbursement_service
+from common.server.middleware import AgentMiddleware
+from common.server.a2a_agent import GenericRestateAgent
+from common.types import AgentCard, AgentCapabilities, AgentSkill, MissingAPIKeyError
+
 
 RESTATE_HOST = os.getenv("RESTATE_HOST", "http://localhost:8080")
 AGENT_HOST = os.getenv("AGENT_HOST", "0.0.0.0:9081")
 
+reimbursement_agent.remote_url = RESTATE_HOST
+REIMBURSEMENT_AGENT = AgentMiddleware(reimbursement_agent.as_agent_card(), GenericRestateAgent(
+    starting_agent=reimbursement_agent, agents=chat_agents
+))
+
+app = FastAPI()
+
+
+@app.get('/.well-known/agent.json')
+async def agent_json():
+    """Serve the agent card"""
+    return REIMBURSEMENT_AGENT.agent_card_json
+
+
+app.mount('/restate/v1', restate.app([reimbursement_service, *REIMBURSEMENT_AGENT]))
+
 
 def main():
-    if not os.getenv("OPENAI_API_KEY"):
-        raise MissingAPIKeyError("OPENAI_API_KEY environment variable not set.")
+    """Serve the agent at a specified port using hypercorn."""
+    import asyncio
+    import hypercorn.asyncio
 
-    reimbursement_agent.remote_url = (
-        f"{RESTATE_HOST}/{reimbursement_agent.name}A2AServer/process_request"
-    )
-    services = a2a_services(
-        agent_name=reimbursement_agent.name,
-        agent_card=reimbursement_agent.as_agent_card(),
-        agent=GenericRestateAgent(
-            starting_agent=reimbursement_agent, agents=chat_agents
-        ),
-    )
+    if not os.getenv('GOOGLE_API_KEY'):
+        raise MissingAPIKeyError('GOOGLE_API_KEY environment variable not set.')
 
-    app = restate.app(services=[reimbursement_service, *services])
-
+    port = os.getenv('AGENT_PORT', '9081')
     conf = hypercorn.Config()
-    conf.bind = [AGENT_HOST]
+    conf.bind = [f'0.0.0.0:{port}']
     asyncio.run(hypercorn.asyncio.serve(app, conf))
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

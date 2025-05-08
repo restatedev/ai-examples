@@ -38,6 +38,8 @@ from common.types import (
     TaskStatus,
     TextPart,
 )
+
+from common.server.a2a_agent import GenericRestateAgent
 from pydantic import BaseModel
 from restate.serde import PydanticJsonSerde
 
@@ -175,15 +177,22 @@ def _build_services(middleware: AgentMiddleware):
 
             try:
                 # Forward the request to the agent
-                result = await ctx.run(
-                    'Agent invoke',
-                    agent.invoke,
-                    args=(
-                        _get_user_query(task_send_params),
-                        task_send_params.sessionId,
-                    ),
-                    type_hint=AgentInvokeResult,
-                )
+                if isinstance(agent, GenericRestateAgent):
+                    result = await agent.invoke_with_context(
+                        ctx,
+                        query=_get_user_query(task_send_params),
+                        session_id=task_send_params.sessionId,
+                    )
+                else:
+                    result = await ctx.run(
+                        'Agent invoke',
+                        agent.invoke,
+                        args=(
+                            _get_user_query(task_send_params),
+                            task_send_params.sessionId,
+                        ),
+                        type_hint=AgentInvokeResult,
+                    )
 
                 if result.require_user_input:
                     updated_task = await TaskObject.update_store(
