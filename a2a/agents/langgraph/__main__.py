@@ -32,25 +32,27 @@ CURRENCY_EXCHANGE_AGENT = AgentMiddleware(AGENT_CARD, CurrencyAgent())
 
 app = FastAPI()
 
-@app.get('/.well-known/agent.json')
+
+@app.get("/.well-known/agent.json")
 async def agent_json():
     """Serve the agent card"""
     return CURRENCY_EXCHANGE_AGENT.agent_card_json
 
 
-app.mount('/restate/v1', restate.app(CURRENCY_EXCHANGE_AGENT))
+app.mount("/restate/v1", restate.app(CURRENCY_EXCHANGE_AGENT))
+
 
 def main():
     """Starts the Currency Agent server."""
     import asyncio
     import hypercorn.asyncio
 
-    if not os.getenv('GOOGLE_API_KEY'):
-        raise MissingAPIKeyError('GOOGLE_API_KEY environment variable not set.')
+    if not os.getenv("GOOGLE_API_KEY"):
+        raise MissingAPIKeyError("GOOGLE_API_KEY environment variable not set.")
 
-    port = os.getenv('AGENT_PORT', '9082')
+    port = os.getenv("AGENT_PORT", "9082")
     conf = hypercorn.Config()
-    conf.bind = [f'0.0.0.0:{port}']
+    conf.bind = [f"0.0.0.0:{port}"]
     asyncio.run(hypercorn.asyncio.serve(app, conf))
 
 

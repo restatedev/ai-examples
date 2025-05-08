@@ -41,20 +41,20 @@ def create_request_form(
     Returns:
         dict[str, Any]: A dictionary containing the request form data.
     """
-    logger.info('Creating reimbursement request')
-    request_id = 'request_id_' + str(random.randint(1000000, 9999999))
+    logger.info("Creating reimbursement request")
+    request_id = "request_id_" + str(random.randint(1000000, 9999999))
     request_ids.add(request_id)
     reimbursement = {
-        'request_id': request_id,
-        'date': '<transaction date>' if not date else date,
-        'amount': '<transaction dollar amount>' if not amount else amount,
-        'purpose': (
-            '<business justification/purpose of the transaction>'
+        "request_id": request_id,
+        "date": "<transaction date>" if not date else date,
+        "amount": "<transaction dollar amount>" if not amount else amount,
+        "purpose": (
+            "<business justification/purpose of the transaction>"
             if not purpose
             else purpose
         ),
     }
-    logger.info('Reimbursement request created: %s', json.dumps(reimbursement))
+    logger.info("Reimbursement request created: %s", json.dumps(reimbursement))
 
     return reimbursement
 
@@ -74,67 +74,67 @@ def return_form(
     Returns:
         dict[str, Any]: A JSON dictionary for the form response.
     """
-    logger.info('Creating return form')
+    logger.info("Creating return form")
     if isinstance(form_request, str):
         form_request = json.loads(form_request)
 
     form_dict = {
-        'type': 'form',
-        'form': {
-            'type': 'object',
-            'properties': {
-                'date': {
-                    'type': 'string',
-                    'format': 'date',
-                    'description': 'Date of expense',
-                    'title': 'Date',
+        "type": "form",
+        "form": {
+            "type": "object",
+            "properties": {
+                "date": {
+                    "type": "string",
+                    "format": "date",
+                    "description": "Date of expense",
+                    "title": "Date",
                 },
-                'amount': {
-                    'type': 'string',
-                    'format': 'number',
-                    'description': 'Amount of expense',
-                    'title': 'Amount',
+                "amount": {
+                    "type": "string",
+                    "format": "number",
+                    "description": "Amount of expense",
+                    "title": "Amount",
                 },
-                'purpose': {
-                    'type': 'string',
-                    'description': 'Purpose of expense',
-                    'title': 'Purpose',
+                "purpose": {
+                    "type": "string",
+                    "description": "Purpose of expense",
+                    "title": "Purpose",
                 },
-                'request_id': {
-                    'type': 'string',
-                    'description': 'Request id',
-                    'title': 'Request ID',
+                "request_id": {
+                    "type": "string",
+                    "description": "Request id",
+                    "title": "Request ID",
                 },
             },
-            'required': list(form_request.keys()),
+            "required": list(form_request.keys()),
         },
-        'form_data': form_request,
-        'instructions': instructions,
+        "form_data": form_request,
+        "instructions": instructions,
     }
-    logger.info('Return form created: %s', json.dumps(form_dict))
+    logger.info("Return form created: %s", json.dumps(form_dict))
     return json.dumps(form_dict)
 
 
 async def reimburse(request_id: str) -> dict[str, Any]:
     """Reimburse the amount of money to the employee for a given request_id."""
-    logger.info('Starting reimbursement: %s', request_id)
+    logger.info("Starting reimbursement: %s", request_id)
     if request_id not in request_ids:
         return {
-            'request_id': request_id,
-            'status': 'Error: Invalid request_id.',
+            "request_id": request_id,
+            "status": "Error: Invalid request_id.",
         }
-    logger.info('Reimbursement approved: %s', request_id)
-    return {'request_id': request_id, 'status': 'approved'}
+    logger.info("Reimbursement approved: %s", request_id)
+    return {"request_id": request_id, "status": "approved"}
 
 
 class ReimbursementAgent:
     """An agent that handles reimbursement requests."""
 
-    SUPPORTED_CONTENT_TYPES = ['text', 'text/plain']
+    SUPPORTED_CONTENT_TYPES = ["text", "text/plain"]
 
     def __init__(self):
         self._agent = self._build_agent()
-        self._user_id = 'remote_agent'
+        self._user_id = "remote_agent"
         self._runner = Runner(
             app_name=self._agent.name,
             agent=self._agent,
@@ -144,15 +144,13 @@ class ReimbursementAgent:
         )
 
     async def invoke(self, query, session_id) -> AgentInvokeResult:
-        logger.info('Invoking LLM')
+        logger.info("Invoking LLM")
         session = self._runner.session_service.get_session(
             app_name=self._agent.name,
             user_id=self._user_id,
             session_id=session_id,
         )
-        content = types.Content(
-            role='user', parts=[types.Part.from_text(text=query)]
-        )
+        content = types.Content(role="user", parts=[types.Part.from_text(text=query)])
         if session is None:
             self._runner.session_service.create_session(
                 app_name=self._agent.name,
@@ -169,19 +167,17 @@ class ReimbursementAgent:
         ):
             events.append(event)
 
-        logger.info('LLM response: %s', events)
+        logger.info("LLM response: %s", events)
         if not events or not events[-1].content or not events[-1].content.parts:
             return AgentInvokeResult(
-                parts=[TextPart(text='')],
+                parts=[TextPart(text="")],
                 require_user_input=False,
                 is_task_complete=True,
             )
         return AgentInvokeResult(
             parts=[
                 TextPart(
-                    text='\n'.join(
-                        [p.text for p in events[-1].content.parts if p.text]
-                    )
+                    text="\n".join([p.text for p in events[-1].content.parts if p.text])
                 )
             ],
             require_user_input=False,
@@ -191,11 +187,11 @@ class ReimbursementAgent:
     def _build_agent(self) -> LlmAgent:
         """Builds the LLM agent for the reimbursement agent."""
         return LlmAgent(
-            model='gemini-2.0-flash-001',
-            name='reimbursement_agent',
+            model="gemini-2.0-flash-001",
+            name="reimbursement_agent",
             description=(
-                'This agent handles the reimbursement process for the employees'
-                ' given the amount and purpose of the reimbursement.'
+                "This agent handles the reimbursement process for the employees"
+                " given the amount and purpose of the reimbursement."
             ),
             instruction="""
     You are an agent who handle the reimbursement process for employees.

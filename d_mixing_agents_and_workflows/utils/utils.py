@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 
 from .pydantic_models import TransactionHistory, Transaction
 
+
 async def time_now(ctx: restate.WorkflowContext | restate.ObjectContext) -> int:
     return await ctx.run("time", lambda: round(datetime.now().timestamp() * 1000))
 

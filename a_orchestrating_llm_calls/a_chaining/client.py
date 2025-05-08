@@ -47,6 +47,7 @@ def main():
     r.raise_for_status()
     print(r.json())
 
+
 if __name__ == "__main__":
     main()
 

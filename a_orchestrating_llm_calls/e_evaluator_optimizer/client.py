@@ -45,7 +45,11 @@ All operations should be O(1).
 
 
 def main():
-    data = {"task": task, "evaluator_prompt": evaluator_prompt, "generator_prompt": generator_prompt}
+    data = {
+        "task": task,
+        "evaluator_prompt": evaluator_prompt,
+        "generator_prompt": generator_prompt,
+    }
 
     r = httpx.post(
         "http://localhost:8080/EvaluatorOptimizer/loop",

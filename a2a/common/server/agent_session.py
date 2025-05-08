@@ -721,6 +721,7 @@ async def call_remote_agent(
 
     return final_output
 
+
 async def send_request(url: str, request: JSONRPCRequest) -> dict[str, Any]:
     async with httpx.AsyncClient() as client:
         try:

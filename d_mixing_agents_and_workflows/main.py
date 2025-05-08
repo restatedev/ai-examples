@@ -8,6 +8,7 @@ from .account import account
 from .utils.agent_session import agent_session
 from .loan_review_agent import loan_review_agent_utils, credit_worthiness_svc
 
+
 def main():
     app = restate.app(
         services=[

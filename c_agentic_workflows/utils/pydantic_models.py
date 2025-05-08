@@ -21,7 +21,11 @@ class ChatMessage(BaseModel):
     role: str
     content: str
     timestamp_millis: int
-    timestamp: str = Field(default_factory=lambda data: datetime.fromtimestamp(data["timestamp_millis"] / 1000).strftime("%Y-%m-%d"))
+    timestamp: str = Field(
+        default_factory=lambda data: datetime.fromtimestamp(
+            data["timestamp_millis"] / 1000
+        ).strftime("%Y-%m-%d")
+    )
 
 
 class ChatHistory(BaseModel):
@@ -42,7 +46,11 @@ class Transaction(BaseModel):
     reason: str
     amount: float
     timestamp: str
-    timestamp_millis: int = Field(default_factory=lambda data: int(datetime.strptime(data["timestamp"], "%Y-%m-%d").timestamp()*1000))
+    timestamp_millis: int = Field(
+        default_factory=lambda data: int(
+            datetime.strptime(data["timestamp"], "%Y-%m-%d").timestamp() * 1000
+        )
+    )
 
 
 class TransactionHistory(BaseModel):

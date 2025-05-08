@@ -31,11 +31,7 @@ Reimbursement agent with Restate:
 uv run agents/restate
 ```
 
-or use the Reimbursement agent with Restate and the Google ADK
-```shell
-uv run agents/google_adk
-``` 
-
+or use the Google ADK Reimbursement agent with `uv run agents/google_adk`.
 
 Also start the LangGraph agent:
 ```shell
@@ -45,22 +41,7 @@ uv run agents/langgraph
 
 ### 2. Start the Restate Server
 
-Start the Restate Server with npx or Docker ([for other options check the docs](https://docs.restate.dev/develop/local_dev#running-restate-server--cli-locally)). 
-
-#### Option 1: with npx
-
-```shell
-npx @restatedev/restate-server
-```
-
-Let Restate know where the A2A server is running:
-
-```shell
-npx @restatedev/restate deployments register http://localhost:9081
-npx @restatedev/restate deployments register http://localhost:9083
-```
-
-#### Option 2: with Docker
+Start the Restate Server with Docker ([for other options check the docs](https://docs.restate.dev/develop/local_dev#running-restate-server--cli-locally)).
 
 ```shell
 docker run --name restate_dev --rm -p 8080:8080 -p 9070:9070 -p 9071:9071 \
@@ -70,9 +51,9 @@ docker run --name restate_dev --rm -p 8080:8080 -p 9070:9070 -p 9071:9071 \
 Let Restate know where the A2A server is running:
 ```shell
 docker run -it --network=host docker.restate.dev/restatedev/restate-cli:1.3 \
-  deployments register http://host.docker.internal:9081
+  deployments register http://host.docker.internal:9081/restate/v1
 docker run -it --network=host docker.restate.dev/restatedev/restate-cli:1.3 \
-  deployments register http://host.docker.internal:9083
+  deployments register http://host.docker.internal:9082/restate/v1
 ```
 
 ## Start the host agent

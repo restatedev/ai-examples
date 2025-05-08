@@ -45,9 +45,10 @@ data = {
     "task": "Write a product description for a new eco-friendly water bottle",
     "llm_context": {
         "target_audience": "environmentally conscious millenials",
-        "key_features": ["plastic-free", "insulated", "lifetime warranty"]
-    }
+        "key_features": ["plastic-free", "insulated", "lifetime warranty"],
+    },
 }
+
 
 def main():
     r = httpx.post(

@@ -6,6 +6,7 @@ from .chat import chat_service
 from .account import account
 from .utils.agent_session import agent_session
 
+
 def main():
     app = restate.app(
         services=[

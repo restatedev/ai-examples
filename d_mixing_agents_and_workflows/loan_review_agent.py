@@ -1,8 +1,18 @@
 import restate
 
 from .loan_review_workflow import on_loan_decision
-from .utils.agent_session import restate_tool, RECOMMENDED_PROMPT_PREFIX, Agent, run as agent_session_run, AgentInput
-from .utils.pydantic_models import EnrichedTransactionHistory, CreditMetric, AdditionalInfoRequest
+from .utils.agent_session import (
+    restate_tool,
+    RECOMMENDED_PROMPT_PREFIX,
+    Agent,
+    run as agent_session_run,
+    AgentInput,
+)
+from .utils.pydantic_models import (
+    EnrichedTransactionHistory,
+    CreditMetric,
+    AdditionalInfoRequest,
+)
 
 # TOOLS
 
@@ -132,15 +142,21 @@ async def request_additional_info(
     # Once the user will see the message and respond,
     # the agent which receives that message will route it back to us by resolving the promise.
     from .chat import message_to_customer_agent, chat_agents
-    ctx.object_send(agent_session_run, key=req.customer_id, arg=AgentInput(
-        starting_agent=message_to_customer_agent,
-        agents=chat_agents,
-        message=f"""
+
+    ctx.object_send(
+        agent_session_run,
+        key=req.customer_id,
+        arg=AgentInput(
+            starting_agent=message_to_customer_agent,
+            agents=chat_agents,
+            message=f"""
         Use the add_async_response tool to send this CLARIFICATION REQUEST: {req.message}. 
         Once the customer answers to this use the Clarifications Answer Forwarder Agent - on_additional_info tool to route the answer back to the loan review agent.
         Don't respond to the customer directly. Just forward the answer.
         """,
-        force_starting_agent=True))
+            force_starting_agent=True,
+        ),
+    )
     return await promise
 
 
@@ -162,7 +178,6 @@ async def on_additional_info(
 
     ctx.resolve_awakeable(awakeable_id, f"ADDITIONAL INFO BY CUSTOMER: {msg}")
     return "Response routed back successfully."
-
 
 
 # ----- AGENTS ------

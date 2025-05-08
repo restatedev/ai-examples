@@ -31,7 +31,11 @@ class ChatMessage(BaseModel):
     role: str
     content: str
     timestamp_millis: int
-    timestamp: str = Field(default_factory=lambda data: datetime.fromtimestamp(data["timestamp_millis"] / 1000).strftime("%Y-%m-%d"))
+    timestamp: str = Field(
+        default_factory=lambda data: datetime.fromtimestamp(
+            data["timestamp_millis"] / 1000
+        ).strftime("%Y-%m-%d")
+    )
 
 
 class ChatHistory(BaseModel):
@@ -185,7 +189,9 @@ async def send_message(ctx: restate.ObjectContext, req: ChatMessage) -> ChatMess
     output = await ctx.run("run agent session", run_agent_session)
 
     # Create a new message with the system role
-    new_message = ChatMessage(role="system", content=output, timestamp_millis=await time_now(ctx))
+    new_message = ChatMessage(
+        role="system", content=output, timestamp_millis=await time_now(ctx)
+    )
     history.entries.append(new_message)
     ctx.set(CHAT_HISTORY, history)
     return new_message

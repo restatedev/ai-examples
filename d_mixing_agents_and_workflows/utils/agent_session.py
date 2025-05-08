@@ -304,13 +304,17 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> AgentResponse:
         # Get the tools in the right format for the LLM
         tools = {tool.formatted_name: tool for tool in agent.tools}
         tool_and_handoffs_list = [tool.tool_schema for tool in agent.tools]
-        logger.info(f"{logging_prefix}  Starting iteration of agent loop with agent: {agent.name} and tools/handoffs: {[tool.formatted_name for tool in agent.tools]}")
+        logger.info(
+            f"{logging_prefix}  Starting iteration of agent loop with agent: {agent.name} and tools/handoffs: {[tool.formatted_name for tool in agent.tools]}"
+        )
 
         for handoff_agent_name in agent.handoffs:
             handoff_agent = agents_dict.get(format_name(handoff_agent_name))
             # If the agent is not found, we ignore only use the other handoff agents.
             if handoff_agent is None:
-                logger.warning(f"Agent {handoff_agent_name} not found in the list of agents. Ignoring this agent. Available agents: {list(agents_dict.keys())}")
+                logger.warning(
+                    f"Agent {handoff_agent_name} not found in the list of agents. Ignoring this agent. Available agents: {list(agents_dict.keys())}"
+                )
                 session_state.add_system_message(
                     ctx,
                     f"Agent {handoff_agent_name} not found in the list of agents. Available agents: {list(agents_dict.keys())}",
@@ -344,11 +348,13 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> AgentResponse:
                 agents_dict, response.output, tools
             )
         except Exception as e:
-            logger.info(f"""{logging_prefix} Output of LLM response parsing:
+            logger.info(
+                f"""{logging_prefix} Output of LLM response parsing:
                 Tool calls: {tool_calls}
                 Run handoffs: {run_handoffs}
                 Output messages: {output_messages}
-                """)
+                """
+            )
             logger.warning(f"{logging_prefix} Failed to parse LLM response: {str(e)}")
             session_state.add_system_message(
                 ctx, f"Failed to parse LLM response: {str(e)}"
@@ -407,17 +413,22 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> AgentResponse:
             # For the others, we add a tool response that we will not handle them.
             if len(run_handoffs) > 1:
                 for handoff in run_handoffs[1:]:
-                    logger.info(f"{logging_prefix} Multiple handoffs detected, ignoring this one: {handoff.name} with arguments {handoff.arguments}.")
+                    logger.info(
+                        f"{logging_prefix} Multiple handoffs detected, ignoring this one: {handoff.name} with arguments {handoff.arguments}."
+                    )
 
             handoff_command = run_handoffs[0]
 
             # Determine the new agent in charge
             agent = agents_dict.get(handoff_command.name)
             if agent is None:
-                session_state.add_system_message(ctx,
-                    f"Agent {handoff_command.name} not found in the list of agents."
+                session_state.add_system_message(
+                    ctx,
+                    f"Agent {handoff_command.name} not found in the list of agents.",
                 )
-                logger.info(f"{logging_prefix} Agent {handoff_command.name} not found in the list of agents.")
+                logger.info(
+                    f"{logging_prefix} Agent {handoff_command.name} not found in the list of agents."
+                )
                 continue
 
             logger.info(f"{logging_prefix} Handing off to agent {agent.name}")
@@ -430,7 +441,9 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> AgentResponse:
         # Handle output messages
         # If there are no output messages, then we just continue the loop
         if output_messages:
-            last_content = output_messages[-1].content[-1] if output_messages[-1].content else None
+            last_content = (
+                output_messages[-1].content[-1] if output_messages[-1].content else None
+            )
             if isinstance(last_content, ResponseOutputText):
                 logger.info(f"{logging_prefix} Final output message: {last_content}")
                 return AgentResponse(
@@ -468,11 +481,15 @@ async def parse_llm_response(
             else:
                 # Tool calls
                 if item.name not in tools.keys():
-                    raise ValueError(f"This agent does not have access to this tool: {item.name}. Use another tool or handoff.")
+                    raise ValueError(
+                        f"This agent does not have access to this tool: {item.name}. Use another tool or handoff."
+                    )
                 tool = tools[item.name]
                 tool_calls.append(to_tool_call(tool, item))
         else:
-            raise ValueError(f"This agent cannot handle this output type {type(item)}. Use another tool or handoff.",)
+            raise ValueError(
+                f"This agent cannot handle this output type {type(item)}. Use another tool or handoff.",
+            )
 
     return output_messages, run_handoffs, tool_calls
 
@@ -511,9 +528,7 @@ def restate_tool(tool_call: Callable[[Any, I], Awaitable[O]]) -> RestateTool:
             "type": "function",
             "name": f"{target_handler.name}",
             "description": description,
-            "parameters": to_strict_json_schema(
-                RestateRequest[input_type]
-            ),
+            "parameters": to_strict_json_schema(RestateRequest[input_type]),
             "strict": True,
         },
     )
