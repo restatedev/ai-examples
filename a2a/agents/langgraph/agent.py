@@ -1,13 +1,13 @@
-from common.server.a2a_server import GenericAgent
+import httpx
+from typing import Any, Dict, AsyncIterable, Literal
+from pydantic import BaseModel
+
 from common.types import AgentInvokeResult, TextPart
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.tools import tool
 from langgraph.prebuilt import create_react_agent
 from langgraph.checkpoint.memory import MemorySaver
 from langchain_core.messages import AIMessage, ToolMessage
-import httpx
-from typing import Any, Dict, AsyncIterable, Literal
-from pydantic import BaseModel
 
 memory = MemorySaver()
 
@@ -52,7 +52,7 @@ class ResponseFormat(BaseModel):
     message: str
 
 
-class CurrencyAgent(GenericAgent):
+class CurrencyAgent:
 
     SYSTEM_INSTRUCTION = (
         "You are a specialized assistant for currency conversions. "

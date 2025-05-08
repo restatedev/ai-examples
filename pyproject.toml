@@ -32,4 +32,4 @@ evaluator_client = "a_orchestrating_llm_calls.e_evaluator_optimizer.client:main"
 
 
 [tool.hatch.build.targets.wheel]
-packages = ["a_orchestrating_llm_calls", "b_resilient_agents"]
+packages = ["a_orchestrating_llm_calls", "b_resilient_agents", "c_agentic_workflows", "d_mixing_agents_and_workflows"]

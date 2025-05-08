@@ -35,7 +35,6 @@ def main():
       json=data,
       timeout=60,
    )
-
    r.raise_for_status()
 
    [print(item) for item in r.json()]

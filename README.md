@@ -1093,13 +1093,37 @@ The code correctly implements a stack with push, pop, and getMin operations, all
 
 </details>
 
+### Using Restate for resilient agents
+
+This example implements a resilient agent that uses an Agent SDK to run the agent loop.
+
+To run the example:
+
+```shell
+uv run resilient_agent
+```
+
+To run Restate:
+```shell
+restate-server
+```
+
+Open the UI on http://localhost:9070 and register your deployment running at `http://localhost:9080`.
+
+Start the chat UI:
+```shell
+cd ui
+npm i 
+npm run dev
+```
+
 ### Using Restate for agentic workflows
 This example implements a bank agent that can answer questions about your balance and transactions.
 
 To run the bank agent example:
 
 ```shell
-python3 c_agentic_workflows/main.py
+uv run agentic_workflows
 ```
 
 To run Restate:

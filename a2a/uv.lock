@@ -12,6 +12,7 @@ name = "a2a"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "fastapi" },
     { name = "google-adk" },
     { name = "google-genai" },
     { name = "httpx" },
@@ -31,6 +32,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "black", marker = "extra == 'dev'", specifier = ">=25.1.0" },
+    { name = "fastapi" },
     { name = "google-adk", specifier = ">=0.0.3" },
     { name = "google-genai", specifier = ">=1.9.0" },
     { name = "httpx", specifier = ">=0.28.1" },
@@ -39,7 +41,7 @@ requires-dist = [
     { name = "langgraph", specifier = ">=0.3.18" },
     { name = "openai", specifier = ">=1.74.0" },
     { name = "pydantic", specifier = ">=2.10.6" },
-    { name = "restate-sdk", specifier = "==0.6.0" },
+    { name = "restate-sdk", specifier = "==0.7.0" },
 ]
 provides-extras = ["dev"]
 
@@ -1457,25 +1459,25 @@ wheels = [
 
 [[package]]
 name = "restate-sdk"
-version = "0.6.0"
+version = "0.7.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/4a/a4/b1f3d5a075a8d2e4b926a97ff4e78f68c9715b04b6f1852f73b87ef2ce5a/restate_sdk-0.6.0.tar.gz", hash = "sha256:ef931238ecc69ac524d243a6f5e5e6447f5f88005753fb86a2ba76dac382dd7c", size = 57266 }
+sdist = { url = "https://files.pythonhosted.org/packages/55/e3/1b53fc9ef59e5fba8ba91d13302760f2b64fcda84769ae6efc46f02ec19c/restate_sdk-0.7.0.tar.gz", hash = "sha256:868db768832d1cbb46f739a63fd5bcfe86846b46e006fa7eb6e89258e1c4c1f9", size = 59034 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/33/ab/1b1558e8eea708655f90a95eb22cb23ae7bd2fc9770b89a3a98751b29403/restate_sdk-0.6.0-cp312-cp312-macosx_10_12_x86_64.whl", hash = "sha256:b05a4e298a9f6311603d86ef6b53d72cb47c79013463a415603f8bb7895e34e6", size = 1794365 },
-    { url = "https://files.pythonhosted.org/packages/c1/21/83e692d91deb4a2ad713dde16ffc2d285f0f1d89ff52a0c76ae44b02cf77/restate_sdk-0.6.0-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:0877722550a4cd8e897e05f263bf15d66527677e4b4e56170547b07770742601", size = 1718513 },
-    { url = "https://files.pythonhosted.org/packages/84/0e/a843c11b000065aad572a689f159022a50a1f60edf37a770eb31554c6ff3/restate_sdk-0.6.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:95b666cf8c35f3ec3271a3e796488b09911ba885da15ef001c017ab926527984", size = 1980989 },
-    { url = "https://files.pythonhosted.org/packages/62/47/dafe42b34e8223db9ed0d7fbc9499cdda3759286a3d44061f8835fb47041/restate_sdk-0.6.0-cp312-cp312-manylinux_2_28_aarch64.whl", hash = "sha256:8a1f2dbb4ecaf3571641b112d6a88be24677e5f8187b6dd41fec4bcc14adccb0", size = 1946072 },
-    { url = "https://files.pythonhosted.org/packages/dd/00/29f066181a59c12e6623b738448683ae36c18ca7068b5a7a9a8ee089c61e/restate_sdk-0.6.0-cp312-cp312-musllinux_1_2_aarch64.whl", hash = "sha256:ab582f6681693e44a0a97cae0290e3f9256e5bf3acfd97b5c7bc4bb1246815f2", size = 2134746 },
-    { url = "https://files.pythonhosted.org/packages/32/88/5c2fcfce94f73eb4a764be1a54d6f8806885c19995b7d183dbb91ba647d8/restate_sdk-0.6.0-cp312-cp312-musllinux_1_2_x86_64.whl", hash = "sha256:feede7e9e86ee2bebe68118b4068b0cb367806409b3cd6886e09d7c17c24f4e0", size = 2151031 },
-    { url = "https://files.pythonhosted.org/packages/db/4c/6ae87ccc1d2004c6b2e2870bb4ffb65ac09f6d285a90051f083c09e3bab9/restate_sdk-0.6.0-cp313-cp313-macosx_10_12_x86_64.whl", hash = "sha256:146cdc5b29e1c8675d0cc5f2c76fa25171cb52aeb8d786ddfdb46b32cc8acc0f", size = 1794692 },
-    { url = "https://files.pythonhosted.org/packages/5d/dc/d4abdbb634dac48ceac18bcace19039af5764ddc06140580546d9a52bae2/restate_sdk-0.6.0-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:492d068afe29b87eb6e40333ded5be274acf6e002ebf0469386237f09a31dad8", size = 1718432 },
-    { url = "https://files.pythonhosted.org/packages/c1/68/5a850db64bf28c42c690ab8897e7709dc8f019d638556202d719068d596d/restate_sdk-0.6.0-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:a94c3427c232c0a5b6872ef096a4a45358a8c2fd6d3c12e3c6e8b3f92476fb3d", size = 1981112 },
-    { url = "https://files.pythonhosted.org/packages/2e/47/cf92d95a2ceeec84fb7aaf34a923432bdcfd9ac810064eabd1015f92f1d3/restate_sdk-0.6.0-cp313-cp313-manylinux_2_28_aarch64.whl", hash = "sha256:e8ab8bcd29e27884c4cef394bba6021435928249f806122f25b8a49737477a32", size = 1945730 },
-    { url = "https://files.pythonhosted.org/packages/23/f0/190c8fec6b1b329ff527a69bdf2d1f53964a2a32456a98080ce7a9c3d919/restate_sdk-0.6.0-cp313-cp313-musllinux_1_2_aarch64.whl", hash = "sha256:45ba6caabe8b1272de57682238b79a12d2a24a52942a640b46c8b15a909f3d26", size = 2134579 },
-    { url = "https://files.pythonhosted.org/packages/a1/09/b4d1b22279fb67a6c352f77b2a675d6cf0d480bbc1e1d43ffdb3f4c7b52b/restate_sdk-0.6.0-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:a5fbdcdbc09145d45b3cb5fdc7e7e33c96b6c9e2a13f584cd1b95c84b0be2570", size = 2151392 },
-    { url = "https://files.pythonhosted.org/packages/a1/17/f65b0f9766589d661378f4104ecc1c05fcc6aa17e4f1b232eee8cd8d6cfe/restate_sdk-0.6.0-cp313-cp313t-manylinux_2_28_aarch64.whl", hash = "sha256:8498c5a5e2271048438e5e3bbbbde4b066ee14a28ec105bf0cdfd8b851a3171d", size = 1945483 },
-    { url = "https://files.pythonhosted.org/packages/22/40/b737485fffde3cb782ec896cb758971ce6d9c3f3f4a48efd7d94584acc9d/restate_sdk-0.6.0-cp313-cp313t-musllinux_1_2_aarch64.whl", hash = "sha256:22bc2019c7fe49ff87cc67a1e21fee3d99866506772df4db1ff11634a9edf8a0", size = 2133953 },
-    { url = "https://files.pythonhosted.org/packages/a5/30/ac34c4f082686ccd988c3371f4e5786bffa3fb21d0e5ece939aa10000e66/restate_sdk-0.6.0-cp313-cp313t-musllinux_1_2_x86_64.whl", hash = "sha256:16a0b57c2474da664eb35da1c8b39eb218820a2a3d96aeffcfd9a257531d0811", size = 2152141 },
+    { url = "https://files.pythonhosted.org/packages/13/af/f1d634195e505fe15752b96a0819b802e3b9dc4e3129c8b6831faff97c08/restate_sdk-0.7.0-cp312-cp312-macosx_10_12_x86_64.whl", hash = "sha256:01519d69c81f3a6530ff406a5520f60e3c4f450bbc36d980538667f687a90271", size = 1789471 },
+    { url = "https://files.pythonhosted.org/packages/33/50/354d1f0984a98778091c1dcffb1b61093130682be44417d1b6577d397998/restate_sdk-0.7.0-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:172d21cc94d97c2ff58312e0bea9775169713e7c7e8eb1c616ca2c1bc90f9f30", size = 1714408 },
+    { url = "https://files.pythonhosted.org/packages/4e/f8/804fa98c295a76fdc18b6fd3891bd0a4eed34fea03c62b8d1ce3e3d9aa00/restate_sdk-0.7.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:e41bc0872a65cb15588213857782c328f86b28de1380db5ed7056df0c27f5ebb", size = 1972993 },
+    { url = "https://files.pythonhosted.org/packages/27/05/36f58ad8010ab03afefd03537f099057065dec859447a546c2dd3253d978/restate_sdk-0.7.0-cp312-cp312-manylinux_2_28_aarch64.whl", hash = "sha256:b63b79256fcaf236da2b9568a0ba140887d253e970db5edcab7b9bb57c3df5be", size = 1938816 },
+    { url = "https://files.pythonhosted.org/packages/80/3b/1f24786cb487ca6937d6063af603796e1582cd14e953ee85eb4b23bb6bd5/restate_sdk-0.7.0-cp312-cp312-musllinux_1_2_aarch64.whl", hash = "sha256:7b692f8ce83b7b3f99409e7a49337b416a90f998025ac6e480775544671eb586", size = 2126588 },
+    { url = "https://files.pythonhosted.org/packages/1d/cd/c6026ebdeecf03bb95b2e8db1413fff8252381ac4a16429d1e08b019c31a/restate_sdk-0.7.0-cp312-cp312-musllinux_1_2_x86_64.whl", hash = "sha256:f07e80e0571a319cbcf0d999ee0117b1c2799030dca9a59bf93273e0d19507d9", size = 2139500 },
+    { url = "https://files.pythonhosted.org/packages/82/4c/741bf759f3714ba54c6c40c71280018032881e97b1a80a0a994f63fb1aca/restate_sdk-0.7.0-cp313-cp313-macosx_10_12_x86_64.whl", hash = "sha256:20be01eb871dfc256a308df95800e4a8c8a19074ecdd46a8b443122962910b05", size = 1789765 },
+    { url = "https://files.pythonhosted.org/packages/8d/1b/4d493beed1ae0aaaa186666799c22b96f74a7d83ef1257a67aad7724dc04/restate_sdk-0.7.0-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:1fd27156a660d320f7078c355a37d5a9be578b8eedb6b3056373070b94eff935", size = 1714641 },
+    { url = "https://files.pythonhosted.org/packages/ce/0f/19f9955ac4697c45d50cb5f60edb9159875936651fe6168c9ccc7bf65b40/restate_sdk-0.7.0-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:a9b2f77658e197a1d1546493906c31e340ebd59c9839c325c2bc077774e09aef", size = 1973285 },
+    { url = "https://files.pythonhosted.org/packages/38/7a/b49b91230a771e72585a3da6fe7d7faf3ad71e773bf20f01da696e72fb23/restate_sdk-0.7.0-cp313-cp313-manylinux_2_28_aarch64.whl", hash = "sha256:99ca8f5e00053d04877db0edefe0778f8bb5616cd01a6ef48bc80b23cd7bea51", size = 1939180 },
+    { url = "https://files.pythonhosted.org/packages/b9/bf/70956b17c02971ad759aee00143108cef4bc2df21bdf8a64de670b1f11bc/restate_sdk-0.7.0-cp313-cp313-musllinux_1_2_aarch64.whl", hash = "sha256:accf4f669bfaf616ab5a0b9a417a116bb4cf62e96ef3610ced31ffe63f575a8f", size = 2126551 },
+    { url = "https://files.pythonhosted.org/packages/2a/1d/de6bb463a974cd53ab0701594ae4066ea0994e9e8aa4697d89d11f0a22d9/restate_sdk-0.7.0-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:d46d1cd9a11ee849357c1ab8050698e579a790431af47c3b6cd2a81b173fb607", size = 2139573 },
+    { url = "https://files.pythonhosted.org/packages/94/18/4cbbb787bd8ae7eaa6f60dacd4c8ff8946261e03c0cfa40bbfdfabb7e7bc/restate_sdk-0.7.0-cp313-cp313t-manylinux_2_28_aarch64.whl", hash = "sha256:798f293b9b936cc37e1b2bd3b01133c910bc4b6069208f9f208c0bd7c3e46697", size = 1939295 },
+    { url = "https://files.pythonhosted.org/packages/11/c0/1f902d3c6f0bf8f95f8d5f3086ba436b496feae56886d08051d29b2d6ac6/restate_sdk-0.7.0-cp313-cp313t-musllinux_1_2_aarch64.whl", hash = "sha256:0843070afec674474474105a024c6f5c559b88e0d3e90ec4593bb4888946e197", size = 2127078 },
+    { url = "https://files.pythonhosted.org/packages/f0/74/1cff3450000a2d668578b6b2b8dfe7df1c907a1b9596f10c7c71c8e2e8f4/restate_sdk-0.7.0-cp313-cp313t-musllinux_1_2_x86_64.whl", hash = "sha256:2d1653498488a6c43d55c9cbf5d004a2ba383fcb386b30df1f27cfaedd3075dc", size = 2139994 },
 ]
 
 [[package]]

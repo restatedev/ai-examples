@@ -86,9 +86,7 @@ def main():
          json=data,
          timeout=60,
       )
-
-      if r.is_error:
-         raise ValueError(f"{r.status_code} : {r.text}")
+      r.raise_for_status()
 
       print(r.json())
 
