@@ -2,7 +2,7 @@
 
 This repo shows how to build agents with [Restate](https://restate.dev/) and the [A2A protocol](https://google.github.io/A2A/).
 
-- [A2A server and Durable Task Object](common/server/a2a_server.py)
+- [A2A server and Durable Task Object](common/server/middleware.py)
 - [Example agents](agents/)
 
 This repo contains two different types of agent implementations:
@@ -81,28 +81,6 @@ You can send A2A messages directly to agents without going through the host agen
 
 This allows you to bypass the host agent and communicate in the A2A protocol with the agents. 
 
-#### Example: Send a Message to the Reimbursement Agent
-
-```shell
-curl localhost:8080/ReimbursementAgentA2AServer/process_request \
-  --json '{
-    "jsonrpc": "2.0",
-    "id": 12345,
-    "method":"tasks/send",
-    "params": {
-    "id": "unique-task-id-123",
-    "sessionId": "session-id-456",
-    "message": {
-      "role":"user",
-      "parts": [{
-      "type":"text",
-      "text": "Reimburse my flight ticket for 500USD."
-      }]
-    },
-    "metadata": {}
-    }
-  }' | jq .
-```
 
 #### Example: Send a Message to the LangGraph Agent
 
@@ -127,15 +105,7 @@ curl localhost:8080/CurrencyAgentA2AServer/process_request \
   }' | jq .
 ```
 
-
-
-## Get Agent Card
-
-```shell
-curl localhost:8080/ReimbursementAgentA2AServer/get_agent_card | jq .
-```
-
-## Send a Task
+## Example: Send a Message to the Reimbursement Agent
 
 
 ```shell
@@ -176,7 +146,7 @@ curl localhost:8080/ReimbursementAgentA2AServer/process_request \
       "id": 2,
       "method":"tasks/get",
       "params": {
-        "id": "lwp13w5e3sdf258t3wesf13",
+        "id": "lwp13w5e3sdf258t3wesf1323",
         "historyLength": 10,
         "metadata": {}
       }
@@ -203,38 +173,3 @@ curl localhost:8080/ReimbursementAgentA2AServer/process_request \
       }
     }' | jq . 
 ```
-
-## Set Task Push Notifications
-
-```shell
-curl localhost:8080/ReimbursementAgentA2AServer/process_request \
-    --json '{
-      "jsonrpc": "2.0",
-      "id": 5,
-      "method":"tasks/pushNotification/set",
-      "params": {
-        "id": "8b9f4c2703648d68b9123",
-        "pushNotificationConfig": {
-          "url": "https://example.com/callback",
-          "authentication": {
-            "schemes": ["jwt"]
-          }
-        }
-      }
-    }' | jq . 
-```
-
-## Get Task Push Notifications
-
-```shell
-curl localhost:8080/ReimbursementAgentA2AServer/process_request \
-    --json '{
-      "jsonrpc": "2.0",
-      "id": 6,
-      "method":"tasks/pushNotification/get",
-      "params": {
-        "id": "8b9f4c2703648d68b9123"
-      }
-    }' | jq . 
-```
-
