@@ -27,11 +27,11 @@ This example shows how to implement Anthropic's [agents cookbook](https://github
 The patterns in this example show how you can use Restate to harden LLM-based routing decisions and tool executions with Restate.
 
 The patterns included here:
-- [Chaining LLM calls](a_orchestrating_llm_calls/a_chaining/chaining.py)
-- [Parallelizing tool calls](a_orchestrating_llm_calls/b_parallelization/parallelization.py)
-- [Dynamic routing based on LLM output](a_orchestrating_llm_calls/c_routing/routing.py)
-- [Orchestrator-worker pattern](a_orchestrating_llm_calls/d_orchestrator_workers/orchestrator_workers.py)
-- [Evaluator-optimizer pattern](a_orchestrating_llm_calls/e_evaluator_optimizer/evaluator_optimizer.py)
+- [Chaining LLM calls](diy_patterns/chaining/chaining.py)
+- [Parallelizing tool calls](diy_patterns/parallelization/parallelization.py)
+- [Dynamic routing based on LLM output](diy_patterns/routing/routing.py)
+- [Orchestrator-worker pattern](diy_patterns/orchestrator_workers/orchestrator_workers.py)
+- [Evaluator-optimizer pattern](diy_patterns/evaluator_optimizer/evaluator_optimizer.py)
 
 For example, parallelization can be implemented as follows:
 ```python
@@ -80,7 +80,7 @@ This is a feedback loop that can be used to improve the quality of the LLM's out
 
 Instead of letting another LLM do the evaluation, you can also ask a human to evaluate the output of the LLM.
 
-In this example, we track the generated responses and the chain of thought in a Restate Virtual Object, and let the user repeatedly invoke the handler with new insights ([full code example](a_orchestrating_llm_calls/f_human_evaluator_optimizer/human_evaluator_optimizer.py))
+In this example, we track the generated responses and the chain of thought in a Restate Virtual Object, and let the user repeatedly invoke the handler with new insights ([full code example](diy_patterns/human_evaluator_optimizer/human_evaluator_optimizer.py))
 
 ```python
 human_evaluator_optimizer = restate.VirtualObject("HumanEvaluatorOptimizer")
@@ -120,7 +120,7 @@ And we use Restate's stateful entities called Virtual Objects to manage the sess
 
 <img src="img/using_agent_sdk.png" alt="Using Agent SDK" width="650px"/>
 
-The code (see [this file](b_resilient_agents/agent_session.py) for latest version): 
+The code (see [this file](openai_sdk/agent_session.py) for latest version): 
 
 ```python
 agent_session = restate.VirtualObject("AgentSession")
@@ -196,12 +196,12 @@ The benefits of using Restate for agentic workflows are:
 - **Robust parallel tool calls**: Restate manages the execution of the parallel tool calls and retries them if they fail.
 - **Serverless/FaaS deployment** of agent sessions and tools (e.g. AWS Lambda): Restate lets your functions suspend when they are waiting for a long time. You can mix and match: slow processes like the LLM call can run on a long-running server, while the rest of the workflow can run on serverless for demand-based scaling.
 
-For example, we can implement an [agent that can answer questions about our bank account and transactions](c_agentic_workflows). 
+For example, we can implement an [agent that can answer questions about our bank account and transactions](native_restate). 
 In this case, the agent session connected to a chat session and to the account Virtual Object: 
 
 <img src="img/agentic_workflow.png" alt="Agentic workflow" width="650px"/>
 
-In [this example](c_agentic_workflows/chat.py), you specify the agents, their descriptions and their tools in a configuration similar to the OpenAI Agents SDK.
+In [this example](native_restate/chat.py), you specify the agents, their descriptions and their tools in a configuration similar to the OpenAI Agents SDK.
 But in this case, all the tools are Restate handlers:
 
 ```python
@@ -230,7 +230,7 @@ account_manager_agent = Agent(
 
 
 Here is what a slightly simplified version of the agent loop with Restate looks like.
-To see the full code, check out the [agent_session.py](c_agentic_workflows/utils/agent_session.py) file.
+To see the full code, check out the [agent_session.py](native_restate/utils/agent_session.py) file.
 ```python
 while True:
     # Call the LLM - OpenAPI Responses API
@@ -309,7 +309,7 @@ This code can be extended and changed based on the use case.
 
 The agent session we implemented in the previous section is just a Restate Virtual Object. 
 It can be called from anywhere, also from a more traditional code-defined workflow. 
-For example, imagine a [loan approval workflow](d_mixing_agents_and_workflows/loan_review_workflow.py) where a step in the workflow is to wait on an [agent to analyze the loan application](d_mixing_agents_and_workflows/loan_review_agent.py) and interact with the customer to request additional information if necessary.
+For example, imagine a [loan approval workflow](insurance_workflows/loan_review_workflow.py) where a step in the workflow is to wait on an [agent to analyze the loan application](insurance_workflows/loan_review_agent.py) and interact with the customer to request additional information if necessary.
 
 Benefits of Restate here:
 - Benefits of previous section.
@@ -318,7 +318,7 @@ Benefits of Restate here:
 
 <img src="img/mixing_agentic_and_traditional.png" alt="Loan workflow with agentic step" width="650px"/>
 
-An example workflow in detail ([code](d_mixing_agents_and_workflows/loan_review_workflow.py)):
+An example workflow in detail ([code](insurance_workflows/loan_review_workflow.py)):
 
 <img src="img/mixing_agents_and_workflow.png" alt="Loan workflow" width="650px"/>
 
@@ -1148,7 +1148,7 @@ Open a new chat session on http://localhost:3000 and ask questions about your ba
 ### Mixing static, code-defined workflows with agentic workflows
 
 In this [full example](#running-the-loan-approval-app-mixing-agents-and-workflows), the loan workflow is kicked off by an agentic chat session. 
-It lets you interact with a [loan workflow agent](d_mixing_agents_and_workflows) that can apply for loans, check the status of loans, and provide information about bank accounts.
+It lets you interact with a [loan workflow agent](insurance_workflows) that can apply for loans, check the status of loans, and provide information about bank accounts.
 
 The loan workflow then again starts an agent session to review the loan application and interact with the customer to request additional information if necessary.
 
