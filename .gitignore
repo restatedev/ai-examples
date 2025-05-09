@@ -1,6 +1,5 @@
-.venv
 __pycache__/
-.idea
-ui/node_modules/
-ui/.next/
+**/.idea
+**/chat-ui/node_modules/
+**/chat-ui/.next/
 **/.venv

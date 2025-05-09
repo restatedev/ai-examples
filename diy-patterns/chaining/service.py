@@ -1,6 +1,6 @@
 import restate
 from pydantic import BaseModel
-from a_orchestrating_llm_calls.util.util import llm_call
+from util.util import llm_call
 
 """
 Prompt-chaining with Restate

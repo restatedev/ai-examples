@@ -1,7 +1,7 @@
 import pydantic
 import restate
 
-from a_orchestrating_llm_calls.util.util import llm_call, extract_xml
+from util.util import llm_call, extract_xml
 
 """
 Evaluator-optimizer pattern with Restate

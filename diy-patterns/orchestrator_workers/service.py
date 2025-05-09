@@ -1,7 +1,7 @@
 import restate
 from pydantic import BaseModel
 from typing import Dict, List, Any
-from a_orchestrating_llm_calls.util.util import llm_call, extract_xml
+from util.util import llm_call, extract_xml
 
 """
 Orchestrator-worker pattern with Restate
