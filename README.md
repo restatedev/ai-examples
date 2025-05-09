@@ -1,5 +1,7 @@
 # Restate AI Agents examples
 
+Restate lets you build resilient applications easily. It provides a distributed durable version of your everyday building blocks.
+
 This repository contains examples of how to use Restate for AI / Agent use cases.
 
 Restate gives many benefits when implementing LLM-based applications and agents. 
@@ -10,6 +12,7 @@ The integration goes from loose integration (calling LLMs or Agent SDKs from Res
 The options:
 1. [DIY patterns: Using Restate to orchestrate LLM calls](diy-patterns)
 2. [Agents: Using Restate (together with Agent SDKs) for agentic workflows](agents)
+3. [MCP: Using Restate for MCP](mcp)
 3. [A2A: Implementing resilient A2A servers with Restate](a2a)
 4. [End-to-end applications: examples of agentic Restate applications](e_a2a)
    - [Mixing static, code-defined workflows with agentic workflows](#mixing-static-code-defined-workflows-with-agentic-workflows)

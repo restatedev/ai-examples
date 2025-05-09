@@ -1,19 +1,25 @@
-# Restate A2A Agents
+# Resilient A2A Agents with Restate
 
-This repo shows how to build agents with [Restate](https://restate.dev/) and the [A2A protocol](https://google.github.io/A2A/).
+These examples uses [Restate](https://ai.restate.dev/) to implement the [Agent2Agent (A2A) protocol](https://github.com/google/A2A).
 
-- [A2A server and Durable Task Object](common/server/middleware.py)
-- [Example agents](agents/)
+In this example, Restate acts as a scalable, resilient task orchestrator that speaks the A2A protocol and gives you:
+- 🔁 **Automatic retries** - Handles LLM API downtime, timeouts, and infrastructure failures
+- 🔄 **Smart recovery** - Preserves progress across failures without duplicating work
+- ⏱️ **Persistent task handles** - Tracks progress across failures, time, and processes
+- 🎮 **Task control** - Cancel tasks, query status, re-subscribe to ongoing tasks
+- 🧠 **Idempotent submission** - Automatic deduplication based on task ID
+- 🤖 **Agentic workflows** - Build resilient agents with human-in-the-loop and parallel tool execution
+- 💾 **Durable state** - Maintain consistent agent state across infrastructure events
+- 👀 **Full observability** - Line-by-line execution tracking with built-in audit trail
+- ☁️️ **Easy to self-host** - or connect to Restate Cloud
 
-This repo contains two different types of agent implementations:
-1. Using Restate for the A2A Server and Durable Task Object. And using an Agent SDK like Google ADK for the agent implementation.
-2. Using Restate for the A2A Server, Durable Task Object, and agent implementation. 
+<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/a2a/a2a.png" width="600px"/>
 
 ## Prerequisites
 
-- Python 3.13 or higher
-- uv
-
+- Python 3.12 or higher
+- [UV](https://docs.astral.sh/uv/)
+- Access to an LLM and API Key
 
 ## Host agent demo
 
