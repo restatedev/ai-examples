@@ -45,24 +45,25 @@ data = {
     "task": "Write a product description for a new eco-friendly water bottle",
     "llm_context": {
         "target_audience": "environmentally conscious millenials",
-        "key_features": ["plastic-free", "insulated", "lifetime warranty"]
-    }
+        "key_features": ["plastic-free", "insulated", "lifetime warranty"],
+    },
 }
 
-headers = {"Content-Type": "application/json", "Accept": "application/json"}
 
-r = httpx.post(
-    "http://localhost:8080/FlexibleOrchestrator/process",
-    json=data,
-    headers=headers,
-    timeout=300,
-)
+def main():
+    r = httpx.post(
+        "http://localhost:8080/FlexibleOrchestrator/process",
+        json=data,
+        timeout=300,
+    )
+    r.raise_for_status()
 
-if r.is_error:
-    raise ValueError(f"{r.status_code} : {r.text}")
+    output_json = r.json()
+    pprint(output_json)
 
-output_json = r.json()
-pprint(output_json)
+
+if __name__ == "__main__":
+    main()
 
 """
 Example output:

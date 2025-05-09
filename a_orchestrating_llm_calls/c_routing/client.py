@@ -11,7 +11,6 @@ support_routes = {
     Keep responses professional but friendly.
 
     Input: """,
-
     "technical": """You are a technical support engineer. Follow these guidelines:
     1. Always start with "Technical Support Response:"
     2. List exact steps to resolve the issue
@@ -22,7 +21,6 @@ support_routes = {
     Use clear, numbered steps and technical details.
 
     Input: """,
-
     "account": """You are an account security specialist. Follow these guidelines:
     1. Always start with "Account Support Response:"
     2. Prioritize account security and verification
@@ -33,7 +31,6 @@ support_routes = {
     Maintain a serious, security-focused tone.
 
     Input: """,
-
     "product": """You are a product specialist. Follow these guidelines:
     1. Always start with "Product Support Response:"
     2. Focus on feature education and best practices
@@ -43,7 +40,7 @@ support_routes = {
 
     Be educational and encouraging in tone.
 
-    Input: """
+    Input: """,
 }
 
 # Test with different support tickets
@@ -53,46 +50,42 @@ tickets = [
     I'm sure I'm using the right password. Can you help me regain access? This is urgent as I need to 
     submit a report by end of day.
     - John""",
-
     """Subject: Unexpected charge on my card
     Message: Hello, I just noticed a charge of $49.99 on my credit card from your company, but I thought
     I was on the $29.99 plan. Can you explain this charge and adjust it if it's a mistake?
     Thanks,
     Sarah""",
-
     """Subject: How to export data?
     Message: I need to export all my project data to Excel. I've looked through the docs but can't
     figure out how to do a bulk export. Is this possible? If so, could you walk me through the steps?
     Best regards,
-    Mike"""
+    Mike""",
 ]
 
-headers = {"Content-Type": "application/json", "Accept": "application/json"}
 
-print("Processing support tickets...\n")
-for i, ticket in enumerate(tickets, 1):
-    print(f"\nTicket {i}:")
-    print("-" * 40)
-    print(ticket)
-    print("\nResponse:")
-    print("-" * 40)
+def main():
+    print("Processing support tickets...\n")
+    for i, ticket in enumerate(tickets, 1):
+        print(f"\nTicket {i}:")
+        print("-" * 40)
+        print(ticket)
+        print("\nResponse:")
+        print("-" * 40)
 
-    data = {
-        "input": ticket,
-        "routes": support_routes
-    }
+        data = {"input": ticket, "routes": support_routes}
 
-    r = httpx.post(
-        "http://localhost:8080/RoutingService/route",
-        json=data,
-        headers=headers,
-        timeout=60,
-    )
+        r = httpx.post(
+            "http://localhost:8080/RoutingService/route",
+            json=data,
+            timeout=60,
+        )
+        r.raise_for_status()
 
-    if r.is_error:
-        raise ValueError(f"{r.status_code} : {r.text}")
+        print(r.json())
 
-    print(r.json())
+
+if __name__ == "__main__":
+    main()
 
 """
 Example output:

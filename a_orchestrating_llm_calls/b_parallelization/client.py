@@ -5,43 +5,41 @@ stakeholders = [
     - Price sensitive
     - Want better tech
     - Environmental concerns""",
-
     """Employees:
     - Job security worries
     - Need new skills
     - Want clear direction""",
-
     """Investors:
     - Expect growth
     - Want cost control
     - Risk concerns""",
-
     """Suppliers:
     - Capacity constraints
     - Price pressures
-    - Tech transitions"""
+    - Tech transitions""",
 ]
 
 data = {
     "prompt": """Analyze how market changes will impact this stakeholder group.
     Provide specific impacts and recommended actions.
     Format with clear sections and priorities.""",
-    "inputs": stakeholders
+    "inputs": stakeholders,
 }
 
-headers = {"Content-Type": "application/json", "Accept": "application/json"}
 
-r = httpx.post(
-    "http://localhost:8080/ParallelizationService/run_in_parallel",
-    json=data,
-    headers=headers,
-    timeout=60,
-)
+def main():
+    r = httpx.post(
+        "http://localhost:8080/ParallelizationService/run_in_parallel",
+        json=data,
+        timeout=60,
+    )
+    r.raise_for_status()
 
-if r.is_error:
-    raise ValueError(f"{r.status_code} : {r.text}")
+    [print(item) for item in r.json()]
 
-[print(item) for item in r.json()]
+
+if __name__ == "__main__":
+    main()
 
 """
 The output should be something along the lines of: 

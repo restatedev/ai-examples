@@ -3,7 +3,7 @@ import random
 
 from datetime import datetime, timedelta
 
-from utils.pydantic_models import TransactionHistory, Transaction
+from .pydantic_models import TransactionHistory, Transaction
 
 
 async def time_now(ctx: restate.WorkflowContext | restate.ObjectContext) -> int:

@@ -3,8 +3,8 @@ import restate
 
 from datetime import timedelta
 
-from utils.utils import time_now_string
-from utils.pydantic_models import (
+from .utils.utils import time_now_string
+from .utils.pydantic_models import (
     Transaction,
     TransactionHistory,
     Loan,
@@ -14,7 +14,7 @@ from utils.pydantic_models import (
     LoanDecision,
     LoanReviewRequest,
 )
-from utils.utils import generate_transactions, time_now
+from .utils.utils import generate_transactions, time_now
 
 # Keyed by customer ID
 account = restate.VirtualObject("Account")
@@ -73,7 +73,9 @@ async def submit_loan_request(ctx: restate.ObjectContext, req: LoanRequest) -> s
     Returns:
         str: The loan ID
     """
-    loan_id = await ctx.run("Generate Loan ID", lambda: "loan-" + str(random.randint(1000, 9999)))
+    loan_id = await ctx.run(
+        "Generate Loan ID", lambda: "loan-" + str(random.randint(1000, 9999))
+    )
     all_loans = await get_customer_loans(ctx)
     all_loans.loans[loan_id] = Loan(
         loan_id=loan_id,
@@ -81,7 +83,7 @@ async def submit_loan_request(ctx: restate.ObjectContext, req: LoanRequest) -> s
     )
     ctx.set(LOANS, all_loans)
 
-    from loan_review_workflow import run
+    from .loan_review_workflow import run
 
     loan_review_request = LoanReviewRequest(
         loan_request=req, transaction_history=await get_transaction_history(ctx)
@@ -204,7 +206,7 @@ async def notify_customer(ctx: restate.ObjectContext, message: str):
         message (str): The message to send to the customer.
     """
     # This could be any preferred contact method. Here we only have chat, so we send a chat message.
-    from chat import ChatMessage, add_async_response
+    from .chat import ChatMessage, add_async_response
 
     chat_message = ChatMessage(
         role="system",

@@ -1,15 +1,15 @@
 import restate
 
-from account import (
+from .account import (
     get_customer_loans,
     submit_loan_request,
     get_balance,
     get_transaction_history,
 )
-from loan_review_agent import on_additional_info
-from utils.pydantic_models import ChatMessage, ChatHistory
-from utils.utils import time_now
-from utils.agent_session import (
+from .loan_review_agent import on_additional_info
+from .utils.pydantic_models import ChatMessage, ChatHistory
+from .utils.utils import time_now
+from .utils.agent_session import (
     run as agent_session_run,
     AgentInput,
     restate_tool,
@@ -143,7 +143,7 @@ loan_request_submitter = Agent(
     """,
     tools=[
         restate_tool(submit_loan_request),
-    ]
+    ],
 )
 
 clarifications_forwarder_agent = Agent(
@@ -162,9 +162,7 @@ clarifications_forwarder_agent = Agent(
     If you are not sure about the loan ID, ask the customer for it.
     2. If the customer asks a question that is not related to these routines, transfer back to the intake agent.
     """,
-    tools=[
-        restate_tool(on_additional_info)
-    ]
+    tools=[restate_tool(on_additional_info)],
 )
 
 
@@ -194,7 +192,12 @@ intake_agent = Agent(
         "If the question is not related to loans, or bank accounts, then tell the customer you can't help him."
         "Otherwise transfer to another agent, and don't answer directly!"
     ),
-    handoffs=[loan_request_submitter.name, loan_status_retriever.name, account_manager_agent.name, clarifications_forwarder_agent.name],
+    handoffs=[
+        loan_request_submitter.name,
+        loan_status_retriever.name,
+        account_manager_agent.name,
+        clarifications_forwarder_agent.name,
+    ],
 )
 
 
@@ -212,4 +215,3 @@ chat_agents = [
     message_to_customer_agent,
     intake_agent,
 ]
-

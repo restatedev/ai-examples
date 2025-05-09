@@ -12,33 +12,41 @@ from agents import (
 )
 from agents.extensions.handoff_prompt import RECOMMENDED_PROMPT_PREFIX
 
+from datetime import datetime
 
 # ------------ CHAT MODELS ------------
 
 
-class InputItem(BaseModel):
+class ChatMessage(BaseModel):
     """
     A chat message object.
 
     Attributes:
         role (str): The role of the sender (user, assistant, system).
         content (str): The message to send.
-        timestamp (int): The timestamp of the message in millis.
+        timestamp_millis (int): The timestamp of the message in millis.
+        timestamp (str): The timestamp of the message in YYYY-MM-DD format.
     """
 
     role: str
     content: str
+    timestamp_millis: int
+    timestamp: str = Field(
+        default_factory=lambda data: datetime.fromtimestamp(
+            data["timestamp_millis"] / 1000
+        ).strftime("%Y-%m-%d")
+    )
 
 
-class InputHistory(BaseModel):
+class ChatHistory(BaseModel):
     """
     A chat history object.
 
     Attributes:
-        entries (list[InputItem]): The list of chat messages.
+        entries (list[ChatMessage]): The list of chat messages.
     """
 
-    entries: list[InputItem] = Field(default_factory=list)
+    entries: list[ChatMessage] = Field(default_factory=list)
 
 
 class AirlineAgentContext(BaseModel):
@@ -149,28 +157,50 @@ triage_agent = Agent[AirlineAgentContext](
 faq_agent.handoffs.append(triage_agent)
 seat_booking_agent.handoffs.append(triage_agent)
 
-# Agent Session
+# CHAT SERVICE
 
-agent_session = restate.VirtualObject("AgentSession")
+# Keyed by customerID
+chat_service = restate.VirtualObject("ChatService")
 
-# K/V stored in Restate
-INPUT_ITEMS = "input_items"
+# Keys of the K/V state stored in Restate per chat
+CHAT_HISTORY = "chat_history"
 
 
-@agent_session.handler()
-async def run(ctx: restate.ObjectContext, req: InputItem) -> InputItem:
-    input_items = await ctx.get(INPUT_ITEMS, type_hint=InputHistory) or InputHistory()
-    input_items.entries.append(req)
-    ctx.set(INPUT_ITEMS, input_items)
+@chat_service.handler()
+async def send_message(ctx: restate.ObjectContext, req: ChatMessage) -> ChatMessage:
+    """
+    Send a message from the customer to the ChatService.
+    This will be used as input to start an agent session.
+
+    Args:
+        req (ChatMessage): The message to send to the ChatService.
+
+    Returns:
+        ChatMessage: The response from the ChatService.
+    """
+    history = await ctx.get(CHAT_HISTORY, type_hint=ChatHistory) or ChatHistory()
+    history.entries.append(req)
+    ctx.set(CHAT_HISTORY, history)
 
     async def run_agent_session() -> str:
-        result = await agents.Runner.run(triage_agent, input_items.model_dump_json())
+        result = await agents.Runner.run(triage_agent, history.model_dump_json())
         return result.final_output
 
     output = await ctx.run("run agent session", run_agent_session)
 
     # Create a new message with the system role
-    new_input_item = InputItem(role="system", content=output)
-    input_items.entries.append(new_input_item)
-    ctx.set(INPUT_ITEMS, input_items)
-    return new_input_item
+    new_message = ChatMessage(
+        role="system", content=output, timestamp_millis=await time_now(ctx)
+    )
+    history.entries.append(new_message)
+    ctx.set(CHAT_HISTORY, history)
+    return new_message
+
+
+@chat_service.handler(kind="shared")
+async def get_chat_history(ctx: restate.ObjectSharedContext) -> ChatHistory:
+    return await ctx.get(CHAT_HISTORY, type_hint=ChatHistory) or ChatHistory()
+
+
+async def time_now(ctx: restate.WorkflowContext | restate.ObjectContext) -> int:
+    return await ctx.run("time", lambda: round(datetime.now().timestamp() * 1000))

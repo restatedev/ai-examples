@@ -2,13 +2,13 @@ import restate
 
 from datetime import timedelta
 
-from utils.pydantic_models import LoanReviewRequest, LoanDecision, LoanDecisionSerde
-from utils.utils import time_now_string
-from utils.agent_session import (
+from .utils.pydantic_models import LoanReviewRequest, LoanDecision, LoanDecisionSerde
+from .utils.utils import time_now_string
+from .utils.agent_session import (
     AgentInput,
     run as agent_session_run,
 )
-from account import (
+from .account import (
     Transaction,
     process_loan_decision,
     withdraw as account_withdraw,
@@ -82,7 +82,8 @@ async def run(
             f"Review the loan request: {req.model_dump_json()};"
             f"transaction history: {history};"
         )
-        from loan_review_agent import loan_review_agent
+        from .loan_review_agent import loan_review_agent
+
         ctx.object_send(
             agent_session_run,
             key=ctx.key(),
@@ -90,7 +91,7 @@ async def run(
                 starting_agent=loan_review_agent,
                 agents=[loan_review_agent],
                 message=loan_intake_data,
-            )
+            ),
         )
     else:
         # Loans over 1M require human assessment
@@ -132,6 +133,7 @@ async def on_loan_decision(ctx: restate.WorkflowSharedContext, decision: LoanDec
     """
     await ctx.promise("loan_decision", serde=LoanDecisionSerde).resolve(decision)
 
+
 # ----- UTILS ------
 
 
@@ -139,4 +141,3 @@ def request_human_assessment():
     # request a loan assessor to have a look
     # ... to be implemented ...
     pass
-

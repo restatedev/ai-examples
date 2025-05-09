@@ -44,28 +44,30 @@ All operations should be O(1).
 """
 
 
+def main():
+    data = {
+        "task": task,
+        "evaluator_prompt": evaluator_prompt,
+        "generator_prompt": generator_prompt,
+    }
 
-data = {"task": task, "evaluator_prompt": evaluator_prompt, "generator_prompt": generator_prompt}
+    r = httpx.post(
+        "http://localhost:8080/EvaluatorOptimizer/loop",
+        json=data,
+        timeout=60,
+    )
+    r.raise_for_status()
+
+    print("\nResult:")
+    print("-" * 40)
+    print(r.json()[0])
+    print("\nChain of thought:")
+    print("-" * 40)
+    pprint(r.json()[1])
 
 
-headers = {"Content-Type": "application/json", "Accept": "application/json"}
-
-r = httpx.post(
-    "http://localhost:8080/EvaluatorOptimizer/loop",
-    json=data,
-    headers=headers,
-    timeout=60,
-)
-
-if r.is_error:
-    raise ValueError(f"{r.status_code} : {r.text}")
-
-print("\nResult:")
-print("-"*40)
-print(r.json()[0])
-print("\nChain of thought:")
-print("-"*40)
-pprint(r.json()[1])
+if __name__ == "__main__":
+    main()
 
 
 """

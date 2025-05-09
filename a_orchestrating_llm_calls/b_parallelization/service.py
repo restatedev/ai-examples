@@ -1,6 +1,6 @@
 import restate
 from pydantic import BaseModel
-from util.util import llm_call
+from a_orchestrating_llm_calls.util.util import llm_call
 
 """
 Parallelization with Restate

@@ -35,22 +35,21 @@ Employee satisfaction is at 87 points.
 Operating margin improved to 34%.
 """
 
-data = {"input": report, "prompts": data_processing_steps}
+
+def main():
+    data = {"input": report, "prompts": data_processing_steps}
+
+    r = httpx.post(
+        "http://localhost:8080/CallChainingService/chain_call",
+        json=data,
+        timeout=60,
+    )
+    r.raise_for_status()
+    print(r.json())
 
 
-headers = {"Content-Type": "application/json", "Accept": "application/json"}
-
-r = httpx.post(
-    "http://localhost:8080/CallChainingService/chain_call",
-    json=data,
-    headers=headers,
-    timeout=60,
-)
-
-if r.is_error:
-    raise ValueError(f"{r.status_code} : {r.text}")
-
-print(r.json())
+if __name__ == "__main__":
+    main()
 
 """
 The service logs show an output similar to:

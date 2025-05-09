@@ -1,10 +1,18 @@
 import restate
 
-from restate.exceptions import TerminalError
-
-from loan_review_workflow import on_loan_decision
-from utils.agent_session import restate_tool, RECOMMENDED_PROMPT_PREFIX, Agent, run as agent_session_run, AgentInput
-from utils.pydantic_models import EnrichedTransactionHistory, CreditMetric, AdditionalInfoRequest
+from .loan_review_workflow import on_loan_decision
+from .utils.agent_session import (
+    restate_tool,
+    RECOMMENDED_PROMPT_PREFIX,
+    Agent,
+    run as agent_session_run,
+    AgentInput,
+)
+from .utils.pydantic_models import (
+    EnrichedTransactionHistory,
+    CreditMetric,
+    AdditionalInfoRequest,
+)
 
 # TOOLS
 
@@ -127,24 +135,28 @@ async def request_additional_info(
     Args:
         req (AdditionalInfoRequest): The request for additional information.
     """
-    from chat import add_async_response
-
     id, promise = ctx.awakeable()
     ctx.set("awakeable_id", id)
 
     # Send the message to the customer via the agent session which started the loan request.
     # Once the user will see the message and respond,
     # the agent which receives that message will route it back to us by resolving the promise.
-    from chat import message_to_customer_agent, chat_agents
-    ctx.object_send(agent_session_run, key=req.customer_id, arg=AgentInput(
-        starting_agent=message_to_customer_agent,
-        agents=chat_agents,
-        message=f"""
+    from .chat import message_to_customer_agent, chat_agents
+
+    ctx.object_send(
+        agent_session_run,
+        key=req.customer_id,
+        arg=AgentInput(
+            starting_agent=message_to_customer_agent,
+            agents=chat_agents,
+            message=f"""
         Use the add_async_response tool to send this CLARIFICATION REQUEST: {req.message}. 
         Once the customer answers to this use the Clarifications Answer Forwarder Agent - on_additional_info tool to route the answer back to the loan review agent.
         Don't respond to the customer directly. Just forward the answer.
         """,
-        force_starting_agent=True))
+            force_starting_agent=True,
+        ),
+    )
     return await promise
 
 
@@ -166,7 +178,6 @@ async def on_additional_info(
 
     ctx.resolve_awakeable(awakeable_id, f"ADDITIONAL INFO BY CUSTOMER: {msg}")
     return "Response routed back successfully."
-
 
 
 # ----- AGENTS ------
@@ -192,7 +203,7 @@ loan_review_agent = Agent(
     - In the case of high_risk_transactions, ask for the reason of the high risk transactions.
     - In the case of large_purchases, ask for the reason of the large purchases.
     - In the case of debt_to_income_ratio, ask for the which other debts the customer has.
-    Be very clear in the message about what you need to be clarified.
+    Be very clear in the message about what you need to be clarified and always use the request_additional_info tool.
     4. Based on the metrics and clarifications,  make a decision to either approve or not. You can use your own judgement for this. 
     5. Let the loan approval workflow know the decision you made with the on_loan_decision tool with the loan ID as the key.
     Your decision contains a boolean on whether you approve on not, and your reasoning, together with the output of each of the tool call you did to calculate the metrics. 

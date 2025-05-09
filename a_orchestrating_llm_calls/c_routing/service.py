@@ -2,7 +2,7 @@ from typing import Dict
 
 import restate
 from pydantic import BaseModel
-from util.util import llm_call, extract_xml
+from a_orchestrating_llm_calls.util.util import llm_call, extract_xml
 
 """
 Routing with Restate
@@ -54,7 +54,9 @@ async def route(ctx: restate.Context, req: RouteRequest) -> str:
 
     # Option 1: Process input with selected specialized prompt
     selected_prompt = req.routes[route_key]
-    return await ctx.run("Route", lambda: llm_call(f"{selected_prompt}\nInput: {req.input}"))
+    return await ctx.run(
+        "Route", lambda: llm_call(f"{selected_prompt}\nInput: {req.input}")
+    )
 
     # Option 2: In Restate, this could also be a call to run a tool (service handler)
     # Have a look at the more advanced examples in this repo to see how far you can go with this
