@@ -7,7 +7,7 @@ Restate makes building resilient, observable, and scalable tools effortless. Her
 - 📦 **OTEL support out of the box** – Seamless integration with OpenTelemetry.
 - 🌍 **Deploy anywhere** – Whether it's AWS Lambda, CloudRun, Fly.io, Cloudflare, Kubernetes, or Deno Deploy.
 - 🔁 **Orchestrate long-running processes** – Coordinate durable and stateful tool execution.
-- ☁️ **Easy to self host** – Or connect to restate cloud
+- ☁️ **Easy to self-host** – Or connect to [Restate Cloud](https://restate.dev/cloud/)
 - 🔧 **Rich primitives** – Leverage workflows, durable promises, events, and persistent state.
 
 ---

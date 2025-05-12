@@ -46,7 +46,8 @@ The state can also be queried from the outside and viewed in the Restate UI.
 
 ## Running the examples
 
-You need to export your OpenAI API key as an environment variable:
+You need to ex- **Explicit control** over what the agent should do next. Via a stateful session that is long-lived and can be resumed at any time.
+port your OpenAI API key as an environment variable:
 
 ```shell
 export OPENAI_API_KEY=your_openai_api_key
