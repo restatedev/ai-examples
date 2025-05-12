@@ -36,22 +36,12 @@ This repository contains examples of how to use Restate for AI / Agent use cases
 ## Example catalog
 
 1. [**DIY patterns**](diy-patterns): patterns for hardening custom LLM orchestration logic:
-   - Make LLM calls resilient and recoverable: routing, chaining, parallelizing,...
-   - Implement durable agent state management
 2. [**Agents**](agents): Using Restate (optionally with Agent SDKs) for resilient agentic workflows.
-   - Create fault-tolerant agentic workflows with human-in-the-loop and parallel tool execution
-   - Implement long-lived agent sessions
-   - Line-by-line execution tracking with built-in audit trail
-
-3. [**MCP**](mcp): Using Restate for exposing and resilient orchestration of tool calls.
-
-4. [**A2A**](a2a): Implement Google's Agent-to-Agent protocol with Restate:
-   - Scalable task orchestration
-   - Resilient message passing between agents
-   - Durable task management
-5. [**End-to-end applications**](end-to-end-applications): examples of agentic Restate applications
-   - [Mixing static, code-defined workflows with agentic workflows](#mixing-static-code-defined-workflows-with-agentic-workflows)
-   - [Long-lived multi-agent setups](#long-lived-multi-agent-setups)
+3. [**MCP**](mcp): Using Restate for exposing tools and resilient orchestration of tool calls.
+4. [**A2A**](a2a): Implement Google's Agent-to-Agent protocol with Restate as resilient, scalable task orchestrator.
+5. [**End-to-end applications**](end-to-end-applications): full-fledged examples of agentic Restate applications
+   - [Mixing static, code-defined workflows with agentic workflows](end-to-end-applications/insurance-workflows)
+   - [Long-lived multi-agent setups](end-to-end-applications/long-lived-agents)
 
 
 Restate supports 6 languages:
@@ -65,6 +55,14 @@ Restate supports 6 languages:
 
 The examples can be translated to any of the supported languages. 
 Join our [Discord](https://discord.gg/skW3AZ6uGd)/[Slack](https://join.slack.com/t/restatecommunity/shared_invite/zt-2v9gl005c-WBpr167o5XJZI1l7HWKImA) to get help with translating an examples to your language of choice.
+
+## Running the examples
+
+Clone the repository and consult the README of the example you want to run for further instructions.
+
+```bash
+git clone git@github.com:restatedev/restate-ai-examples.git
+```
 
 ## How Restate Compares (vs. Alternatives for Agents):
 
