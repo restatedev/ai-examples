@@ -15,9 +15,9 @@ Restate provides the following capabilities:
 - 🚀 **Move fast and far** - Innate resiliency and control from your first LLM-SDK-based app to low-level, customized multi-agent applications.
 - ✅ **Resilience where it matters most** – Automatically recover from failures in your agentic workflows and tools.
 - 🎮 **Task control** - Cancel tasks, query status, re-subscribe to ongoing tasks, and track progress across failures, time, and processes.
-- 🤖 **Reliable multi-agent** - Flexible and reliable communication patterns including RPC, events, human-in-the-loop and parallel execution.
+- 🤖 **Reliable multi-agent** - Flexible and reliable communication patterns including RPC, scheduled tasks, events, human-in-the-loop and parallel execution.
 - 👀 **Full observability** – Line-by-line execution tracking with a built-in audit trail and UI. Seamless integration with OpenTelemetry.
-- 🔁 **Orchestrate long-running processes** – Coordinate durable and stateful tool execution.
+- 🔁 **Orchestrate long-running processes** – Coordinate durable and stateful agentic processes for millis or months.
 - 🔧 **Rich primitives** – Leverage workflows, durable promises, communication, and persistent state.
 - 🧠 **Exactly-once execution** - Automatic deduplication of hand-offs and tool executions via idempotency keys.
 - 💾 **Persistent memory** - Maintain consistent agent memory across infrastructure events.
@@ -71,6 +71,14 @@ Join our [Discord](https://discord.gg/skW3AZ6uGd)/[Slack](https://join.slack.com
 - **vs. DIY (Basic Loops + DB/Queue)**: Eliminates vast amounts of boilerplate code for retries, state management, consistency checks, and failure recovery that developers would otherwise need to build manually.
 - **vs. Basic Agent Frameworks (focused on prompts/reasoning)**: Provides the crucial missing layer of execution reliability, state persistence, and robust async operation management needed for production. Restate complements these frameworks by providing a reliable runtime beneath the agent's reasoning logic.
 - **vs. Heavy Workflow Engines:** Offers similar strong execution guarantees but with a lighter footprint, lower latency, simpler programming model (Virtual Objects), native serverless integration, and easier self-hosting/operational story—often a better fit for the potentially high-volume, interactive nature of agent applications.
+
+## Learn more
+- [Documentation](https://docs.restate.dev/)
+- [Quickstart](https://docs.restate.dev/get_started/quickstart)
+- [Tour of Restate: a tutorial including the most important features](https://docs.restate.dev/get_started/tour)
+- [Examples on workflows, microservice orchestration, async tasks, event processing](https://github.com/restatedev/examples)
+- [Restate Cloud](https://restate.dev/cloud/)
+- [Discord](https://discord.gg/skW3AZ6uGd) / [Slack](https://join.slack.com/t/restatecommunity/shared_invite/zt-2v9gl005c-WBpr167o5XJZI1l7HWKImA)
 
 ## Disclaimers and acknowledgements
 
