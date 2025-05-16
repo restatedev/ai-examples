@@ -12,10 +12,11 @@ dependencies = [
     "pydantic>=2.10.6",
     "google-adk>=0.0.3",
     "google-genai>=1.9.0",
-    "restate-sdk>=0.7.1",
+    "restate-sdk[serde]>=0.7.1",
     "hypercorn",
     "openai>=1.74.0",
-    "fastapi"
+    "fastapi[standard]",
+    "python-dotenv>=1.1.0",
 ]
 
 [project.optional-dependencies]

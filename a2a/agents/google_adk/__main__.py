@@ -4,11 +4,14 @@ from agent import ReimbursementAgent
 from common.server.middleware import AgentMiddleware
 from common.types import MissingAPIKeyError, AgentCapabilities, AgentCard, AgentSkill
 from fastapi import FastAPI
+from dotenv import load_dotenv
 
+
+load_dotenv()
 RESTATE_HOST = os.getenv("RESTATE_HOST", "http://localhost:8080")
 
 AGENT_CARD = AgentCard(
-    name="ReimbursementAgent",
+    name="GoogleReimbursementAgent",
     description="This agent handles the reimbursement process for the employees given the amount and purpose of the reimbursement.",
     url=RESTATE_HOST,
     version="1.0.0",
@@ -48,7 +51,7 @@ def main():
     if not os.getenv("GOOGLE_API_KEY"):
         raise MissingAPIKeyError("GOOGLE_API_KEY environment variable not set.")
 
-    port = os.getenv("AGENT_PORT", "9081")
+    port = os.getenv("AGENT_PORT", "9083")
     conf = hypercorn.Config()
     conf.bind = [f"0.0.0.0:{port}"]
     asyncio.run(hypercorn.asyncio.serve(app, conf))

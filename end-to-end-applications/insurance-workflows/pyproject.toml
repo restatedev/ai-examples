@@ -7,7 +7,7 @@ requires-python = ">=3.12"
 
 dependencies = [
     "hypercorn",
-    "restate_sdk>=0.7.1",
+    "restate_sdk[serde]>=0.7.1",
     "pydantic",
     "black",
     "httpx",

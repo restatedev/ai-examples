@@ -5,9 +5,12 @@ from fastapi import FastAPI
 
 from common.server.middleware import AgentMiddleware
 from common.types import MissingAPIKeyError, AgentCapabilities, AgentCard, AgentSkill
+from dotenv import load_dotenv
+
+
+load_dotenv()
 
 RESTATE_HOST = os.getenv("RESTATE_HOST", "http://localhost:8080")
-AGENT_HOST = os.getenv("AGENT_HOST", "0.0.0.0:9083")
 
 AGENT_CARD = AgentCard(
     name="CurrencyAgent",

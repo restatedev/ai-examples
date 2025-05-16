@@ -27,7 +27,7 @@ class ReimbursementRequest(BaseModel):
     """
 
     date: Optional[str] = None
-    amount: Optional[str] = None
+    amount: Optional[float] = None
     purpose: Optional[str] = None
 
 
@@ -89,7 +89,7 @@ async def create_request_form(
     reimbursement = Reimbursement(
         request_id=request_id,
         date="<transaction date>" if not date else date,
-        amount=0 if not amount else amount,
+        amount=0.0 if not amount else amount,
         purpose=(
             "<business justification/purpose of the transaction>"
             if not purpose
@@ -131,7 +131,7 @@ async def reimburse(ctx: restate.Context, req: Reimbursement) -> dict[str, str]:
     """
 
     # 1. Wait for approval
-    if req.amount > 100:
+    if req.amount > 100.0:
         # Human approval
         callback_id, callback_promise = ctx.awakeable()
         await ctx.run(

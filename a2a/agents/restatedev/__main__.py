@@ -7,11 +7,13 @@ from agent import chat_agents, reimbursement_agent
 from agent import reimbursement_service
 from common.server.middleware import AgentMiddleware
 from common.server.a2a_agent import GenericRestateAgent
-from common.types import AgentCard, AgentCapabilities, AgentSkill, MissingAPIKeyError
+from common.types import MissingAPIKeyError
+from dotenv import load_dotenv
 
+
+load_dotenv()
 
 RESTATE_HOST = os.getenv("RESTATE_HOST", "http://localhost:8080")
-AGENT_HOST = os.getenv("AGENT_HOST", "0.0.0.0:9081")
 
 reimbursement_agent.remote_url = RESTATE_HOST
 REIMBURSEMENT_AGENT = AgentMiddleware(
@@ -36,8 +38,8 @@ def main():
     import asyncio
     import hypercorn.asyncio
 
-    if not os.getenv("GOOGLE_API_KEY"):
-        raise MissingAPIKeyError("GOOGLE_API_KEY environment variable not set.")
+    if not os.getenv("OPENAI_API_KEY"):
+        raise MissingAPIKeyError("OPENAI_API_KEY environment variable not set.")
 
     port = os.getenv("AGENT_PORT", "9081")
     conf = hypercorn.Config()

@@ -691,7 +691,7 @@ async def call_remote_agent(
         type_hint=SendTaskRequest,
     )
     logger.info(
-        f"Sending request to {card.name} with request payload: {request.model_dump()}"
+        f"Sending request to {card.name} at {card.url} with request payload: {request.model_dump()}"
     )
     response_json = await ctx.run("Call Agent", send_request, args=(card.url, request))
     response = SendTaskResponse(**response_json)
