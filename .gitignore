@@ -3,3 +3,4 @@ __pycache__/
 **/chat-ui/node_modules/
 **/chat-ui/.next/
 **/.venv
+**/.env

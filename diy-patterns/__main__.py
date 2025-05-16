@@ -7,7 +7,7 @@ from parallelization.service import parallelization_svc
 from routing.service import routing_svc
 from orchestrator_workers.service import flexible_orchestrator
 from evaluator_optimizer.service import evaluator_optimizer
-from human_evaluator_optimizer.service import human_evaluator_optimizer
+from human_in_the_loop.service import human_in_the_loop_svc
 
 app = restate.app(
     services=[
@@ -16,7 +16,7 @@ app = restate.app(
         routing_svc,
         flexible_orchestrator,
         evaluator_optimizer,
-        human_evaluator_optimizer,
+        human_in_the_loop_svc,
     ]
 )
 

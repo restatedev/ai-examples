@@ -64,24 +64,25 @@ Restate makes building resilient, observable, and scalable tools effortless. Her
 );
 
 ```
-# Start the restate server
+
+## Running the example
+
+### Start the Restate Server
 
 ```bash
 docker run --net host -it restatedev/restate:latest
 ```
 
-# Start the restate tools/ server
+### Start the Restate tools/ Server
 
 ```bash
 cd tools
 npm run app
 ```
 
+### Configure Claude desktop
 
-
-# Configure Claude desktop
-
-edit:
+Edit:
 * macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
 * Windows: `%APPDATA%\Claude\claude_desktop_config.json`
 
@@ -98,14 +99,14 @@ edit:
 }
 ```
 
-# Build the MCP server itself
+### Build the MCP server itself
 
 ```bash
 cd restate-mcp
 npm run build
 ```
 
-# Ask Claude to greet your fav person
+### Ask Claude to greet your fav person
 
 ![Claude](image.png "The incremental counter")
 

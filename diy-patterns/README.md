@@ -1,63 +1,64 @@
 # DIY patterns for building resilient LLM-based apps and agents with Restate
 
-The patterns in this example show how you can use Restate to harden LLM-based routing decisions and tool executions with Restate.
+These patterns show how you can use Restate to harden LLM-based routing decisions and tool executions.
+
+They do not implement end-to-end agents, but serve as small self-contained patterns that can be mixed and matched to build more complex workflows.
+
+The patterns included here:
+- [Chaining LLM calls](chaining/service.py): Refine the results by calling the LLM iteratively with its own output.
+- [Parallelizing tool calls](parallelization/service.py): Call multiple tools in parallel and wait for their results in a durable way. Tool calls are retried if they fail, and the results are persisted.
+- [Dynamic routing based on LLM output](routing/service.py): Route the execution to different tools based on the LLM's output. Routing decisions are persisted and can be retried.
+- [Orchestrator-worker pattern](orchestrator_workers/service.py): A resilient orchestration workflow in which a central LLM dynamically breaks down tasks, delegates them to worker LLMs, and analyzes their results.
+- [Evaluator-optimizer pattern](evaluator_optimizer/service.py): Let the LLM generate a response, and ask another LLM to evaluate the response, and let them iterate on it.
+- [Human-in-the-loop pattern](human_in_the_loop/service.py): An LLM generates a response, and then a human can review and approve the response before the LLM continues with the next step.
 
 A part of these patterns are based on Anthropic's [agents cookbook](https://github.com/anthropics/anthropic-cookbook/tree/main/patterns/agents).
 
-The patterns included here:
-- [Chaining LLM calls](chaining/service.py)
-- [Parallelizing tool calls](parallelization/service.py)
-- [Dynamic routing based on LLM output](routing/service.py)
-- [Orchestrator-worker pattern](orchestrator_workers/service.py)
-- [Evaluator-optimizer pattern](evaluator_optimizer/service.py)
-- [Human evaluator-optimizer pattern](human_evaluator_optimizer/service.py)
+## Why Restate?
 
 The benefits of using Restate here are:
-- **Automatic retries** of failed tasks: LLM API down, timeouts, long-running tasks, infrastructure failures, etc.
-- **Recovery of previous progress**: After a failure, Restate recovers the progress the execution did before the cash. 
-It persists routing decisions, tool execution outcomes, and deterministically replays them after failures.
-As opposed to executing all tasks again, Restate only re-executes the tasks that were not completed before the failure.
-- **Management of the orchestration task and all parallel subtasks**: Restate guarantees all tasks run to completion exactly once.
-- **Idempotency**: Restate can deduplicate requests and tool executions.
+- 🔁 **Automatic retries** of failed tasks: LLM API down, timeouts, long-running tasks, infrastructure failures, etc. Restate guarantees all tasks run to completion exactly once.
+- ✅ **Recovery of previous progress**: After a failure, Restate recovers the progress the execution did before the crash. 
+It persists routing decisions, tool execution outcomes, and deterministically replays them after failures, as opposed to executing them again. 
+- 🧠 **Exactly-once execution** - Automatic deduplication of requests and tool executions via idempotency keys.
+- 💾 **Persistent memory** - Maintain session state across infrastructure events.
+The state can be queried from the outside. Stateful sessions are long-lived and can be resumed at any time.
+- 🎮 **Task control** - Cancel tasks, query status, re-subscribe to ongoing tasks, and track progress across failures, time, and processes.
 
-Note that this does not use an Agent SDK.
-These patterns only use an SDK to help with calling the LLM: OpenAI Responses API, or Anthropic's API. 
+These benefits are best portrayed in the following patterns:
 
-### Using Restate for stateful, explicit control flow and LLM feedback loops 
-You can integrate Restate one step deeper into your LLM-based apps by using Restate's stateful entities, called Virtual Objects, to manage the session state of the interactions with the LLM.
-
-Before, we talked about the evaluator-optimizer pattern which implements a loop of letting the LLM generate a response, and then asking the LLM to evaluate the response, then generate a new response based on the evaluation, and so on.
-This is a feedback loop that can be used to improve the quality of the LLM's output.
-
-Instead of letting another LLM do the evaluation, you can also ask a human to evaluate the output of the LLM.
-
-In this example, we track the generated responses and the chain of thought in a Restate Virtual Object, and let the user repeatedly invoke the handler with new insights ([full code example](human_evaluator_optimizer/service.py)).
-
-This lets you durably implement human control over the decision made by the LLM.   
-This could be extended to include tool calls when the user approves their execution.
-This would give you a basic version of an agent loop with explicit user-control at each step. 
-
-The benefits of using Restate here are:
-- What was listed for the previous example
-- **Session/context management**: you can store the session state (input items) in Restate and have it consistent and durable across calls and failures. 
-The state can also be queried from the outside and viewed in the Restate UI.
-- **Explicit control** over what the agent should do next. Via a stateful session that is long-lived and can be resumed at any time.
+| Pattern                     | Retries & recovery | Exactly-once execution | Persistent memory | Task control |
+|-----------------------------|--------------------|------------------------|-------------------|--------------|
+| Chaining LLM calls          | ✅                  | ✅                      |                   |              |
+| Parallelizing tool calls    | ✅                  | ✅                      |                   |              |
+| Dynamic routing             | ✅                  | ✅                      |                   |              |
+| Orchestrator-worker pattern | ✅                  | ✅                      |                   |              |
+| Evaluator-optimizer pattern | ✅                  | ✅                      |                   |              |
+| Human-in-the-loop pattern   | ✅                  | ✅                      | ✅                 |              |
 
 
 ## Running the examples
 
-You need to ex- **Explicit control** over what the agent should do next. Via a stateful session that is long-lived and can be resumed at any time.
-port your OpenAI API key as an environment variable:
-
-```shell
-export OPENAI_API_KEY=your_openai_api_key
-```
-
-Run the app exposing the services for each of the patterns:
-
-```shell
-uv run .
-```
+1. Export your OpenAI or Anthrophic API key as an environment variable:
+    ```shell
+    export OPENAI_API_KEY=your_openai_api_key
+    ```
+    or:
+    ```shell
+    export ANTHROPIC_API_KEY=your_anthropic_api_key
+    ```
+2. [Start the Restate Server](https://docs.restate.dev/develop/local_dev) in a separate shell:
+    ```shell
+    restate-server
+    ```
+3. Start the services:
+    ```shell
+    uv run .
+    ```
+4. Register the services (use `--force` if you already had another deployment registered at 9080): 
+    ```shell
+    restate -y deployments register localhost:9080
+    ```
 
 ### Chaining LLM calls
 
@@ -66,6 +67,7 @@ Send an HTTP request to the service by running the following script:
 ```shell
 uv run chaining_client
 ```
+
 
 <details>
 <summary>View output</summary>
@@ -118,7 +120,6 @@ Here's the sorted data formatted as a markdown table:
 | customer churn           | 5%       |
 
 ```
-
 
 </details>
 
@@ -623,6 +624,7 @@ uv run orchestrator_client
 </details>
 
 ### Evaluator-optimizer pattern
+
 Send an HTTP request to the service by running the following script:
 
 ```shell
@@ -722,4 +724,101 @@ The code correctly implements a stack with push, pop, and getMin operations, all
 
 </details>
 
+### Human-in-the-loop pattern
 
+#### Option 1: `run_with_promise` handler
+
+This handler gathers human feedback by blocking the generation-evaluation loop on a Promise that gets resolved with human feedback.
+
+This is a **Durable Promise**, meaning that the promise can be recovered across processes and time. The Promise is persisted inside Restate. 
+
+Test this out by killing the service halfway through or restarting the Restate Server. You will notice that Restate will still be able to resolve the promise and invoke the handler again.
+
+```shell
+curl localhost:8080/HumanInTheLoopService/giselle/run_with_promise \
+    --json '"Write a poem about Durable Execution"'
+```
+
+<details>
+<summary>View Output</summary>
+
+```text
+=== GENERATION START ===
+Generated:
+**Durable Execution**
+
+In the realm where code and dreams entwine,  
+Lies a concept, steadfast through the sands of time.  
+Durable execution, a beacon bright,  
+Guiding processes through the endless night.  
+
+Born from the chaos of fleeting tasks,  
+Where transient whispers in silence bask,  
+It stands as a sentinel, firm and true,  
+Ensuring each promise is brought into view.  
+
+Like a river that carves its destined course,  
+It flows with purpose, a relentless force.  
+Through trials and errors, it weaves its thread,  
+Binding the fragments where others have fled.  
+
+In the dance of logic, it finds its grace,  
+A symphony of order in digital space.  
+With every heartbeat, it charts its way,  
+Turning ephemeral night into enduring day.  
+
+Resilient as the oak, it bends, not breaks,  
+Through storms of data, it calmly wakes.  
+A guardian of progress, it holds the line,  
+In the tapestry of code, it does entwine.  
+
+So let us honor this silent knight,  
+In the world of zeros, it brings the light.  
+For in its embrace, we find our peace,  
+A promise of continuity that will never cease.  
+=== GENERATION END ===
+
+
+=== HUMAN FEEDBACK REQUIRED ===
+Answer 'PASS' to accept the solution.
+
+ Send feedback via:
+
+ curl http://localhost:8080/restate/awakeables/sign_1b_yMYkXmOxYBltiXV3_RRSWrVXw8R6qhAAAAEQ/resolve --json '"Your feedback..."'
+```
+
+</details>
+
+Then use the printed curl command to incorporate external feedback. And supply `PASS` as feedback to accept the solution.
+
+You can see how the feedback gets incorporated in the Invocations tab in the Restate UI (`http://localhost:9070`):
+
+<img src="../img/human_in_the_loop_promise.png" alt="Human-in-the-loop" width="900px"/>
+
+#### Option 2: `run` handler
+
+Repeatedly invoke the handler with feedback until the response is satisfactory.
+
+This is useful when the person providing feedback is the same as the one generating the response.
+
+Restate keeps the state 
+
+Use the UI playground to test the human-in-the-loop.
+1. Go to the Restate UI at `http://localhost:9070`
+2. Click on the `HumanInTheLoopService` and then on the `Playground` button.
+3. Select the `run` handler and send it a message. For example:
+
+   <img src="../img/human_in_the_loop.png" alt="Human-in-the-loop" width="900px"/>
+
+4. You can then provide feedback on the response and send it back to the handler.
+
+   <img src="../img/human_in_the_loop_2.png" alt="Human-in-the-loop" width="900px"/>
+
+
+Alternatively, you can use `curl`:
+```shell
+curl localhost:8080/HumanInTheLoopService/giselle/run \
+    --json '"Write a poem about Durable Execution"'
+```
+
+And repeatedly do the same to provide feedback.

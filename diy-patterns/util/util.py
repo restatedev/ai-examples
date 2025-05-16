@@ -1,6 +1,12 @@
+import logging
+import os
 import re
 
 from openai import OpenAI
+from anthropic import Anthropic
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 def llm_call(prompt: str, system_prompt: str = "") -> str:
@@ -14,18 +20,34 @@ def llm_call(prompt: str, system_prompt: str = "") -> str:
     Returns:
         str: The response from the language model.
     """
-    messages = [
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": prompt},
-    ]
-    client = OpenAI()
-    response = client.chat.completions.create(
-        model="gpt-4o",
-        max_tokens=4096,
-        messages=messages,
-        temperature=0.1,
-    )
-    return response.choices[0].message.content
+
+    if os.getenv("OPENAI_API_KEY"):
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": prompt},
+        ]
+        client = OpenAI()
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            max_tokens=4096,
+            messages=messages,
+            temperature=0.1,
+        )
+        return response.choices[0].message.content
+    elif os.getenv("ANTHROPIC_API_KEY"):
+        client = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+        messages = [{"role": "user", "content": prompt}]
+        response = client.messages.create(
+            model="clamodelude-3-5-sonnet-latest",
+            max_tokens=4096,
+            system=system_prompt,
+            messages=messages,
+            temperature=0.1,
+        )
+        return response.content[0].text
+    else:
+        raise RuntimeError("Missing API key: set either the env var OPENAI_API_KEY or ANTHROPIC_API_KEY")
+
 
 
 def extract_xml(text: str, tag: str) -> str:

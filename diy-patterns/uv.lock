@@ -12,6 +12,24 @@ wheels = [
 ]
 
 [[package]]
+name = "anthropic"
+version = "0.51.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "anyio" },
+    { name = "distro" },
+    { name = "httpx" },
+    { name = "jiter" },
+    { name = "pydantic" },
+    { name = "sniffio" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/63/4a/96f99a61ae299f9e5aa3e765d7342d95ab2e2ba5b69a3ffedb00ef779651/anthropic-0.51.0.tar.gz", hash = "sha256:6f824451277992af079554430d5b2c8ff5bc059cc2c968cdc3f06824437da201", size = 219063 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/8c/6e/9637122c5f007103bd5a259f4250bd8f1533dd2473227670fd10a1457b62/anthropic-0.51.0-py3-none-any.whl", hash = "sha256:b8b47d482c9aa1f81b923555cebb687c2730309a20d01be554730c8302e0f62a", size = 263957 },
+]
+
+[[package]]
 name = "anyio"
 version = "4.9.0"
 source = { registry = "https://pypi.org/simple" }
@@ -112,6 +130,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/d8/53/6f443c9a4a8358a93a6792e2acffb9d9d5cb0a5cfd8802644b7b1c9a02e4/colorama-0.4.6.tar.gz", hash = "sha256:08695f5cb7ed6e0531a20572697297273c47b8cae5a63ffc6d6ed5c201be6e44", size = 27697 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/d1/d6/3965ed04c63042e047cb6a3e6ed1a63a35087b6a609aa3a15ed8ac56c221/colorama-0.4.6-py2.py3-none-any.whl", hash = "sha256:4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6", size = 25335 },
+]
+
+[[package]]
+name = "dacite"
+version = "1.9.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/55/a0/7ca79796e799a3e782045d29bf052b5cde7439a2bbb17f15ff44f7aacc63/dacite-1.9.2.tar.gz", hash = "sha256:6ccc3b299727c7aa17582f0021f6ae14d5de47c7227932c47fec4cdfefd26f09", size = 22420 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/94/35/386550fd60316d1e37eccdda609b074113298f23cef5bddb2049823fe666/dacite-1.9.2-py3-none-any.whl", hash = "sha256:053f7c3f5128ca2e9aceb66892b1a3c8936d02c686e707bee96e19deef4bc4a0", size = 16600 },
 ]
 
 [[package]]
@@ -482,24 +509,26 @@ name = "restate-ai-diy-patterns"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "anthropic" },
     { name = "black" },
     { name = "httpx" },
     { name = "hypercorn" },
     { name = "openai" },
     { name = "openai-agents" },
     { name = "pydantic" },
-    { name = "restate-sdk" },
+    { name = "restate-sdk", extra = ["serde"] },
 ]
 
 [package.metadata]
 requires-dist = [
+    { name = "anthropic" },
     { name = "black" },
     { name = "httpx" },
     { name = "hypercorn" },
     { name = "openai" },
     { name = "openai-agents" },
     { name = "pydantic" },
-    { name = "restate-sdk", specifier = ">=0.7.1" },
+    { name = "restate-sdk", extras = ["serde"], specifier = ">=0.7.1" },
 ]
 
 [[package]]
@@ -523,6 +552,12 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/c4/d6/279d05df6c7fe2849b3427efdbcd82400396448381cdf77df6a918fbba79/restate_sdk-0.7.1-cp313-cp313t-manylinux_2_28_aarch64.whl", hash = "sha256:8c5b97ac27ed80828f4388768367f254271c39552e25ec943aaacd5f0a12064e", size = 1939642 },
     { url = "https://files.pythonhosted.org/packages/cb/c2/ab19491e76d3f43976c432b5405fb384a3c2c66f325ec04f5a072a93b4e5/restate_sdk-0.7.1-cp313-cp313t-musllinux_1_2_aarch64.whl", hash = "sha256:c893e762cdf8ecb994df75ebc3132803748f4ee1387795be12b4e838160268d1", size = 2127237 },
     { url = "https://files.pythonhosted.org/packages/cf/f5/dca03eb140b00d85441f20f71799357c11ce848f38d7fc48925755763bcb/restate_sdk-0.7.1-cp313-cp313t-musllinux_1_2_x86_64.whl", hash = "sha256:24eac2aae43ba5b433d75999024ec59e64717fe0b237d7c891d1fe14627d82ca", size = 2139918 },
+]
+
+[package.optional-dependencies]
+serde = [
+    { name = "dacite" },
+    { name = "pydantic" },
 ]
 
 [[package]]

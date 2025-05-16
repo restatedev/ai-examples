@@ -35,7 +35,7 @@ This repository contains examples of how to use Restate for AI / Agent use cases
 
 ## Example catalog
 
-1. [**DIY patterns**](diy-patterns): patterns for hardening custom LLM orchestration logic:
+1. [**DIY patterns**](diy-patterns): Patterns for hardening custom LLM orchestration logic.
 2. [**Agents**](agents): Using Restate (optionally with Agent SDKs) for resilient agentic workflows.
 3. [**MCP**](mcp): Using Restate for exposing tools and resilient orchestration of tool calls.
 4. [**A2A**](a2a): Implement Google's Agent-to-Agent protocol with Restate as resilient, scalable task orchestrator.
@@ -68,7 +68,7 @@ git clone git@github.com:restatedev/restate-ai-examples.git
 
 - **vs. DIY (Basic Loops + DB/Queue)**: Eliminates vast amounts of boilerplate code for retries, state management, consistency checks, and failure recovery that developers would otherwise need to build manually.
 - **vs. Basic Agent Frameworks (focused on prompts/reasoning)**: Provides the crucial missing layer of execution reliability, state persistence, and robust async operation management needed for production. Restate complements these frameworks by providing a reliable runtime beneath the agent's reasoning logic.
-- **vs. Heavy Workflow Engines:** Offers similar strong execution guarantees but with a lighter footprint, lower latency, simpler programming model (Virtual Objects), native serverless integration, and easier self-hosting/operational story—often a better fit for the potentially high-volume, interactive nature of agent applications.
+- **vs. Heavy Workflow Engines:** Offers similar strong execution guarantees but with a lighter footprint, lower latency, simpler programming model, native serverless integration, and easier self-hosting/operational story—often a better fit for the potentially high-volume, interactive nature of agent applications.
 
 ## Learn more
 - [Documentation](https://docs.restate.dev/)
