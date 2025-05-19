@@ -4,41 +4,6 @@ from pydantic import BaseModel, Field
 from restate.serde import PydanticJsonSerde
 
 
-# ------------ CHAT MODELS ------------
-
-
-class ChatMessage(BaseModel):
-    """
-    A chat message object.
-
-    Attributes:
-        role (str): The role of the sender (user, assistant, system).
-        content (str): The message to send.
-        timestamp_millis (int): The timestamp of the message in millis.
-        timestamp (str): The timestamp of the message in YYYY-MM-DD format.
-    """
-
-    role: str
-    content: str
-    timestamp_millis: int
-    timestamp: str = Field(
-        default_factory=lambda data: datetime.fromtimestamp(
-            data["timestamp_millis"] / 1000
-        ).strftime("%Y-%m-%d")
-    )
-
-
-class ChatHistory(BaseModel):
-    """
-    A chat history object.
-
-    Attributes:
-        entries (list[ChatMessage]): The list of chat messages.
-    """
-
-    entries: list[ChatMessage] = Field(default_factory=list)
-
-
 # ------------ TRANSACTION MODELS ------------
 
 
@@ -90,7 +55,6 @@ class LoanDecision(BaseModel):
         reason (str): The reason for the decision.
     """
 
-    loan_id: str
     approved: bool
     reason: str
 
@@ -123,4 +87,4 @@ class CustomerLoanOverview(BaseModel):
         loans (Dict[str, Loan]): The list of loans.
     """
 
-    loans: dict[str, Loan] = Field(default=dict)
+    loans: list[Loan] = Field(default={})

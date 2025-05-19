@@ -69,62 +69,120 @@ Here is what a slightly simplified version of the agent loop with Restate looks 
 
 This code can be extended and changed based on the use case. 
 
+
+
 ## Running the examples
 
-You need to export your OPENAI API key as an environment variable:
+### Restate-native example
 
-```shell
-export OPENAI_API_KEY=your_openai_api_key
-```
+This example implements a bank agent that can answer questions about your balance, loans and transactions.
 
-### Using Restate with OpenAI SDK
+1. Export your OpenAI or Anthrophic API key as an environment variable:
+    ```shell
+    export OPENAI_API_KEY=your_openai_api_key
+    ```
+2. [Start the Restate Server](https://docs.restate.dev/develop/local_dev) in a separate shell:
+    ```shell
+    restate-server
+    ```
+3. Start the services:
+    ```shell
+    uv run native_restate
+    ```
+4. Register the services (use `--force` if you already had another deployment registered at 9080): 
+    ```shell
+    restate -y deployments register localhost:9080
+    ```
+   
+Now you can send requests to the agent via the UI playground (click on the agent service and then `playground`):
 
-This example implements a resilient agent that uses an Agent SDK to run the agent loop.
+<img src="../img/ui_example.png" alt="UI example" width="1000px"/>
 
-To run the example:
+Or with the client:
 
-```shell
-uv run openai_sdk
-```
+- **Request**: 
+   ```shell
+   uv run client.py "how much is my balance?"
+   ```
+   Example response: `Your current balance is $100,000.00. If you have any other questions, feel free to ask!`
 
-To run Restate:
-```shell
-restate-server
-```
+- **Request**:
+   ```shell
+   uv run client.py "how much did I spend on gambling last month?"
+   ```
+   Example response: `I reviewed your transactions from last month, and it appears you didn't spend any money on gambling during that period. If you have any other questions or need further clarification, please let me know!`
 
-Open the UI on http://localhost:9070 and register your deployment running at `http://localhost:9080`.
+- **Request**: 
+   
+   ```shell
+   uv run client.py "give me an overview of my outstanding loans and credit"
+   ```
+   
+   Example response:
+   ```
+   Here's an overview of your outstanding loans:
+   
+   1. **Car Purchase Loan**
+      - **Amount**: $10,000
+      - **Duration**: 12 months
+      - **Approved**: Yes
+      - **Reason**: Good credit score and no risky transactions like gambling.
+      - **Monthly Payment**: $9,856.07
+      - **Months Left**: 11
+   
+   If you need more information, feel free to ask!
+   ```
+   
 
-Start the chat UI:
-```shell
-cd ui
-npm i 
-npm run dev
-```
+### Restate + Asgent SDK
 
-### Using Restate to implement the agent loop
-This example implements a bank agent that can answer questions about your balance and transactions.
+This example implements a airline customer service agent that can answer questions about your flights, and change your seat.
 
-To run the bank agent example:
 
-```shell
-uv run native_restate
-```
+1. Export your OpenAI or Anthrophic API key as an environment variable:
+    ```shell
+    export OPENAI_API_KEY=your_openai_api_key
+    ```
+2. [Start the Restate Server](https://docs.restate.dev/develop/local_dev) in a separate shell:
+    ```shell
+    restate-server
+    ```
+3. Start the services:
+    ```shell
+    uv run openai_sdk
+    ```
+4. Register the services (use `--force` if you already had another deployment registered at 9080): 
+    ```shell
+    restate -y deployments register localhost:9080
+    ```
+   
 
-To run Restate:
-```shell
-restate-server
-```
+Now you can send requests to the agent via the UI playground (click on the agent service and then `playground`):
 
-Open the UI on http://localhost:9070 and register your deployment running at `http://localhost:9080`.
+<img src="../img/ui_openai.png" alt="UI example" width="1000px"/>
 
-Start the chat UI:
-```shell
-cd ui
-npm i 
-npm run dev
-```
+Or with the client:
 
-Open a new chat session on http://localhost:3000 and ask questions about your balance and transactions.
+- **Request**: 
+   
+   ```shell
+    uv run client.py "how much can my bag weigh?"          
+   ```
+   
+   Example response: `Your bag can weigh up to 50 pounds and should not exceed the dimensions of 22 inches x 14 inches x 9 inches.`
 
-<img src="img/bank_agentic_workflow.png"/>
+- **Request**: 
+   
+   ```shell
+   uv run client.py "can you change my seat to 5b?"
+   ```
+   
+   Example response: `To change your seat to 5B, I'll need your confirmation number. Could you please provide that?`
 
+- **Request**: 
+   
+   ```shell
+   uv run client.py "5666"                         
+   ```
+   
+   Example response: `Your seat has been successfully changed to 5B. If there's anything else you need, feel free to ask!`

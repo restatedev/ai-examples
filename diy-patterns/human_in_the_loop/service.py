@@ -47,17 +47,13 @@ async def run_with_promise(
         if human_feedback == "PASS":
             return result, memory
 
-        result = await generate(
-            ctx, task, memory, human_feedback
-        )
+        result = await generate(ctx, task, memory, human_feedback)
         memory.append(result)
         ctx.set("memory", memory)
 
 
 @human_in_the_loop_svc.handler()
-async def run(
-    ctx: restate.ObjectContext, task: str
-) -> str:
+async def run(ctx: restate.ObjectContext, task: str) -> str:
     """
     OPTION 2: Human evaluator gives feedback by sending a new request to the same stateful session.
     This is a useful pattern when the original person requesting the task is also the one giving feedback.
@@ -73,6 +69,7 @@ async def run(
 
 # UTILS
 
+
 async def generate(
     ctx: restate.Context, task: str, memory: str = "", human_feedback: str = ""
 ) -> str:
@@ -84,11 +81,7 @@ async def generate(
             f"\nFeedback: {human_feedback}",
         ]
     )
-    full_prompt = (
-        f"{llm_context}\nTask: {task}"
-        if llm_context
-        else f"Task: {task}"
-    )
+    full_prompt = f"{llm_context}\nTask: {task}" if llm_context else f"Task: {task}"
     result = await ctx.run("LLM call", lambda: llm_call(full_prompt))
 
     print("\n=== GENERATION START ===")
@@ -102,6 +95,10 @@ def ask_for_feedback(id):
     print("\n=== HUMAN FEEDBACK REQUIRED ===")
     print("Answer 'PASS' to accept the solution.")
     print("\n Send feedback via:")
-    print("\n curl http://localhost:8080/restate/awakeables/" + id + "/resolve --json '\"Your feedback...\"'")
+    print(
+        "\n curl http://localhost:8080/restate/awakeables/"
+        + id
+        + "/resolve --json '\"Your feedback...\"'"
+    )
 
     # This is a placeholder for the actual feedback mechanism: maybe an email or chat message

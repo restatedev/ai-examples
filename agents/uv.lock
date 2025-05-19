@@ -115,6 +115,15 @@ wheels = [
 ]
 
 [[package]]
+name = "dacite"
+version = "1.9.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/55/a0/7ca79796e799a3e782045d29bf052b5cde7439a2bbb17f15ff44f7aacc63/dacite-1.9.2.tar.gz", hash = "sha256:6ccc3b299727c7aa17582f0021f6ae14d5de47c7227932c47fec4cdfefd26f09", size = 22420 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/94/35/386550fd60316d1e37eccdda609b074113298f23cef5bddb2049823fe666/dacite-1.9.2-py3-none-any.whl", hash = "sha256:053f7c3f5128ca2e9aceb66892b1a3c8936d02c686e707bee96e19deef4bc4a0", size = 16600 },
+]
+
+[[package]]
 name = "distro"
 version = "1.9.0"
 source = { registry = "https://pypi.org/simple" }
@@ -488,7 +497,7 @@ dependencies = [
     { name = "openai" },
     { name = "openai-agents" },
     { name = "pydantic" },
-    { name = "restate-sdk" },
+    { name = "restate-sdk", extra = ["serde"] },
 ]
 
 [package.metadata]
@@ -499,7 +508,7 @@ requires-dist = [
     { name = "openai" },
     { name = "openai-agents" },
     { name = "pydantic" },
-    { name = "restate-sdk", specifier = ">=0.7.1" },
+    { name = "restate-sdk", extras = ["serde"], specifier = ">=0.7.1" },
 ]
 
 [[package]]
@@ -523,6 +532,12 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/c4/d6/279d05df6c7fe2849b3427efdbcd82400396448381cdf77df6a918fbba79/restate_sdk-0.7.1-cp313-cp313t-manylinux_2_28_aarch64.whl", hash = "sha256:8c5b97ac27ed80828f4388768367f254271c39552e25ec943aaacd5f0a12064e", size = 1939642 },
     { url = "https://files.pythonhosted.org/packages/cb/c2/ab19491e76d3f43976c432b5405fb384a3c2c66f325ec04f5a072a93b4e5/restate_sdk-0.7.1-cp313-cp313t-musllinux_1_2_aarch64.whl", hash = "sha256:c893e762cdf8ecb994df75ebc3132803748f4ee1387795be12b4e838160268d1", size = 2127237 },
     { url = "https://files.pythonhosted.org/packages/cf/f5/dca03eb140b00d85441f20f71799357c11ce848f38d7fc48925755763bcb/restate_sdk-0.7.1-cp313-cp313t-musllinux_1_2_x86_64.whl", hash = "sha256:24eac2aae43ba5b433d75999024ec59e64717fe0b237d7c891d1fe14627d82ca", size = 2139918 },
+]
+
+[package.optional-dependencies]
+serde = [
+    { name = "dacite" },
+    { name = "pydantic" },
 ]
 
 [[package]]

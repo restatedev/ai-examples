@@ -46,8 +46,9 @@ def llm_call(prompt: str, system_prompt: str = "") -> str:
         )
         return response.content[0].text
     else:
-        raise RuntimeError("Missing API key: set either the env var OPENAI_API_KEY or ANTHROPIC_API_KEY")
-
+        raise RuntimeError(
+            "Missing API key: set either the env var OPENAI_API_KEY or ANTHROPIC_API_KEY"
+        )
 
 
 def extract_xml(text: str, tag: str) -> str:

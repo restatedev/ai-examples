@@ -61,7 +61,9 @@ async def handle_message(ctx: restate.ObjectContext, message: str) -> str:
 
 
 @host_agent_object.handler(output_serde=PydanticJsonSerde(AgentList))
-async def register_remote_agents(ctx: restate.ObjectContext, remote_agent_urls: list[str]) -> AgentList:
+async def register_remote_agents(
+    ctx: restate.ObjectContext, remote_agent_urls: list[str]
+) -> AgentList:
     """Register a remote agent."""
     agents = await ctx.get("agents", type_hint=AgentList) or AgentList()
 

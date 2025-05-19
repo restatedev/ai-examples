@@ -255,10 +255,6 @@ class SessionState:
 
 # AGENT SESSION
 
-agent_session = restate.VirtualObject("AgentSession")
-
-
-@agent_session.handler()
 async def run(ctx: restate.ObjectContext, req: AgentInput) -> AgentResponse:
     """
     Runs an end-to-end agent interaction:
