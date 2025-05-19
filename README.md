@@ -7,7 +7,9 @@
 
 # Restate: a next-gen runtime for robust, stateful, production-grade agents 
 
-[Restate](https://ai.restate.dev/) lets you build **reliable, stateful AI agents** that work consistently in production. Move beyond fragile demos by giving your agents **innate resilience**—persistent memory, fault-tolerant tool/LLM calls, and robust handling of long-running tasks. Focus on your agent's intelligence, not the infrastructure complexity tax.
+[Restate](https://ai.restate.dev/) lets you easily build **reliable applications** that work consistently in production. 
+Restate's capabilities and programming model work very well for implementing **agentic workflows**.
+Move beyond fragile demos by giving your agents **innate resilience**—persistent memory, fault-tolerant tool/LLM calls, and robust handling of long-running tasks. Focus on your agent's intelligence, not the infrastructure complexity tax.
 
 ## Why Restate?
 
@@ -39,9 +41,6 @@ This repository contains examples of how to use Restate for AI / Agent use cases
 2. [**Agents**](agents): Using Restate (optionally with Agent SDKs) for resilient agentic workflows.
 3. [**MCP**](mcp): Using Restate for exposing tools and resilient orchestration of tool calls.
 4. [**A2A**](a2a): Implement Google's Agent-to-Agent protocol with Restate as resilient, scalable task orchestrator.
-5. [**End-to-end applications**](end-to-end-applications): full-fledged examples of agentic Restate applications
-   - [Mixing static, code-defined workflows with agentic workflows](end-to-end-applications/insurance-workflows)
-   - [Long-lived multi-agent setups](end-to-end-applications/long-lived-agents)
 
 
 Restate supports 6 languages:
