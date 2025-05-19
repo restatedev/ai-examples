@@ -1,11 +1,11 @@
 import restate
 
-from .utils.pydantic_models import (
+from utils.pydantic_models import (
     Transaction,
     TransactionHistory,
     CustomerLoanOverview,
 )
-from .utils.utils import generate_transactions, time_now
+from utils.utils import generate_transactions, time_now
 
 # Keyed by customer ID
 account = restate.VirtualObject("Account")

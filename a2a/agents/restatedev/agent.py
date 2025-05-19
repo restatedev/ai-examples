@@ -8,7 +8,7 @@ from typing import Optional, Any
 from datetime import datetime, timedelta
 from pydantic import BaseModel, ConfigDict
 
-from common.server.agent_session import (
+from common.restate_agents.agent.agent_session import (
     restate_tool,
     Agent,
 )

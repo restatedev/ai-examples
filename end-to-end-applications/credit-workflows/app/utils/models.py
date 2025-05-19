@@ -60,9 +60,9 @@ class TransactionHistory(BaseModel):
 
 TransactionCategory = Literal[
     "income",
-    "loan_payment",
+    "credit_payment",
     "gambling",
-    "payday_loan",
+    "payday_credit",
     "cash_withdrawal",
     "basic_expense",
     "other",
@@ -75,7 +75,7 @@ class EnrichedTransaction(BaseModel):
 
     Attributes:
         amount (float): The amount of the transaction. Negative for expenses, positive for income
-        category (TransactionCategory): The category of the transaction.  # e.g., "income", "loan_payment", "gambling", etc.
+        category (TransactionCategory): The category of the transaction.  # e.g., "income", "credit_payment", "gambling", etc.
         timestamp (str): The timestamp of the transaction in YYYY-MM-DD format
         reason (str): The reason for the transaction. This is a free-form string that describes the transaction.
     """
@@ -97,97 +97,97 @@ class EnrichedTransactionHistory(BaseModel):
     transactions: list[EnrichedTransaction]
 
 
-# ------------ LOAN MODELS ------------
+# ------------ CREDIT MODELS ------------
 
 
-class RecurringLoanPayment(BaseModel):
+class RecurringCreditPayment(BaseModel):
     monthly_amount: float
     months_left: int
 
 
-class LoanRequest(BaseModel):
+class CreditRequest(BaseModel):
     """
-    A loan request object.
+    A credit request object.
 
     Attributes:
-        customer_id (str): The customer ID who requested the loan.
-        loan_amount (int): The amount of the loan.
-        loan_duration_months (int): The duration of the loan in months.
+        customer_id (str): The customer ID who requested the credit.
+        credit_amount (int): The amount of the credit.
+        credit_duration_months (int): The duration of the credit in months.
     """
 
     customer_id: str
-    loan_amount: int
-    loan_duration_months: int
+    credit_amount: int
+    credit_duration_months: int
 
 
-class LoanReviewRequest(BaseModel):
+class CreditReviewRequest(BaseModel):
     """
-    A loan request object.
+    A credit request object.
 
     Attributes:
-        loan_request (LoanRequest): the loan request itself
+        credit_request (CreditRequest): the credit request itself
         transaction_history (TransactionHistory): The transaction history of the customer
     """
 
-    loan_request: LoanRequest
+    credit_request: CreditRequest
     transaction_history: TransactionHistory
 
 
-class LoanStatus(BaseModel):
+class CreditStatus(BaseModel):
     """
-    A loan status object.
+    A credit status object.
 
     Attributes:
-        events (list[str]): The events that happened during the loan approval process.
+        events (list[str]): The events that happened during the credit approval process.
     """
 
     events: list[str] = Field(default_factory=list)
 
 
-class LoanDecision(BaseModel):
+class CreditDecision(BaseModel):
     """
-    A loan decision object.
+    A credit decision object.
 
     Attributes:
-        loan_id (str): The ID of the loan.
-        approved (bool): Whether the loan was approved or not.
+        credit_id (str): The ID of the credit.
+        approved (bool): Whether the credit was approved or not.
         reason (str): The reason for the decision.
     """
 
-    loan_id: str
+    credit_id: str
     approved: bool
     reason: str
 
 
-LoanDecisionSerde = PydanticJsonSerde(LoanDecision)
+CreditDecisionSerde = PydanticJsonSerde(CreditDecision)
 
 
-class Loan(BaseModel):
+class Credit(BaseModel):
     """
-    A loan object.
+    A credit object.
 
     Attributes:
-        loan_id (str): The ID of the loan.
-        loan_request (LoanRequest): The initial loan request.
-        loan_decision (LoanDecision): Information about whether the loan was approved or not, and the reason.
-        loan_payment (RecurringLoanPayment): Information about the monthly loan payment and remaining duration.
+        credit_id (str): The ID of the credit.
+        credit_request (CreditRequest): The initial credit request.
+        credit_decision (CreditDecision): Information about whether the credit was approved or not, and the reason.
+        credit_payment (RecurringCreditPayment): Information about the monthly credit payment and remaining duration.
     """
 
-    loan_id: str
-    loan_request: LoanRequest
-    loan_decision: LoanDecision | None = Field(default=None)
-    loan_payment: RecurringLoanPayment | None = Field(default=None)
+    credit_id: str
+    credit_request: CreditRequest
+    credit_decision: CreditDecision | None = Field(default=None)
+    credit_payment: RecurringCreditPayment | None = Field(default=None)
 
 
-class CustomerLoanOverview(BaseModel):
+class CustomerCreditOverview(BaseModel):
     """
-    The ongoing loan requests and loan payments for the customer.
+    The ongoing credit requests and credit payments for the customer.
 
     Attributes:
-        loans (Dict[str, Loan]): The list of loans.
+        credits (Dict[str, Credit]): The list of credits.
     """
 
-    loans: dict[str, Loan] = Field(default_factory=dict)
+    credits: dict[str, Credit] = Field(default_factory=dict)
 
 
 # ------------ CREDIT WORTHINESS MODELS ------------

@@ -1,8 +1,8 @@
 # Resilient A2A Agents with Restate
 
-These examples uses [Restate](https://ai.restate.dev/) to implement the [Agent2Agent (A2A) protocol](https://github.com/google/A2A).
+These examples use [Restate](https://ai.restate.dev/) to implement the [Agent2Agent (A2A) protocol](https://github.com/google/A2A).
 
-In this example, Restate acts as a scalable, resilient task orchestrator that speaks the A2A protocol and gives you:
+Restate acts as a scalable, resilient task orchestrator that speaks the A2A protocol and gives you:
 - 🔁 **Automatic retries** - Handles LLM API downtime, timeouts, and infrastructure failures
 - 🔄 **Smart recovery** - Preserves progress across failures without duplicating work
 - ⏱️ **Persistent task handles** - Tracks progress across failures, time, and processes
@@ -39,7 +39,7 @@ This example shows how to run a single agent and use the A2A protocol to communi
     ```
 
 2. Start one of the agents, including their A2A server:
-   - **Restate Reimbursement Agent**: Run the Restate agent ([`agents/restatedev`](agents/restatedev/__main__.py)), if you want an agent with end-to-end durability for the agent loop and full observability of what the agent executes:
+   - **Restate Reimbursement Agent**: Run the Restate agent ([`agents/restatedev`](agents/restatedev/__main__.py)), if you want an agent with end-to-end durability for the agent loop and full observability of what the agent executes. The reimburse tool implements a long-running workflow that waits on a human approval:
        ```shell
        uv run agents/restatedev
        ```

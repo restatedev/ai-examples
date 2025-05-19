@@ -4,15 +4,10 @@ import restate
 from datetime import timedelta
 
 from .utils.utils import time_now_string
-from .utils.pydantic_models import (
+from .utils.models import (
     Transaction,
     TransactionHistory,
-    Loan,
-    CustomerLoanOverview,
-    RecurringLoanPayment,
-    LoanRequest,
-    LoanDecision,
-    LoanReviewRequest,
+    Credit, CreditRequest, CreditReviewRequest, CreditDecision, RecurringCreditPayment, CustomerCreditOverview,
 )
 from .utils.utils import generate_transactions, time_now
 
@@ -23,7 +18,7 @@ account = restate.VirtualObject("Account")
 # Keys of the K/V state stored in Restate per account
 BALANCE = "balance"
 TRANSACTION_HISTORY = "transaction_history"
-LOANS = "loans"
+CREDITS = "credits"
 
 
 @account.handler()
@@ -63,107 +58,107 @@ async def withdraw(ctx: restate.ObjectContext, transaction: Transaction):
 
 
 @account.handler()
-async def submit_loan_request(ctx: restate.ObjectContext, req: LoanRequest) -> str:
+async def submit_credit_request(ctx: restate.ObjectContext, req: CreditRequest) -> str:
     """
-    Let the customer submit a loan request for a specified duration and amount.
+    Let the customer submit a credit request for a specified duration and amount.
 
     Args:
-        req (LoanRequest): The loan request object.
+        req (CreditRequest): The credit request object.
 
     Returns:
-        str: The loan ID
+        str: The credit ID
     """
-    loan_id = await ctx.run(
-        "Generate Loan ID", lambda: "loan-" + str(random.randint(1000, 9999))
+    credit_id = await ctx.run(
+        "Generate Credit ID", lambda: "credit-" + str(random.randint(1000, 9999))
     )
-    all_loans = await get_customer_loans(ctx)
-    all_loans.loans[loan_id] = Loan(
-        loan_id=loan_id,
-        loan_request=req,
+    all_credits = await get_customer_credits(ctx)
+    all_credits.credits[credit_id] = Credit(
+        credit_id=credit_id,
+        credit_request=req,
     )
-    ctx.set(LOANS, all_loans)
+    ctx.set(CREDITS, all_credits)
 
-    from .loan_review_workflow import run
+    from .credit_review_workflow import run
 
-    loan_review_request = LoanReviewRequest(
-        loan_request=req, transaction_history=await get_transaction_history(ctx)
+    credit_review_request = CreditReviewRequest(
+        credit_request=req, transaction_history=await get_transaction_history(ctx)
     )
-    ctx.workflow_send(run, key=loan_id, arg=loan_review_request)
-    return f"The loan request with {loan_id} was scheduled for review."
+    ctx.workflow_send(run, key=credit_id, arg=credit_review_request)
+    return f"The credit request with {credit_id} was scheduled for review."
 
 
 @account.handler()
-async def process_loan_decision(ctx: restate.ObjectContext, decision: LoanDecision):
+async def process_credit_decision(ctx: restate.ObjectContext, decision: CreditDecision):
     """
-    Update the loan status.
+    Update the credit status.
 
     Args:
-        decision (LoanDecision): The loan decision object of whether the loan was approved or rejected.
+        decision (CreditDecision): The credit decision object of whether the credit was approved or rejected.
     """
-    all_loans = await get_customer_loans(ctx)
-    loan = all_loans.loans.get(decision.loan_id)
-    loan.loan_decision = decision
-    loan.loan_payment = RecurringLoanPayment(
-        monthly_amount=loan.loan_request.loan_amount
-        / loan.loan_request.loan_duration_months,
-        months_left=loan.loan_request.loan_duration_months,
+    all_credits = await get_customer_credits(ctx)
+    credit = all_credits.credits.get(decision.credit_id)
+    credit.credit_decision = decision
+    credit.credit_payment = RecurringCreditPayment(
+        monthly_amount=credit.credit_request.credit_amount
+        / credit.credit_request.credit_duration_months,
+        months_left=credit.credit_request.credit_duration_months,
     )
-    ctx.set(LOANS, all_loans)
+    ctx.set(CREDITS, all_credits)
 
     await notify_customer(
         ctx,
-        f"Loan {decision.loan_id} was {'approved' if decision.approved else 'rejected'} for the reason: {decision.reason}",
+        f"Credit {decision.credit_id} was {'approved' if decision.approved else 'rejected'} for the reason: {decision.reason}",
     )
 
 
 @account.handler()
-async def on_recurring_loan_payment(ctx: restate.ObjectContext, loan_id: str):
+async def on_recurring_credit_payment(ctx: restate.ObjectContext, credit_id: str):
     """
-    Handle a scheduled payment for a loan.
+    Handle a scheduled payment for a credit.
 
     Args:
-        loan_id (str): The ID of the loan.
+        credit_id (str): The ID of the credit.
     """
-    all_loans = await get_customer_loans(ctx)
-    loan = all_loans.loans.get(loan_id)
+    all_credits = await get_customer_credits(ctx)
+    credit = all_credits.credits.get(credit_id)
 
     # Do the transfer back to the bank
     transaction = Transaction(
-        reason=f"loan payment {loan_id}",
-        amount=loan.monthly_amount,
+        reason=f"credit payment {credit_id}",
+        amount=credit.monthly_amount,
         timestamp=await time_now_string(ctx),
     )
     await withdraw(ctx, transaction)
     ctx.object_send(deposit, key="TrustworthyBank", arg=transaction)
 
-    # If the loan is paid off, return
-    if loan.months_left == 1:
+    # If the credit is paid off, return
+    if credit.months_left == 1:
         return
 
     # Otherwise, schedule the next payment
-    loan.loan_payment = RecurringLoanPayment(
-        monthly_amount=loan.monthly_amount, months_left=loan.months_left - 1
+    credit.credit_payment = RecurringCreditPayment(
+        monthly_amount=credit.monthly_amount, months_left=credit.months_left - 1
     )
-    ctx.set(LOANS, all_loans)
+    ctx.set(CREDITS, all_credits)
 
     ctx.object_send(
-        on_recurring_loan_payment,
+        on_recurring_credit_payment,
         key=ctx.key(),
-        arg=loan_id,
+        arg=credit_id,
         send_delay=timedelta(days=30),
     )
 
 
 @account.handler()
-async def get_customer_loans(ctx: restate.ObjectContext) -> CustomerLoanOverview:
+async def get_customer_credits(ctx: restate.ObjectContext) -> CustomerCreditOverview:
     """
-    Get the ongoing loan requests and loan payments for the customer.
+    Get the ongoing credit requests and credit payments for the customer.
 
     Returns:
-        CustomerLoanOverview: The overview of the customer's outstanding loans and loan requests.
+        CustomerCreditOverview: The overview of the customer's outstanding credits and credit requests.
     """
     return (
-        await ctx.get(LOANS, type_hint=CustomerLoanOverview) or CustomerLoanOverview()
+        await ctx.get(CREDITS, type_hint=CustomerCreditOverview) or CustomerCreditOverview()
     )
 
 

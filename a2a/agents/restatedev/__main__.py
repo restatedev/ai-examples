@@ -5,9 +5,10 @@ from fastapi import FastAPI
 
 from agent import chat_agents, reimbursement_agent
 from agent import reimbursement_service
-from common.server.middleware import AgentMiddleware
-from common.server.a2a_agent import GenericRestateAgent
-from common.types import MissingAPIKeyError
+from common.restate_agents.a2a.middleware import AgentMiddleware
+from common.restate_agents.a2a.middleware import AgentMiddleware
+from common.restate_agents.a2a.a2a_agent import GenericRestateAgent
+from common.restate_agents.types import MissingAPIKeyError
 from dotenv import load_dotenv
 
 

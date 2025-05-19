@@ -1,14 +1,14 @@
 import restate
 
-from .account import (
+from account import (
     get_customer_loans,
     get_balance,
     get_transaction_history,
 )
-from .utils.pydantic_models import ChatMessage, ChatHistory
-from .utils.utils import time_now
-from .utils.agent_session import (
-    run as agent_session_run,
+from utils.pydantic_models import ChatMessage, ChatHistory
+from utils.utils import time_now
+from restate_agents.agent.agent_session import (
+    run,
     AgentInput,
     restate_tool,
     Agent,
@@ -40,9 +40,9 @@ account_manager_agent = Agent(
     ],
 )
 
-loan_request_manager_agent = Agent(
-    name="Loan Request Manager Agent",
-    handoff_description="A helpful agent that can helps you with submitting a request for a loan and retrieving its status, and the decision made (approval and reason).",
+loan_request_info_agent = Agent(
+    name="Loan Request Info Agent",
+    handoff_description="A helpful agent that can helps you with retrieving its status, and the decision made (approval and reason).",
     instructions=f"""{RECOMMENDED_PROMPT_PREFIX}
     You are an agent that helps with:
      - giving information on the status of the loan requests
@@ -72,13 +72,13 @@ intake_agent = Agent(
         f"{RECOMMENDED_PROMPT_PREFIX}"
         "You are a helpful intake agent. You can use your handoffs to delegate questions to other appropriate agents."
     ),
-    handoffs=[loan_request_manager_agent.name, account_manager_agent.name],
+    handoffs=[loan_request_info_agent.name, account_manager_agent.name],
 )
 
-loan_request_manager_agent.handoffs.append(intake_agent.name)
+loan_request_info_agent.handoffs.append(intake_agent.name)
 account_manager_agent.handoffs.append(intake_agent.name)
 
-chat_agents = [account_manager_agent, loan_request_manager_agent, intake_agent]
+chat_agents = [account_manager_agent, loan_request_info_agent, intake_agent]
 
 # CHAT SERVICE
 
@@ -106,7 +106,7 @@ async def send_message(ctx: restate.ObjectContext, req: ChatMessage) -> ChatMess
     ctx.set(CHAT_HISTORY, history)
 
     result = await ctx.object_call(
-        agent_session_run,
+        run,
         key=ctx.key(),  # use the customer ID as the key
         arg=AgentInput(
             starting_agent=intake_agent,

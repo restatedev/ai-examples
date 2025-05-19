@@ -15,6 +15,7 @@ from typing import (
     TypedDict,
     Dict,
 )
+
 from openai import OpenAI
 from openai.lib._pydantic import to_strict_json_schema
 from openai.types.responses import (
@@ -34,8 +35,11 @@ from restate.handler import handler_from_callable
 from restate.serde import PydanticJsonSerde
 from typing_extensions import Generic
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="[%(asctime)s] [%(process)d] [%(levelname)s] - %(message)s",
+)
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
 
 I = TypeVar("I", bound=BaseModel)
 O = TypeVar("O", bound=BaseModel)
@@ -123,6 +127,19 @@ class RestateTool(BaseModel, Generic[I, O]):
     formatted_name: str = Field(default_factory=lambda data: format_name(data["name"]))
 
 
+class RemoteAgentMessage(BaseModel):
+    """
+    Represents a message to be sent to a remote agent.
+    The message should include the instructions of what the agent should do.
+    It should include a copy of the user input, together with the context/history that is relevant for the task.
+
+    Attributes:
+        message (str): The message to send to the agent for the task.
+    """
+
+    message: str
+
+
 class Agent(BaseModel):
     """
     Represents an agent in the system.
@@ -138,28 +155,33 @@ class Agent(BaseModel):
 
     name: str
     handoff_description: str
-    instructions: str
+    instructions: str | None = None
     tools: list[RestateTool] = Field(default_factory=list)
     handoffs: list[str] = Field(default_factory=list)  # agent names
     formatted_name: str = Field(default_factory=lambda data: format_name(data["name"]))
+    remote_url: str | None = None
+    streaming_support: bool = False
+    push_notifications_support: bool = False
 
     def to_tool_schema(self) -> dict[str, Any]:
+        # If the agent is a remote agent, we want to attach extra context/message to the request
+        # TODO it might be better to use the A2A TaskSendRequest format here?
+        schema = to_strict_json_schema(RemoteAgentMessage if self.remote_url else Empty)
         return {
             "type": "function",
             "name": f"{format_name(self.name)}",
             "description": self.handoff_description,
-            "parameters": to_strict_json_schema(Empty),
+            "parameters": schema,
             "strict": True,
         }
 
     def as_tool(self, name: str, description: str):
-        tool = restate_tool(run)
+        tool = restate_tool(run_agent_session)
         tool.description = (
             f"{description} \n {self.handoff_description} \n {tool.description}"
         )
         tool.name = f"{name}_as_tool"
         return tool
-
 
 class AgentInput(BaseModel):
     """
@@ -221,29 +243,35 @@ class SessionState:
     def __init__(self, input_items: Optional[List[SessionItem]] = None):
         self._input_items: List[SessionItem] = input_items or []
         self._new_items: List[SessionItem] = []
+        self.state_name = "agent_state"
 
     def add_user_message(self, ctx: restate.ObjectContext, item: str):
         user_message = SessionItem(content=item, role="user")
         self._input_items.append(user_message)
-        ctx.set("input_items", self._input_items)
+        ctx.set(self.state_name, self._input_items)
         self._new_items.append(user_message)
 
     def add_user_messages(self, ctx: restate.ObjectContext, items: List[str]):
         user_messages = [SessionItem(content=item, role="user") for item in items]
         self._input_items.extend(user_messages)
-        ctx.set("input_items", self._input_items)
+        ctx.set(self.state_name, self._input_items)
         self._new_items.extend(user_messages)
 
-    def add_system_message(self, ctx: restate.ObjectContext, item: str):
+    def add_system_message(
+            self, ctx: restate.ObjectContext, item: str, flush: bool = True
+    ):
         system_message = SessionItem(content=item, role="system")
         self._input_items.append(system_message)
-        ctx.set("input_items", self._input_items)
         self._new_items.append(system_message)
+        if flush:
+            ctx.set(self.state_name, self._input_items)
 
-    def add_system_messages(self, ctx: restate.ObjectContext, items: List[str]):
+    def add_system_messages(
+            self, ctx: restate.ObjectContext, items: List[str], flush: bool = False
+    ):
         system_messages = [SessionItem(content=item, role="system") for item in items]
         self._input_items.extend(system_messages)
-        ctx.set("input_items", self._input_items)
+        ctx.set(self.state_name, self._input_items)
         self._new_items.extend(system_messages)
 
     def get_input_items(self) -> List[SessionItem]:
@@ -254,12 +282,21 @@ class SessionState:
 
 
 # AGENT SESSION
-
+# Option 1: run the agent session as a separate service
 agent_session = restate.VirtualObject("AgentSession")
 
 
 @agent_session.handler()
-async def run(ctx: restate.ObjectContext, req: AgentInput) -> AgentResponse:
+async def run_agent_session(
+        ctx: restate.ObjectContext, req: AgentInput
+):
+    return await run_agent_session(ctx, req)
+
+
+# Option 2: call this method immediately from the chat session/workflow
+async def run(
+        ctx: restate.ObjectContext, req: AgentInput
+) -> AgentResponse:
     """
     Runs an end-to-end agent interaction:
     1. calls the LLM with the input
@@ -275,7 +312,7 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> AgentResponse:
 
     # === 1. initialize the agent session ===
     logging.info(f"{logging_prefix} Starting agent session")
-    session_state = SessionState(input_items=await ctx.get("input_items"))
+    session_state = SessionState(input_items=await ctx.get("agent_state"))
     session_state.add_user_message(ctx, req.message)
 
     if req.force_starting_agent:
@@ -339,7 +376,7 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> AgentResponse:
 
         # Register the output in the session state
         session_state.add_system_messages(
-            ctx, [item.model_dump_json() for item in response.output]
+            ctx, [item.model_dump_json() for item in response.output], flush=True
         )
 
         # Parse LLM response
@@ -366,7 +403,7 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> AgentResponse:
         parallel_tools = []
         for tool_call in tool_calls:
             logger.info(f"{logging_prefix} Executing tool {tool_call.name}")
-            session_state.add_system_message(ctx, f"Executing tool {tool_call.name}.")
+            # session_state.add_system_message(ctx, f"Executing tool {tool_call.name}.")
             try:
                 if tool_call.delay_in_millis is None:
                     handle = ctx.generic_call(
@@ -420,8 +457,8 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> AgentResponse:
             handoff_command = run_handoffs[0]
 
             # Determine the new agent in charge
-            agent = agents_dict.get(handoff_command.name)
-            if agent is None:
+            next_agent = agents_dict.get(handoff_command.name)
+            if next_agent is None:
                 session_state.add_system_message(
                     ctx,
                     f"Agent {handoff_command.name} not found in the list of agents.",
@@ -431,11 +468,12 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> AgentResponse:
                 )
                 continue
 
+            # Start a new agent loop with the new agent
+            agent = next_agent
             logger.info(f"{logging_prefix} Handing off to agent {agent.name}")
             session_state.add_system_message(ctx, f"Transferred to {agent.name}.")
             ctx.set("agent_name", format_name(agent.name))
 
-            # Start a new agent loop with the new agent
             continue
 
         # Handle output messages
@@ -454,9 +492,9 @@ async def run(ctx: restate.ObjectContext, req: AgentInput) -> AgentResponse:
 
 
 async def parse_llm_response(
-    agents_dict: Dict[str, Agent],
-    output: List[ResponseOutputItem],
-    tools: Dict[str, RestateTool],
+        agents_dict: Dict[str, Agent],
+        output: List[ResponseOutputItem],
+        tools: Dict[str, RestateTool],
 ):
     tool_calls = []
     run_handoffs = []
@@ -465,10 +503,10 @@ async def parse_llm_response(
         if isinstance(item, ResponseOutputMessage):
             output_messages.append(item)
         elif (
-            isinstance(item, ResponseFileSearchToolCall)
-            or isinstance(item, ResponseFunctionWebSearch)
-            or isinstance(item, ResponseReasoningItem)
-            or isinstance(item, ResponseComputerToolCall)
+                isinstance(item, ResponseFileSearchToolCall)
+                or isinstance(item, ResponseFunctionWebSearch)
+                or isinstance(item, ResponseReasoningItem)
+                or isinstance(item, ResponseComputerToolCall)
         ):
             raise ValueError(
                 "This implementation does not support file search, web search, computer tools, or reasoning yet."
@@ -568,3 +606,4 @@ def to_tool_call(tool: RestateTool, item: ResponseFunctionToolCall) -> ToolCall:
         input_bytes=input_serialized,
         delay_in_millis=delay_in_millis,
     )
+

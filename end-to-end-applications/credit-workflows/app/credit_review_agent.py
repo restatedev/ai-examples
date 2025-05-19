@@ -1,6 +1,5 @@
 import restate
 
-from .loan_review_workflow import on_loan_decision
 from .utils.agent_session import (
     restate_tool,
     RECOMMENDED_PROMPT_PREFIX,
@@ -8,7 +7,8 @@ from .utils.agent_session import (
     run as agent_session_run,
     AgentInput,
 )
-from .utils.pydantic_models import (
+from .credit_review_workflow import on_credit_decision
+from .utils.models import (
     EnrichedTransactionHistory,
     CreditMetric,
     AdditionalInfoRequest,
@@ -57,7 +57,7 @@ async def debt_to_income_ratio(
     """
     transactions = transaction_history.transactions
     total_debt_payments = sum(
-        t.amount for t in transactions if t.category == "loan_payment"
+        t.amount for t in transactions if t.category == "credit_payment"
     )
     total_income = sum(
         t.amount for t in transactions if t.amount > 0 and t.category == "income"
@@ -76,7 +76,7 @@ async def high_risk_transactions(
     transaction_history: EnrichedTransactionHistory,
 ) -> CreditMetric:
     """
-    Calculate the number of high-risk transactions: gambling, payday loans, and cash withdrawals.
+    Calculate the number of high-risk transactions: gambling, payday credits, and cash withdrawals.
 
     Args:
         transaction_history (TransactionHistory): The user's transaction history
@@ -85,7 +85,7 @@ async def high_risk_transactions(
         CreditMetric: The number of high-risk transactions metric.
     """
     transactions = transaction_history.transactions
-    risky_categories = {"gambling", "payday_loan", "cash_withdrawal"}
+    risky_categories = {"gambling", "payday_credit", "cash_withdrawal"}
     return CreditMetric(
         label="high_risk_transactions",
         value=float(sum(1 for t in transactions if t.category in risky_categories)),
@@ -117,12 +117,12 @@ async def large_purchases(
 
 
 """
-Tools to send information requests to the customer and route them back to the loan approval process.
+Tools to send information requests to the customer and route them back to the credit approval process.
 """
-loan_review_agent_utils = restate.VirtualObject("LoanReviewAgentUtils")
+credit_review_agent_utils = restate.VirtualObject("CreditReviewAgentUtils")
 
 
-@loan_review_agent_utils.handler()
+@credit_review_agent_utils.handler()
 async def request_additional_info(
     ctx: restate.ObjectContext,
     req: AdditionalInfoRequest,
@@ -130,7 +130,7 @@ async def request_additional_info(
     """
     This tool lets you send a message to the customer.
     The message will be sent to the customer with the given key.
-    Keyed by the loan ID.
+    Keyed by the credit ID.
 
     Args:
         req (AdditionalInfoRequest): The request for additional information.
@@ -138,7 +138,7 @@ async def request_additional_info(
     id, promise = ctx.awakeable()
     ctx.set("awakeable_id", id)
 
-    # Send the message to the customer via the agent session which started the loan request.
+    # Send the message to the customer via the agent session which started the credit request.
     # Once the user will see the message and respond,
     # the agent which receives that message will route it back to us by resolving the promise.
     from .chat import message_to_customer_agent, chat_agents
@@ -151,7 +151,7 @@ async def request_additional_info(
             agents=chat_agents,
             message=f"""
         Use the add_async_response tool to send this CLARIFICATION REQUEST: {req.message}. 
-        Once the customer answers to this use the Clarifications Answer Forwarder Agent - on_additional_info tool to route the answer back to the loan review agent.
+        Once the customer answers to this use the Clarifications Answer Forwarder Agent - on_additional_info tool to route the answer back to the credit review agent.
         Don't respond to the customer directly. Just forward the answer.
         """,
             force_starting_agent=True,
@@ -160,21 +160,21 @@ async def request_additional_info(
     return await promise
 
 
-@loan_review_agent_utils.handler(kind="shared")
+@credit_review_agent_utils.handler(kind="shared")
 async def on_additional_info(
     ctx: restate.ObjectSharedContext,
     msg: str,
 ) -> str:
     """
-    This tool lets you route additional info/clarifications supplied by the customer back to the loan approval process.
-    Keyed by the loan ID.
+    This tool lets you route additional info/clarifications supplied by the customer back to the credit approval process.
+    Keyed by the credit ID.
 
     Args:
         msg (str): The message to route back.
     """
     awakeable_id = await ctx.get("awakeable_id")
     if awakeable_id is None:
-        return "Response could not be routed back. There was no additional info request ongoing for this key. Did you use the correct key? You need to use the loan ID as key."
+        return "Response could not be routed back. There was no additional info request ongoing for this key. Did you use the correct key? You need to use the credit ID as key."
 
     ctx.resolve_awakeable(awakeable_id, f"ADDITIONAL INFO BY CUSTOMER: {msg}")
     return "Response routed back successfully."
@@ -182,30 +182,30 @@ async def on_additional_info(
 
 # ----- AGENTS ------
 
-loan_review_agent = Agent(
-    name="Loan Review Agent",
-    handoff_description="A helpful agent that can helps you with reviewing loan requests based on the customer's creditworthiness.",
+credit_review_agent = Agent(
+    name="Credit Review Agent",
+    handoff_description="A helpful agent that can helps you with reviewing credit requests based on the customer's creditworthiness.",
     instructions=f"""{RECOMMENDED_PROMPT_PREFIX}
     You are an agent that helps with determining the creditworthiness of the customer.
-    You decide on whether or not he should get a loan.  
-    You were probably invoked by the loan approval workflow. 
+    You decide on whether or not he should get a credit.  
+    You were probably invoked by the credit approval workflow. 
     Use the following routine to support the customer, and never skip any of the steps.
     # Routine
-    1. The input the loan approval workflow gave you contains the transaction history of the customer. 
+    1. The input the credit approval workflow gave you contains the transaction history of the customer. 
     The first thing you should do is analyze the transaction history of the customer.
-    You do this by categorizing each of the transactions into: income, loan_payment, gambling, payday_loan, cash_withdrawal, basic_expense, other.    
+    You do this by categorizing each of the transactions into: income, credit_payment, gambling, payday_credit, cash_withdrawal, basic_expense, other.    
     2. Then you invoke each of the tools in parallel to calculate the important metrics to base your decision on: 
     - average_monthly_spending
     - debt_to_income_ratio
     - high_risk_transactions
     - large_purchases
-    3. If any of these metrics are not good, then ask the customer for clarification by executing the request_additional_info tool with the loan ID as the key:
+    3. If any of these metrics are not good, then ask the customer for clarification by executing the request_additional_info tool with the credit ID as the key:
     - In the case of high_risk_transactions, ask for the reason of the high risk transactions.
     - In the case of large_purchases, ask for the reason of the large purchases.
     - In the case of debt_to_income_ratio, ask for the which other debts the customer has.
     Be very clear in the message about what you need to be clarified and always use the request_additional_info tool.
     4. Based on the metrics and clarifications,  make a decision to either approve or not. You can use your own judgement for this. 
-    5. Let the loan approval workflow know the decision you made with the on_loan_decision tool with the loan ID as the key.
+    5. Let the credit approval workflow know the decision you made with the on_credit_decision tool with the credit ID as the key.
     Your decision contains a boolean on whether you approve on not, and your reasoning, together with the output of each of the tool call you did to calculate the metrics. 
     Make sure your reasoning is a kind, formal chat message, personalized for the customer. 
     Be very clear in the reason you give so the customer can understand the decision you made.
@@ -214,7 +214,7 @@ loan_review_agent = Agent(
     6. When you get a question or command that you don't understand, or you get asked to notify the customer, then transfer back to the Loan Request Processing Agent.
     """,
     tools=[
-        restate_tool(on_loan_decision),
+        restate_tool(on_credit_decision),
         restate_tool(average_monthly_spending),
         restate_tool(high_risk_transactions),
         restate_tool(debt_to_income_ratio),

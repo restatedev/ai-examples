@@ -8,8 +8,8 @@ from datetime import datetime
 from pydantic import BaseModel
 from restate.serde import PydanticJsonSerde
 
-from common.server.a2a_agent import GenericRestateAgent
-from common.types import (
+from a2a_agent import GenericRestateAgent
+from models import (
     A2ARequest,
     AgentCard,
     Artifact,

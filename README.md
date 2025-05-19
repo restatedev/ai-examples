@@ -7,7 +7,9 @@
 
 # Restate: a next-gen runtime for robust, stateful, production-grade agents 
 
-[Restate](https://ai.restate.dev/) lets you build **reliable, stateful AI agents** that work consistently in production. Move beyond fragile demos by giving your agents **innate resilience**—persistent memory, fault-tolerant tool/LLM calls, and robust handling of long-running tasks. Focus on your agent's intelligence, not the infrastructure complexity tax.
+[Restate](https://ai.restate.dev/) lets you easily build **reliable applications** that work consistently in production. 
+Restate's capabilities and programming model work very well for implementing **agentic workflows**.
+Move beyond fragile demos by giving your agents **innate resilience**—persistent memory, fault-tolerant tool/LLM calls, and robust handling of long-running tasks. Focus on your agent's intelligence, not the infrastructure complexity tax.
 
 ## Why Restate?
 
@@ -29,6 +31,7 @@ Restate can also be used for other use cases, such as:
 [microservice orchestration](https://docs.restate.dev/use-cases/microservice-orchestration),
 [async tasks](https://docs.restate.dev/use-cases/async-tasks), 
 and [event processing](https://docs.restate.dev/use-cases/event-processing).
+Or check out the [Restate examples repository](https://github.com/restatedev/examples).
 
 This repository contains examples of how to use Restate for AI / Agent use cases.
 

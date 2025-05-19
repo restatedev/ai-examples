@@ -1,16 +1,16 @@
 import restate
 
 from .account import (
-    get_customer_loans,
-    submit_loan_request,
+    get_customer_credits,
+    submit_credit_request,
     get_balance,
     get_transaction_history,
 )
-from .loan_review_agent import on_additional_info
-from .utils.pydantic_models import ChatMessage, ChatHistory
+from .credit_review_agent import on_additional_info
+from .utils.models import ChatMessage, ChatHistory
 from .utils.utils import time_now
 from .utils.agent_session import (
-    run as agent_session_run,
+    run_agent_session,
     AgentInput,
     restate_tool,
     Agent,
@@ -44,7 +44,7 @@ async def send_message(ctx: restate.ObjectContext, req: ChatMessage) -> ChatMess
     ctx.set(CHAT_HISTORY, history)
 
     result = await ctx.object_call(
-        agent_session_run,
+        run_agent_session,
         key=ctx.key(),  # use the customer ID as the key
         arg=AgentInput(
             starting_agent=intake_agent,
@@ -106,60 +106,60 @@ account_manager_agent = Agent(
     ],
 )
 
-loan_status_retriever = Agent(
-    name="Loan Status Retriever Agent",
-    handoff_description="A helpful agent that helps retrieving the status of ongoing loan requests and the decision made (approval and reason).",
+credit_status_retriever = Agent(
+    name="Credit Status Retriever Agent",
+    handoff_description="A helpful agent that helps retrieving the status of ongoing credit requests and the decision made (approval and reason).",
     instructions=f"""{RECOMMENDED_PROMPT_PREFIX}
-    You are an agent that retrieves the status of ongoing loan requests and the decision made.
+    You are an agent that retrieves the status of ongoing credit requests and the decision made.
     You are not able to help with anything else.
     If you are speaking to a customer, you probably were transferred to from the intake agent.
     Use the following routine to support the customer.
     Don't give any reponse to the customer until you finished the entire routine.
     # Routine
     1. Make sure you know the customer ID.
-    2. Use the get_customer_loans tool to retrieve the status of the loans of the customer.
+    2. Use the get_customer_credits tool to retrieve the status of the credits of the customer.
     3. Retrieve the right information from the response and return it to the customer.
     4. If the customer asks a question that is not related to this routine, transfer back to the intake agent.
     """,
     tools=[
-        restate_tool(get_customer_loans),
+        restate_tool(get_customer_credits),
     ],
 )
 
-loan_request_submitter = Agent(
-    name="Loan Request Submitter Agent",
-    handoff_description="A helpful agent that helps with submitting a request for a loan",
+credit_request_submitter = Agent(
+    name="Credit Request Submitter Agent",
+    handoff_description="A helpful agent that helps with submitting a request for a credit",
     instructions=f"""{RECOMMENDED_PROMPT_PREFIX}
-    You are a helpful agent that can use tools to submit a request for a loan.
+    You are a helpful agent that can use tools to submit a request for a credit.
     You were probably transferred from the intake agent.
     Use the following routine to support the customer. Don't say, ask or respond anything that is not part of the routine. Follow it strictly.
-    **Never say you submitted a loan request unless you finished the entire routine and executed the submit_loan_request tool!!!**
+    **Never say you submitted a credit request unless you finished the entire routine and executed the submit_credit_request tool!!!**
     # Routine
-    1. Make sure you know the customer ID, the loan amount and duration. 
+    1. Make sure you know the customer ID, the credit amount and duration. 
     Don't ask for other info besides that.
-    2. Then submit the loan request with the submit_loan_request tool, and use the customer ID as the key.
-    3. Let the customer know the loan got submitted and include the loan ID. You can find the loan ID as the response of the submit_loan_request tool.
+    2. Then submit the credit request with the submit_credit_request tool, and use the customer ID as the key.
+    3. Let the customer know the credit got submitted and include the credit ID. You can find the credit ID as the response of the submit_credit_request tool.
     4. If the customer asks a question that is not related to this routine, transfer back to the intake agent.
     """,
     tools=[
-        restate_tool(submit_loan_request),
+        restate_tool(submit_credit_request),
     ],
 )
 
 clarifications_forwarder_agent = Agent(
     name="Clarifications Answer Forwarder Agent",
     handoff_description="""
-    A helpful agent that helps with forwarding the customer's clarifications of suspicious transactions (gambling, debt, high-risk purchases etc) to ongoing loan approval processes.
+    A helpful agent that helps with forwarding the customer's clarifications of suspicious transactions (gambling, debt, high-risk purchases etc) to ongoing credit approval processes.
     """,
     instructions=f"""{RECOMMENDED_PROMPT_PREFIX}    
-    You help forwarding clarifications the customer provides to ongoing loan approval processes.
+    You help forwarding clarifications the customer provides to ongoing credit approval processes.
 
     You are not able to help with anything else.
-    Forward the clarifications to the loan approval process by following the instructions below.
+    Forward the clarifications to the credit approval process by following the instructions below.
     
     # Routine #1
-    1. Use the on_additional_info tool to route the additional information the customer gave back to the loan approval process. Use the loan ID as the key.
-    If you are not sure about the loan ID, ask the customer for it.
+    1. Use the on_additional_info tool to route the additional information the customer gave back to the credit approval process. Use the credit ID as the key.
+    If you are not sure about the credit ID, ask the customer for it.
     2. If the customer asks a question that is not related to these routines, transfer back to the intake agent.
     """,
     tools=[restate_tool(on_additional_info)],
@@ -189,28 +189,28 @@ intake_agent = Agent(
         f"{RECOMMENDED_PROMPT_PREFIX}"
         "You are a helpful intake agent. You use handoffs to delegate questions to other appropriate agents."
         "Don't draw attention to handoffs in your conversation with the customer."
-        "If the question is not related to loans, or bank accounts, then tell the customer you can't help him."
+        "If the question is not related to credits, or bank accounts, then tell the customer you can't help him."
         "Otherwise transfer to another agent, and don't answer directly!"
     ),
     handoffs=[
-        loan_request_submitter.name,
-        loan_status_retriever.name,
+        credit_request_submitter.name,
+        credit_status_retriever.name,
         account_manager_agent.name,
         clarifications_forwarder_agent.name,
     ],
 )
 
 
-loan_request_submitter.handoffs.append(intake_agent.name)
-loan_status_retriever.handoffs.append(intake_agent.name)
+credit_request_submitter.handoffs.append(intake_agent.name)
+credit_status_retriever.handoffs.append(intake_agent.name)
 account_manager_agent.handoffs.append(intake_agent.name)
 clarifications_forwarder_agent.handoffs.append(intake_agent.name)
 message_to_customer_agent.handoffs.append(intake_agent.name)
 
 chat_agents = [
     account_manager_agent,
-    loan_request_submitter,
-    loan_status_retriever,
+    credit_request_submitter,
+    credit_status_retriever,
     clarifications_forwarder_agent,
     message_to_customer_agent,
     intake_agent,

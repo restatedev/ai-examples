@@ -3,7 +3,7 @@ import random
 
 from datetime import datetime, timedelta
 
-from .pydantic_models import TransactionHistory, Transaction
+from .models import TransactionHistory, Transaction
 
 
 async def time_now(ctx: restate.WorkflowContext | restate.ObjectContext) -> int:
@@ -16,7 +16,7 @@ async def time_now_string(ctx: restate.WorkflowContext | restate.ObjectContext) 
 
 regular_categories = {
     "income": ["Salary", "Bonus", "Freelance"],
-    "loan_payment": ["Loan Repayment", "Mortgage Payment"],
+    "credit_payment": ["Credit Repayment", "Mortgage Payment"],
     "cash_withdrawal": ["ATM Withdrawal"],
     "basic_expense": ["Groceries", "Rent", "Utilities"],
     "other": ["Gift", "Miscellaneous"],
@@ -24,7 +24,7 @@ regular_categories = {
 
 high_risk_categories = {
     "gambling": ["Casino", "Lottery"],
-    "payday_loan": ["Payday Loan Repayment"],
+    "payday_credit": ["Payday Credit Repayment"],
 }
 
 

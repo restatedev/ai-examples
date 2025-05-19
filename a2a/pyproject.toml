@@ -17,7 +17,11 @@ dependencies = [
     "openai>=1.74.0",
     "fastapi[standard]",
     "python-dotenv>=1.1.0",
+    "common"
 ]
+
+[tool.uv.sources]
+common = { path = "../common" }
 
 [project.optional-dependencies]
 dev = [
