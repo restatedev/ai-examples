@@ -14,8 +14,8 @@ from utils.agent_session import (
 
 # AGENTS
 
-account_manager_agent = Agent(
-    name="Account Manager Agent",
+bank_agent = Agent(
+    name="Bank Agent",
     handoff_description="A helpful agent that can helps you with answering questions about your bank account: the balance and transaction history.",
     instructions=f"""{RECOMMENDED_PROMPT_PREFIX}
     You are an agent that helps with answering questions about the bank account: related to the balance and transaction history.
@@ -37,8 +37,8 @@ account_manager_agent = Agent(
     ],
 )
 
-loan_request_info_agent = Agent(
-    name="Loan Request Info Agent",
+loan_agent = Agent(
+    name="Loan Agent",
     handoff_description="A helpful agent that can helps you with retrieving the status of a loan, and the decision made (approval and reason).",
     instructions=f"""{RECOMMENDED_PROMPT_PREFIX}
     You are an agent that helps with:
@@ -69,17 +69,17 @@ intake_agent = Agent(
         f"{RECOMMENDED_PROMPT_PREFIX}"
         "You are a helpful intake agent. You can use your handoffs to delegate questions to other appropriate agents."
     ),
-    handoffs=[loan_request_info_agent.name, account_manager_agent.name],
+    handoffs=[loan_agent.name, bank_agent.name],
 )
 
-loan_request_info_agent.handoffs.append(intake_agent.name)
-account_manager_agent.handoffs.append(intake_agent.name)
+loan_agent.handoffs.append(intake_agent.name)
+bank_agent.handoffs.append(intake_agent.name)
 
-chat_agents = [account_manager_agent, loan_request_info_agent, intake_agent]
+chat_agents = [bank_agent, loan_agent, intake_agent]
 
 # AGENT
 
-# Keyed by conversation id
+# Keyed by customer id
 agent = restate.VirtualObject("Agent")
 
 @agent.handler()
