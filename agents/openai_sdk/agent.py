@@ -1,7 +1,6 @@
-import random
-
 import agents
 import restate
+from openai.types.responses.response_input_param import Message
 
 from pydantic import BaseModel, Field
 from agents import (
@@ -13,40 +12,6 @@ from agents import (
 from agents.extensions.handoff_prompt import RECOMMENDED_PROMPT_PREFIX
 
 from datetime import datetime
-
-# ------------ CHAT MODELS ------------
-
-
-class ChatMessage(BaseModel):
-    """
-    A chat message object.
-
-    Attributes:
-        role (str): The role of the sender (user, assistant, system).
-        content (str): The message to send.
-        timestamp_millis (int): The timestamp of the message in millis.
-        timestamp (str): The timestamp of the message in YYYY-MM-DD format.
-    """
-
-    role: str
-    content: str
-    timestamp_millis: int
-    timestamp: str = Field(
-        default_factory=lambda data: datetime.fromtimestamp(
-            data["timestamp_millis"] / 1000
-        ).strftime("%Y-%m-%d")
-    )
-
-
-class ChatHistory(BaseModel):
-    """
-    A chat history object.
-
-    Attributes:
-        entries (list[ChatMessage]): The list of chat messages.
-    """
-
-    entries: list[ChatMessage] = Field(default_factory=list)
 
 
 class AirlineAgentContext(BaseModel):
@@ -97,19 +62,11 @@ async def update_seat(
     # Update the context based on the customer's input
     context.context.confirmation_number = confirmation_number
     context.context.seat_number = new_seat
-    # Ensure that the flight number has been set by the incoming handoff
-    assert context.context.flight_number is not None, "Flight number is required"
     return f"Updated seat to {new_seat} for confirmation number {confirmation_number}"
 
 
-### HOOKS
-
-
-async def on_seat_booking_handoff(
-    context: RunContextWrapper[AirlineAgentContext],
-) -> None:
-    flight_number = f"FLT-{random.randint(100, 999)}"
-    context.context.flight_number = flight_number
+def request_customer_info():
+    return AirlineAgentContext(passenger_name="John Doe", confirmation_number="12345", seat_number="12A", flight_number="AA123")
 
 
 ### AGENTS
@@ -150,57 +107,53 @@ triage_agent = Agent[AirlineAgentContext](
     ),
     handoffs=[
         faq_agent,
-        handoff(agent=seat_booking_agent, on_handoff=on_seat_booking_handoff),
+        handoff(agent=seat_booking_agent),
     ],
 )
 
 faq_agent.handoffs.append(triage_agent)
 seat_booking_agent.handoffs.append(triage_agent)
 
-# CHAT SERVICE
+agent_dict = {agent.name: agent for agent in [faq_agent, seat_booking_agent, triage_agent]}
 
-# Keyed by customerID
-chat_service = restate.VirtualObject("ChatService")
+# AGENT
+
+# Keyed by conversation id
+agent = restate.VirtualObject("Agent")
 
 # Keys of the K/V state stored in Restate per chat
-CHAT_HISTORY = "chat_history"
+INPUT_ITEMS = "input-items"
 
 
-@chat_service.handler()
-async def send_message(ctx: restate.ObjectContext, req: ChatMessage) -> ChatMessage:
+
+@agent.handler()
+async def run(ctx: restate.ObjectContext, req: str) -> str:
     """
-    Send a message from the customer to the ChatService.
-    This will be used as input to start an agent session.
+    Send a message to the agent.
 
     Args:
-        req (ChatMessage): The message to send to the ChatService.
+        req (str): The message to send to the agent.
 
     Returns:
-        ChatMessage: The response from the ChatService.
+        str: The response from the agent.
     """
-    history = await ctx.get(CHAT_HISTORY, type_hint=ChatHistory) or ChatHistory()
-    history.entries.append(req)
-    ctx.set(CHAT_HISTORY, history)
 
-    async def run_agent_session() -> str:
-        result = await agents.Runner.run(triage_agent, history.model_dump_json())
-        return result.final_output
+    input_items = await ctx.get(INPUT_ITEMS) or []
+    input_items.append({ "role": "user", "content": req })
+    ctx.set(INPUT_ITEMS, input_items)
 
-    output = await ctx.run("run agent session", run_agent_session)
+    last_agent_name = await ctx.get("agent") or triage_agent.name
+    last_agent = agent_dict[last_agent_name]
 
-    # Create a new message with the system role
-    new_message = ChatMessage(
-        role="system", content=output, timestamp_millis=await time_now(ctx)
-    )
-    history.entries.append(new_message)
-    ctx.set(CHAT_HISTORY, history)
-    return new_message
+    agent_context = await ctx.run("request customer info", lambda: request_customer_info(), type_hint=AirlineAgentContext)
 
+    async def run_agent_session() -> tuple[str, str]:
+        result = await agents.Runner.run(last_agent, input=input_items, context=agent_context)
+        return str(result.final_output), result.last_agent.name
 
-@chat_service.handler(kind="shared")
-async def get_chat_history(ctx: restate.ObjectSharedContext) -> ChatHistory:
-    return await ctx.get(CHAT_HISTORY, type_hint=ChatHistory) or ChatHistory()
+    output, last_agent_name = await ctx.run("run agent session", run_agent_session)
+    ctx.set("agent", last_agent_name)
 
-
-async def time_now(ctx: restate.WorkflowContext | restate.ObjectContext) -> int:
-    return await ctx.run("time", lambda: round(datetime.now().timestamp() * 1000))
+    input_items.append({"role": "system", "content": output})
+    ctx.set(INPUT_ITEMS, input_items)
+    return output

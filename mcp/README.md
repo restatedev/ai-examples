@@ -67,46 +67,51 @@ Restate makes building resilient, observable, and scalable tools effortless. Her
 
 ## Running the example
 
-### Start the Restate Server
+1. Export your OpenAI or Anthrophic API key as an environment variable:
+    ```shell
+    export OPENAI_API_KEY=your_openai_api_key
+    ```
+2. [Start the Restate Server](https://docs.restate.dev/develop/local_dev) in a separate shell:
+    ```shell
+    restate-server
+    ```
+3. Start the tools services:
+    ```shell
+    cd tools
+    npm install
+    npm run app
+    ```
+4. Register the services (use `--force` if you already had another deployment registered at 9080): 
+    ```shell
+    restate -y deployments register localhost:9080
+    ```
+5. Build the MCP server:
+    ```shell
+    cd restate-mcp
+    npm install
+    npm run build
+    ```
 
-```bash
-docker run --net host -it restatedev/restate:latest
-```
+6. Configure Claude desktop
+   
+   Edit:
+   * macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
+   * Windows: `%APPDATA%\Claude\claude_desktop_config.json`
+   
+   ```json
+   {
+     "mcpServers": {
+       "restate": {
+         "command": "node",
+         "args": [
+           "/path/to/mcp-example/restate-mcp/build",
+         ]
+       }
+     }
+   }
+   ```
 
-### Start the Restate tools/ Server
-
-```bash
-cd tools
-npm run app
-```
-
-### Configure Claude desktop
-
-Edit:
-* macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
-* Windows: `%APPDATA%\Claude\claude_desktop_config.json`
-
-```json
-{
-  "mcpServers": {
-    "restate": {
-      "command": "node",
-      "args": [
-        "/path/to/mcp-example/restate-mcp/build",
-      ]
-    }
-  }
-}
-```
-
-### Build the MCP server itself
-
-```bash
-cd restate-mcp
-npm run build
-```
-
-### Ask Claude to greet your fav person
+7. Ask Claude to greet your favorite person
 
 ![Claude](image.png "The incremental counter")
 

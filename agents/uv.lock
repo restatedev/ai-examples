@@ -115,29 +115,6 @@ wheels = [
 ]
 
 [[package]]
-name = "common"
-version = "0.1.0"
-source = { directory = "../common" }
-dependencies = [
-    { name = "black" },
-    { name = "httpx" },
-    { name = "hypercorn" },
-    { name = "openai" },
-    { name = "pydantic" },
-    { name = "restate-sdk", extra = ["serde"] },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "black" },
-    { name = "httpx" },
-    { name = "hypercorn" },
-    { name = "openai" },
-    { name = "pydantic" },
-    { name = "restate-sdk", extras = ["serde"], specifier = ">=0.7.1" },
-]
-
-[[package]]
 name = "dacite"
 version = "1.9.2"
 source = { registry = "https://pypi.org/simple" }
@@ -514,8 +491,6 @@ name = "restate-ai-agents"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
-    { name = "black" },
-    { name = "common" },
     { name = "httpx" },
     { name = "hypercorn" },
     { name = "openai" },
@@ -524,10 +499,14 @@ dependencies = [
     { name = "restate-sdk", extra = ["serde"] },
 ]
 
+[package.optional-dependencies]
+dev = [
+    { name = "black" },
+]
+
 [package.metadata]
 requires-dist = [
-    { name = "black" },
-    { name = "common", directory = "../common" },
+    { name = "black", marker = "extra == 'dev'", specifier = ">=25.1.0" },
     { name = "httpx" },
     { name = "hypercorn" },
     { name = "openai" },
@@ -535,6 +514,7 @@ requires-dist = [
     { name = "pydantic" },
     { name = "restate-sdk", extras = ["serde"], specifier = ">=0.7.1" },
 ]
+provides-extras = ["dev"]
 
 [[package]]
 name = "restate-sdk"

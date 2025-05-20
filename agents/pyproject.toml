@@ -23,6 +23,11 @@ dev = [
     "black>=25.1.0"
 ]
 
+[project.optional-dependencies]
+dev = [
+    "black>=25.1.0"
+]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"

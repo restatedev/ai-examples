@@ -1,14 +1,11 @@
 import restate
 
 from account import (
-    get_customer_loans,
     get_balance,
-    get_transaction_history,
+    get_transaction_history, get_customer_loans,
 )
-from utils.pydantic_models import ChatMessage, ChatHistory
-from utils.utils import time_now
-from restate_agents.agent.agent_session import (
-    run,
+from utils.agent_session import (
+    run as agent_session_run,
     AgentInput,
     restate_tool,
     Agent,
@@ -17,8 +14,8 @@ from restate_agents.agent.agent_session import (
 
 # AGENTS
 
-account_manager_agent = Agent(
-    name="Account Manager Agent",
+bank_agent = Agent(
+    name="Bank Agent",
     handoff_description="A helpful agent that can helps you with answering questions about your bank account: the balance and transaction history.",
     instructions=f"""{RECOMMENDED_PROMPT_PREFIX}
     You are an agent that helps with answering questions about the bank account: related to the balance and transaction history.
@@ -40,9 +37,9 @@ account_manager_agent = Agent(
     ],
 )
 
-loan_request_info_agent = Agent(
-    name="Loan Request Info Agent",
-    handoff_description="A helpful agent that can helps you with retrieving its status, and the decision made (approval and reason).",
+loan_agent = Agent(
+    name="Loan Agent",
+    handoff_description="A helpful agent that can helps you with retrieving the status of a loan, and the decision made (approval and reason).",
     instructions=f"""{RECOMMENDED_PROMPT_PREFIX}
     You are an agent that helps with:
      - giving information on the status of the loan requests
@@ -72,57 +69,35 @@ intake_agent = Agent(
         f"{RECOMMENDED_PROMPT_PREFIX}"
         "You are a helpful intake agent. You can use your handoffs to delegate questions to other appropriate agents."
     ),
-    handoffs=[loan_request_info_agent.name, account_manager_agent.name],
+    handoffs=[loan_agent.name, bank_agent.name],
 )
 
-loan_request_info_agent.handoffs.append(intake_agent.name)
-account_manager_agent.handoffs.append(intake_agent.name)
+loan_agent.handoffs.append(intake_agent.name)
+bank_agent.handoffs.append(intake_agent.name)
 
-chat_agents = [account_manager_agent, loan_request_info_agent, intake_agent]
+chat_agents = [bank_agent, loan_agent, intake_agent]
 
-# CHAT SERVICE
+# AGENT
 
-# Keyed by customerID
-chat_service = restate.VirtualObject("ChatService")
+# Keyed by customer id
+agent = restate.VirtualObject("Agent")
 
-# Keys of the K/V state stored in Restate per chat
-CHAT_HISTORY = "chat_history"
-
-
-@chat_service.handler()
-async def send_message(ctx: restate.ObjectContext, req: ChatMessage) -> ChatMessage:
+@agent.handler()
+async def run(ctx: restate.ObjectContext, req: str) -> str:
     """
-    Send a message from the customer to the ChatService.
-    This will be used as input to start an agent session.
+    Send a message to the agent.
 
     Args:
-        req (ChatMessage): The message to send to the ChatService.
+        req (str): The message to send to the agent.
 
     Returns:
-        ChatMessage: The response from the ChatService.
+        str: The response from the agent.
     """
-    history = await ctx.get(CHAT_HISTORY, type_hint=ChatHistory) or ChatHistory()
-    history.entries.append(req)
-    ctx.set(CHAT_HISTORY, history)
-
-    result = await ctx.object_call(
-        run,
-        key=ctx.key(),  # use the customer ID as the key
-        arg=AgentInput(
+    result = await agent_session_run(ctx, AgentInput(
             starting_agent=intake_agent,
             agents=chat_agents,
-            message=f"For customer ID {ctx.key()}: {req.content}",  # this is the input for the LLM call
+            message=f"For customer ID {ctx.key()}: {req}",  # this is the input for the LLM call
         ),
     )
 
-    new_message = ChatMessage(
-        role="system", content=result.final_output, timestamp_millis=await time_now(ctx)
-    )
-    history.entries.append(new_message)
-    ctx.set(CHAT_HISTORY, history)
-    return new_message
-
-
-@chat_service.handler(kind="shared")
-async def get_chat_history(ctx: restate.ObjectSharedContext) -> ChatHistory:
-    return await ctx.get(CHAT_HISTORY, type_hint=ChatHistory) or ChatHistory()
+    return result.final_output

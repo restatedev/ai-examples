@@ -1,11 +1,11 @@
 import restate
 
-from utils.pydantic_models import (
-    Transaction,
+from native_restate.utils.utils import generate_loan_overview
+from utils.models import (
     TransactionHistory,
     CustomerLoanOverview,
 )
-from utils.utils import generate_transactions, time_now
+from utils.utils import generate_transactions
 
 # Keyed by customer ID
 account = restate.VirtualObject("Account")
@@ -18,42 +18,6 @@ LOANS = "loans"
 
 
 @account.handler()
-async def deposit(ctx: restate.ObjectContext, transaction: Transaction):
-    """
-    Deposit money into the customer's account.
-
-    Args:
-        transaction (Transaction): The transaction object.
-    """
-    balance = await get_balance(ctx)
-    balance += abs(transaction.amount)
-    ctx.set(BALANCE, balance)
-
-    history = await get_transaction_history(ctx)
-    history.transactions.append(transaction)
-    ctx.set(TRANSACTION_HISTORY, history)
-
-
-@account.handler()
-async def withdraw(ctx: restate.ObjectContext, transaction: Transaction):
-    """
-    Withdraw money from the customer's account.
-
-    Args:
-        transaction (Transaction): The transaction object.
-    """
-    balance = await get_balance(ctx)
-    balance -= abs(transaction.amount)
-    ctx.set(BALANCE, balance)
-
-    # Make sure this is a negative transaction
-    transaction.amount = -abs(transaction.amount)
-    history = await get_transaction_history(ctx)
-    history.transactions.append(transaction)
-    ctx.set(TRANSACTION_HISTORY, history)
-
-
-@account.handler()
 async def get_customer_loans(ctx: restate.ObjectContext) -> CustomerLoanOverview:
     """
     Get the ongoing loan requests and loan payments for the customer.
@@ -61,9 +25,17 @@ async def get_customer_loans(ctx: restate.ObjectContext) -> CustomerLoanOverview
     Returns:
         CustomerLoanOverview: The overview of the customer's outstanding loans and loan requests.
     """
-    return (
-        await ctx.get(LOANS, type_hint=CustomerLoanOverview) or CustomerLoanOverview()
-    )
+    loans = await ctx.get(LOANS, type_hint=CustomerLoanOverview)
+    # If there are no loans, generate a demo loan overview
+    if loans is None:
+        # Generate a demo loan overview
+        loans = await ctx.run(
+            "generate loans",
+            lambda: generate_loan_overview(),
+            type_hint=CustomerLoanOverview,
+        )
+        ctx.set(LOANS, loans)
+    return loans
 
 
 @account.handler()
@@ -85,7 +57,7 @@ async def get_transaction_history(ctx: restate.ObjectContext) -> TransactionHist
     Returns:
         TransactionHistory: The transaction history of the customer.
     """
-    # If there is no transaction history, return a default history of some salary payments
+    # If there is no transaction history, generate a demo transaction history
     history = await ctx.get(TRANSACTION_HISTORY, type_hint=TransactionHistory)
     if history is None:
         history = await ctx.run(

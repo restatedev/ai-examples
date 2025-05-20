@@ -2,11 +2,11 @@ import hypercorn
 import asyncio
 import restate
 
-from .chat import chat_service
+from agent import agent
 
 
 def main():
-    app = restate.app(services=[chat_service])
+    app = restate.app(services=[agent])
 
     conf = hypercorn.Config()
     conf.bind = ["0.0.0.0:9080"]

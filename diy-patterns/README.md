@@ -27,14 +27,14 @@ The state can be queried from the outside. Stateful sessions are long-lived and 
 
 These benefits are best portrayed in the following patterns:
 
-| Pattern                     | Retries & recovery | Exactly-once execution | Persistent memory | Task control |
-|-----------------------------|--------------------|------------------------|-------------------|--------------|
-| Chaining LLM calls          | ✅                  | ✅                      |                   |              |
-| Parallelizing tool calls    | ✅                  | ✅                      |                   |              |
-| Dynamic routing             | ✅                  | ✅                      |                   |              |
-| Orchestrator-worker pattern | ✅                  | ✅                      |                   |              |
-| Evaluator-optimizer pattern | ✅                  | ✅                      |                   |              |
-| Human-in-the-loop pattern   | ✅                  | ✅                      | ✅                 |              |
+| Pattern                     | Retries & recovery | Exactly-once execution | Persistent memory | 
+|-----------------------------|--------------------|------------------------|-------------------|
+| Chaining LLM calls          | ✅                  | ✅                      |                   |              
+| Parallelizing tool calls    | ✅                  | ✅                      |                   |              
+| Dynamic routing             | ✅                  | ✅                      |                   |              
+| Orchestrator-worker pattern | ✅                  | ✅                      |                   |              
+| Evaluator-optimizer pattern | ✅                  | ✅                      |                   |              
+| Human-in-the-loop pattern   | ✅                  | ✅                      | ✅                 |              
 
 
 ## Running the examples
@@ -61,8 +61,11 @@ These benefits are best portrayed in the following patterns:
     ```
 
 ### Chaining LLM calls
+[<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](chaining/service.py)
 
-Send an HTTP request to the service by running the following script:
+Refine the results by calling the LLM iteratively with its own output.
+
+Send an HTTP request to the service by running the [client](chaining/client.py):
 
 ```shell
 uv run chaining_client
@@ -124,8 +127,11 @@ Here's the sorted data formatted as a markdown table:
 </details>
 
 ### Parallelizing tool calls
+[<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](parallelization/service.py)
 
-Send an HTTP request to the service by running the following script:
+Call multiple tools in parallel and wait for their results in a durable way. Tool calls are retried if they fail, and the results are persisted.
+
+Send an HTTP request to the service by running the [client](parallelization/client.py):
 
 ```shell
 uv run parallelization_client
@@ -360,8 +366,11 @@ Suppliers must proactively address capacity constraints and price pressures to r
 
 
 ### Dynamic routing based on LLM output
+[<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](routing/service.py)
 
-Send an HTTP request to the service by running the following script:
+Route the execution to different tools based on the LLM's output. Routing decisions are persisted and can be retried.
+
+Send an HTTP request to the service by running the [client](routing/client.py):
 
 ```shell
 uv run routing_client
@@ -495,8 +504,11 @@ Please let us know if you need any additional help.
 </details>
 
 ### Orchestrator-worker pattern
+[<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](orchestrator_workers/service.py)
 
-Send an HTTP request to the service by running the following script:
+A resilient orchestration workflow in which a central LLM dynamically breaks down tasks, delegates them to worker LLMs, and analyzes their results.
+
+Send an HTTP request to the service by running the [client](orchestrator_workers/client.py):
 
 ```shell
 uv run orchestrator_client
@@ -624,8 +636,11 @@ uv run orchestrator_client
 </details>
 
 ### Evaluator-optimizer pattern
+[<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](evaluator_optimizer/service.py)
 
-Send an HTTP request to the service by running the following script:
+Let the LLM generate a response, and ask another LLM to evaluate the response, and let them iterate on it.
+
+Send an HTTP request to the service by running the [client](evaluator_optimizer/client.py):
 
 ```shell
 uv run evaluator_client
@@ -726,7 +741,10 @@ The code correctly implements a stack with push, pop, and getMin operations, all
 
 ### Human-in-the-loop pattern
 
+An LLM generates a response, and then a human can review and approve the response before the LLM continues with the next step.
+
 #### Option 1: `run_with_promise` handler
+[<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](human_in_the_loop/service.py)
 
 This handler gathers human feedback by blocking the generation-evaluation loop on a Promise that gets resolved with human feedback.
 
@@ -796,6 +814,7 @@ You can see how the feedback gets incorporated in the Invocations tab in the Res
 <img src="../img/human_in_the_loop_promise.png" alt="Human-in-the-loop" width="900px"/>
 
 #### Option 2: `run` handler
+[<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](human_in_the_loop/service.py)
 
 Repeatedly invoke the handler with feedback until the response is satisfactory.
 
