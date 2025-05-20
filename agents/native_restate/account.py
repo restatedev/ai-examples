@@ -2,11 +2,10 @@ import restate
 
 from native_restate.utils.utils import generate_loan_overview
 from utils.models import (
-    Transaction,
     TransactionHistory,
     CustomerLoanOverview,
 )
-from utils.utils import generate_transactions, time_now
+from utils.utils import generate_transactions
 
 # Keyed by customer ID
 account = restate.VirtualObject("Account")

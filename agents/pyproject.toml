@@ -9,10 +9,14 @@ dependencies = [
     "hypercorn",
     "restate_sdk[serde]>=0.7.1",
     "pydantic",
-    "black",
     "httpx",
     "openai",
     "openai-agents"
+]
+
+[project.optional-dependencies]
+dev = [
+    "black>=25.1.0"
 ]
 
 [build-system]

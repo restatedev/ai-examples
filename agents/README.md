@@ -43,6 +43,61 @@ The agent session is a Restate Virtual Object that has a handler that runs the a
 
 ## Running the examples
 
+### Restate + Agent SDK
+
+This example implements a airline customer service agent that can answer questions about your flights, and change your seat.
+
+
+1. Export your OpenAI or Anthrophic API key as an environment variable:
+    ```shell
+    export OPENAI_API_KEY=your_openai_api_key
+    ```
+2. [Start the Restate Server](https://docs.restate.dev/develop/local_dev) in a separate shell:
+    ```shell
+    restate-server
+    ```
+3. Start the services:
+    ```shell
+    uv run openai_sdk
+    ```
+4. Register the services (use `--force` if you already had another deployment registered at 9080): 
+    ```shell
+    restate -y deployments register localhost:9080
+    ```
+   
+
+Now you can send requests to the agent via the UI playground (click on the agent service and then `playground`):
+
+<img src="img/ui_openai.png" alt="UI example" width="1000px"/>
+
+Or with the client:
+
+- **Request**: 
+   
+   ```shell
+    uv run client.py "how much can my bag weigh?"          
+   ```
+   
+   Example response: `Your bag can weigh up to 50 pounds and should not exceed the dimensions of 22 inches x 14 inches x 9 inches.`
+
+- **Request**: 
+   
+   ```shell
+   uv run client.py "can you change my seat to 5b?"
+   ```
+   
+   Example response: `To change your seat to 5B, I'll need your confirmation number. Could you please provide that?`
+
+- **Request**: 
+   
+   ```shell
+   uv run client.py "5666"                         
+   ```
+   
+   Example response: `Your seat has been successfully changed to 5B. If there's anything else you need, feel free to ask!`
+
+
+
 ### Restate-native example
 
 This example implements a bank agent that can answer questions about your balance, loans and transactions.
@@ -103,56 +158,6 @@ Or with the client:
    If you need more information, feel free to ask!
    ```
    
+You can see the state of your agent in the state tab in the UI:
 
-### Restate + Agent SDK
-
-This example implements a airline customer service agent that can answer questions about your flights, and change your seat.
-
-
-1. Export your OpenAI or Anthrophic API key as an environment variable:
-    ```shell
-    export OPENAI_API_KEY=your_openai_api_key
-    ```
-2. [Start the Restate Server](https://docs.restate.dev/develop/local_dev) in a separate shell:
-    ```shell
-    restate-server
-    ```
-3. Start the services:
-    ```shell
-    uv run openai_sdk
-    ```
-4. Register the services (use `--force` if you already had another deployment registered at 9080): 
-    ```shell
-    restate -y deployments register localhost:9080
-    ```
-   
-
-Now you can send requests to the agent via the UI playground (click on the agent service and then `playground`):
-
-<img src="img/ui_openai.png" alt="UI example" width="1000px"/>
-
-Or with the client:
-
-- **Request**: 
-   
-   ```shell
-    uv run client.py "how much can my bag weigh?"          
-   ```
-   
-   Example response: `Your bag can weigh up to 50 pounds and should not exceed the dimensions of 22 inches x 14 inches x 9 inches.`
-
-- **Request**: 
-   
-   ```shell
-   uv run client.py "can you change my seat to 5b?"
-   ```
-   
-   Example response: `To change your seat to 5B, I'll need your confirmation number. Could you please provide that?`
-
-- **Request**: 
-   
-   ```shell
-   uv run client.py "5666"                         
-   ```
-   
-   Example response: `Your seat has been successfully changed to 5B. If there's anything else you need, feel free to ask!`
+<img src="img/state_agent.png" alt="UI state" width="600px"/>
