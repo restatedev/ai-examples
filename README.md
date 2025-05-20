@@ -38,6 +38,13 @@ This repository contains examples of how to use Restate for AI / Agent use cases
 ## Example catalog
 
 1. [**DIY patterns**](diy-patterns): Patterns for hardening custom LLM orchestration logic.
+   - [Chaining LLM calls](diy-patterns#chaining-llm-calls)
+   - [Parallelizing tool calls](diy-patterns#parallelizing-tool-calls)
+   - [Dynamic routing based on LLM output](diy-patterns#dynamic-routing-based-on-llm-output)
+   - [Orchestrator-worker pattern](diy-patterns#orchestrator-worker-pattern)
+   - [Evaluator-optimizer pattern](diy-patterns#evaluator-optimizer-pattern)
+   - [Human-in-the-loop pattern](diy-patterns#human-in-the-loop-pattern)
+
 2. [**Agents**](agents): Using Restate (optionally with Agent SDKs) for resilient agentic workflows.
 3. [**MCP**](mcp): Using Restate for exposing tools and resilient orchestration of tool calls.
 4. [**A2A**](a2a): Implement Google's Agent-to-Agent protocol with Restate as resilient, scalable task orchestrator.
