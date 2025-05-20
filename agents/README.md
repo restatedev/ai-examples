@@ -3,6 +3,8 @@ In these examples, we show how to use Restate (optionally together with Agent SD
 
 
 ### Option 1: Restate + Agent SDK
+[<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](openai_sdk/agent.py)
+
 Combine Restate's durability with existing Agent SDKs for rapid development.
 
 We use Restate's stateful entities called Virtual Objects to manage the session state and retries for us. 
@@ -10,6 +12,8 @@ We use Restate's stateful entities called Virtual Objects to manage the session 
 <img src="img/using_agent_sdk.png" alt="Using Agent SDK" width="650px"/>
 
 ### Option 2: Native Restate Implementation
+[<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](native_restate/agent.py)
+
 Implement the agent loop directly with Restate for maximum control and resilience.
 
 **This gives your agentic workflow the same resiliency and capabilities as what you get with a "traditional" workflow.**
@@ -43,9 +47,12 @@ The agent session is a Restate Virtual Object that has a handler that runs the a
 
 ## Running the examples
 
-### Restate + Agent SDK
+### Restate + Agent SDK 
+[<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](openai_sdk/agent.py)
 
-This example implements a airline customer service agent that can answer questions about your flights, and change your seat.
+This example implements an airline customer service agent that can answer questions about your flights, and change your seat.
+
+The example uses the OpenAI Agent SDK to implement the agent. Although this could be adapted to other agent SDKs.
 
 
 1. Export your OpenAI or Anthrophic API key as an environment variable:
@@ -99,6 +106,7 @@ Or with the client:
 
 
 ### Restate-native example
+[<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](native_restate/agent.py)
 
 This example implements a bank agent that can answer questions about your balance, loans and transactions.
 
