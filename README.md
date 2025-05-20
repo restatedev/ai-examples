@@ -91,3 +91,5 @@ We therefore want to give credit to the developers of this SDK for the great wor
 This repo builds further on their work to make it benefit from Restate's programming model and capabilities.
 
 **Disclaimer 2**: Many of the DIY patterns have been based on Anthropic's [agents cookbook](https://github.com/anthropics/anthropic-cookbook/tree/main/patterns/agents).
+
+**Disclaimer 3**: Some of the A2A examples in this repo are based on the examples included in the [Google A2A repo](https://github.com/google/A2A/tree/main).
