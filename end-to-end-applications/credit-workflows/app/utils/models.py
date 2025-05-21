@@ -21,12 +21,6 @@ class ChatMessage(BaseModel):
 
     role: str
     content: str
-    timestamp_millis: int
-    timestamp: str = Field(
-        default_factory=lambda data: datetime.fromtimestamp(
-            data["timestamp_millis"] / 1000
-        ).strftime("%Y-%m-%d")
-    )
 
 
 class ChatHistory(BaseModel):

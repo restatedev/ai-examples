@@ -1,32 +1,14 @@
 [project]
-name = "restate-ai-diy-patterns"
+name = "diy-patterns"
 version = "0.1.0"
 description = "Python DIY patterns using Restate for agents"
 readme = "README.md"
 requires-python = ">=3.12"
 
 dependencies = [
-    "hypercorn",
-    "restate-sdk[serde]>=0.7.1",
-    "pydantic",
-    "httpx",
-    "openai",
     "openai-agents",
     "anthropic",
-    "common"
 ]
-
-[tool.uv.sources]
-common = { path = "../common" }
-
-[project.optional-dependencies]
-dev = [
-    "black>=25.1.0"
-]
-
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
 
 [project.scripts]
 chaining_client = "chaining.client:main"
@@ -36,4 +18,8 @@ orchestrator_client = "orchestrator_workers.client:main"
 evaluator_client = "evaluator_optimizer.client:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["chaining", "evaluator_optimizer", "human_evaluator_optimizer", "orchestrator_workers", "parallelization", "routing", "util"]
+packages = ["chaining", "evaluator_optimizer", "human_evaluator_optimizer", "orchestrator_workers", "parallelization", "routing"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

@@ -4,8 +4,8 @@ from account import (
     get_balance,
     get_transaction_history, get_customer_loans,
 )
-from utils.agent_session import (
-    run as agent_session_run,
+from common.agent_session import (
+    run_agent as agent_session_run,
     AgentInput,
     restate_tool,
     Agent,

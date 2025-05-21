@@ -1,8 +1,8 @@
 from abc import ABC
 
 import restate
-from agent_session import AgentInput, run_agent_session, Agent
-from models import AgentInvokeResult
+from .agent_session import AgentInput, run_agent_session, Agent
+from .models import AgentInvokeResult
 
 
 class GenericRestateAgent(ABC):

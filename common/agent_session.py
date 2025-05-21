@@ -1,5 +1,7 @@
 import json
 import logging
+import uuid
+import httpx
 import restate
 
 from datetime import timedelta
@@ -34,6 +36,22 @@ from restate import TerminalError
 from restate.handler import handler_from_callable
 from restate.serde import PydanticJsonSerde
 from typing_extensions import Generic
+
+from .models import (
+    AgentCard,
+    AgentSkill,
+    AgentCapabilities,
+    TaskSendParams,
+    Task,
+    SendTaskRequest,
+    SendTaskResponse,
+    JSONRPCRequest,
+    A2AClientHTTPError,
+    A2AClientJSONError,
+    Message,
+    TextPart,
+    TaskState,
+)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -126,6 +144,13 @@ class RestateTool(BaseModel, Generic[I, O]):
     tool_schema: dict[str, Any]
     formatted_name: str = Field(default_factory=lambda data: format_name(data["name"]))
 
+    def as_agent_skill(self) -> AgentSkill:
+        return AgentSkill(
+            id=self.formatted_name,
+            name=self.name,
+            description=self.description,
+        )
+
 
 class RemoteAgentMessage(BaseModel):
     """
@@ -182,6 +207,21 @@ class Agent(BaseModel):
         )
         tool.name = f"{name}_as_tool"
         return tool
+
+    def as_agent_card(self) -> AgentCard:
+        return AgentCard(
+            name=self.name,
+            description=self.handoff_description,
+            url=self.remote_url,
+            version="0.0.1",
+            capabilities=AgentCapabilities(
+                streaming=self.streaming_support,
+                pushNotifications=self.push_notifications_support,
+            ),
+            # TODO include handoffs?
+            skills=[tool.as_agent_skill() for tool in self.tools],
+        )
+
 
 class AgentInput(BaseModel):
     """
@@ -290,11 +330,11 @@ agent_session = restate.VirtualObject("AgentSession")
 async def run_agent_session(
         ctx: restate.ObjectContext, req: AgentInput
 ):
-    return await run_agent_session(ctx, req)
+    return await run_agent(ctx, req)
 
 
 # Option 2: call this method immediately from the chat session/workflow
-async def run(
+async def run_agent(
         ctx: restate.ObjectContext, req: AgentInput
 ) -> AgentResponse:
     """
@@ -468,11 +508,50 @@ async def run(
                 )
                 continue
 
-            # Start a new agent loop with the new agent
-            agent = next_agent
-            logger.info(f"{logging_prefix} Handing off to agent {agent.name}")
-            session_state.add_system_message(ctx, f"Transferred to {agent.name}.")
-            ctx.set("agent_name", format_name(agent.name))
+            if next_agent.remote_url not in {None, ""}:
+                logger.info(
+                    f"{logging_prefix} Calling Remote Agent over A2A {handoff_command.name}"
+                )
+                session_state.add_system_message(
+                    ctx,
+                    f"Calling Remote Agent: {handoff_command.name} with arguments {handoff_command.arguments}.",
+                )
+                try:
+                    remote_agent_to_call = agents_dict.get(handoff_command.name)
+                    if remote_agent_to_call is None:
+                        raise ValueError(
+                            f"Agent {handoff_command.name} not found in the list of agents."
+                        )
+                    remote_agent_output = await call_remote_agent(
+                        ctx,
+                        remote_agent_to_call.as_agent_card(),
+                        handoff_command.arguments,
+                    )
+                    session_state.add_system_message(
+                        ctx,
+                        f"Agent response: {remote_agent_output}",
+                    )
+                except Exception as e:
+                    # if isinstance(e, restate.vm.SuspendedException) or isinstance(e, httpx.ReadTimeout):
+                    # Surface suspensions
+                    # And surface read timeouts --> leads to a retry with idempotency key (=attach)
+                    raise e
+                # TODO Are there some errors that we don't want to retry but feed back into the model? Think about the split here
+                # else:
+                #     logger.warning(
+                #         f"{logging_prefix} Failed to call remote agent {handoff_command.model_dump_json()}: {str(e)}"
+                #     )
+                #     session_state.add_system_message(
+                #         ctx,
+                #         f"Failed to call remote agent {handoff_command.model_dump_json()}: {str(e)}",
+                #     )
+                # We add it to the session_state to feed it back into the next LLM call
+            else:
+                # Start a new agent loop with the new agent
+                agent = next_agent
+                logger.info(f"{logging_prefix} Handing off to agent {agent.name}")
+                session_state.add_system_message(ctx, f"Transferred to {agent.name}.")
+                ctx.set("agent_name", format_name(agent.name))
 
             continue
 
@@ -607,3 +686,67 @@ def to_tool_call(tool: RestateTool, item: ResponseFunctionToolCall) -> ToolCall:
         delay_in_millis=delay_in_millis,
     )
 
+
+async def call_remote_agent(
+        ctx: restate.ObjectContext, card: AgentCard, message: str
+) -> Task | None:
+    request = await ctx.run(
+        "Generate send request",
+        lambda: SendTaskRequest(
+            id=uuid.uuid4().hex,
+            params=TaskSendParams(
+                id=uuid.uuid4().hex,
+                sessionId=ctx.key(),
+                message=Message(role="user", parts=[TextPart(text=message)]),
+            ),
+        ),
+        type_hint=SendTaskRequest,
+    )
+    logger.info(
+        f"Sending request to {card.name} at {card.url} with request payload: {request.model_dump()}"
+    )
+    response_json = await ctx.run("Call Agent", send_request, args=(card.url, request))
+    response = SendTaskResponse(**response_json)
+    logger.info(
+        f"Received response from {card.name}: {response.result.model_dump_json()}"
+    )
+
+    # TODO Check with the protocol to see if it is expected behavior to find these fields for these states
+    match response.result.status.state:
+        case TaskState.INPUT_REQUIRED:
+            final_output = f"MISSING_INFO: {response.result.status.message.parts}"
+        case TaskState.COMPLETED:
+            final_output = response.result.artifacts
+        case TaskState.CANCELED:
+            final_output = "Task canceled"
+        case TaskState.FAILED:
+            final_output = f"Task failed: {response.error.message}"
+        case TaskState.SUBMITTED:
+            final_output = "Task submitted"
+        case TaskState.WORKING:
+            final_output = "Task is in progress"
+        case _:
+            final_output = "Task status unknown"
+
+    # if task_callback:
+    #     task_callback(final_output)
+
+    return final_output
+
+
+async def send_request(url: str, request: JSONRPCRequest) -> dict[str, Any]:
+    async with httpx.AsyncClient() as client:
+        try:
+            # Image generation could take time, increasing timeout
+            headers = {"idempotency-key": request.id}
+            resp = await client.post(
+                url, json=request.model_dump(), headers=headers, timeout=300
+            )
+            # TODO handle httpx.ReadTimeout --> for long-running tasks what is the behavior we want here? Use push notifications?
+            # Right now we are just catching these and letting it retry
+            resp.raise_for_status()
+            return resp.json()
+        except httpx.HTTPStatusError as e:
+            raise A2AClientHTTPError(e.response.status_code, str(e)) from e
+        except json.JSONDecodeError as e:
+            raise A2AClientJSONError(str(e)) from e

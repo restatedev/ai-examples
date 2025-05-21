@@ -2,7 +2,7 @@ import os
 import logging
 import restate
 
-from common.types import MissingAPIKeyError
+from common.models import MissingAPIKeyError
 
 from agent import host_agent_object
 from dotenv import load_dotenv
@@ -24,6 +24,7 @@ def main():
 
     if not os.getenv("OPENAI_API_KEY"):
         raise MissingAPIKeyError("OPENAI_API_KEY environment variable not set.")
+
 
     app = restate.app(services=[host_agent_object])
 

@@ -42,7 +42,7 @@ export OPENAI_API_KEY=your_openai_api_key
 To run the credit approval app::
 
 ```shell
-python3 d_mixing_agents_and_workflows/main.py
+uv run . 
 ```
 
 To run Restate:

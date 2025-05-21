@@ -2,7 +2,7 @@ import httpx
 from typing import Any, Dict, AsyncIterable, Literal
 from pydantic import BaseModel
 
-from common.types import AgentInvokeResult, TextPart
+from common.models import AgentInvokeResult, TextPart
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.tools import tool
 from langgraph.prebuilt import create_react_agent

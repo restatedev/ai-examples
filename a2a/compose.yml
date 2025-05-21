@@ -1,31 +1,45 @@
 services:
   restatedev_agent:
-    # Build the image from the Dockerfile in the current directory
-    build: .
+    # Path to the Dockerfile from root of the project
+    build:
+      context: ..
+      dockerfile: ./a2a/Dockerfile
     ports:
       - 9081:9081
     env_file: ".env"
     environment:
         - RESTATE_HOST=http://restate:8080
-    command: ["uv", "run", "agents/restatedev"]
+    command: ["/app/.venv/bin/python", "/app/a2a/agents/restatedev"]
   langgraph_agent:
-    # Build the image from the Dockerfile in the current directory
-    build: .
+    # Path to the Dockerfile from root of the project
+    build:
+      context: ..
+      dockerfile: ./a2a/Dockerfile
     ports:
       - 9082:9082
     env_file: ".env"
     environment:
         - RESTATE_HOST=http://restate:8080
-    command: ["uv", "run", "agents/langgraph"]
+    command: ["/app/.venv/bin/python", "/app/a2a/agents/langgraph"]
   host_agent:
-    # Build the image from the Dockerfile in the current directory
-    build: .
+    # Path to the Dockerfile from root of the project
+    build:
+      context: ..
+      dockerfile: ./a2a/Dockerfile
     ports:
-      - "9080:9080"
+      - 9080:9080
+    depends_on:
+      - restatedev_agent
+      - langgraph_agent
     env_file: ".env"
     environment:
         - RESTATE_HOST=http://restate:8080
-    command: ["uv", "run", "agents/host_agent"]
+        - REMOTE_AGENTS=http://restatedev_agent:9081,http://langgraph_agent:9082
+    command: ["/app/.venv/bin/python", "/app/a2a/agents/host_agent"]
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
   restate:
     image: restatedev/restate:latest
     ports:
@@ -41,7 +55,6 @@ services:
       nofile:
         soft: 65535
         hard: 65535
-
   runtimesetup:
     image: alpine
     depends_on:
@@ -58,7 +71,5 @@ services:
         curl -X POST ''restate:9070/deployments'' -H ''content-type: application/json'' -d ''{"uri": "http://host_agent:9080"}'' &&
         curl -X POST ''restate:9070/deployments'' -H ''content-type: application/json'' -d ''{"uri": "http://restatedev_agent:9081/restate/v1"}'' &&
         curl -X POST ''restate:9070/deployments'' -H ''content-type: application/json'' -d ''{"uri": "http://langgraph_agent:9082/restate/v1"}'' &&
-        sleep 3 &&
-        curl -X POST restate:8080/HostAgent/my-user/register_remote_agents -H ''content-type: application/json'' -d ''["http://restatedev_agent:9081", "http://langgraph_agent:9082"]'' &&
         exit 1',
       ]

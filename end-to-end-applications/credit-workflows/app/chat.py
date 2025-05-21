@@ -7,9 +7,8 @@ from .account import (
     get_transaction_history,
 )
 from .credit_review_agent import on_additional_info
-from .utils.models import ChatMessage, ChatHistory
-from .utils.utils import time_now
-from .utils.agent_session import (
+from utils.models import ChatMessage, ChatHistory
+from common.agent_session import (
     run_agent_session,
     AgentInput,
     restate_tool,
@@ -54,7 +53,7 @@ async def send_message(ctx: restate.ObjectContext, req: ChatMessage) -> ChatMess
     )
 
     new_message = ChatMessage(
-        role="system", content=result.final_output, timestamp_millis=await time_now(ctx)
+        role="system", content=result.final_output
     )
     history.entries.append(new_message)
     ctx.set(CHAT_HISTORY, history)
