@@ -57,7 +57,7 @@ These benefits are best portrayed in the following patterns:
     ```
 4. Register the services (use `--force` if you already had another deployment registered at 9080): 
     ```shell
-    restate -y deployments register localhost:9080
+    restate -y deployments register localhost:9080 --force
     ```
 
 ### Chaining LLM calls
@@ -836,8 +836,7 @@ Use the UI playground to test the human-in-the-loop.
 
 Alternatively, you can use `curl`:
 ```shell
-curl localhost:8080/HumanInTheLoopService/giselle/run \
-    --json '"Write a poem about Durable Execution"'
+curl localhost:8080/HumanInTheLoopService/giselle/run --json '"Write a poem about Durable Execution"'
 ```
 
 And repeatedly do the same to provide feedback.

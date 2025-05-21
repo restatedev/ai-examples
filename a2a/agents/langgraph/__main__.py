@@ -3,8 +3,8 @@ import os
 from agent import CurrencyAgent
 from fastapi import FastAPI
 
-from common.server.middleware import AgentMiddleware
-from common.types import MissingAPIKeyError, AgentCapabilities, AgentCard, AgentSkill
+from common.a2a_middleware import AgentMiddleware
+from common.models import MissingAPIKeyError, AgentCapabilities, AgentCard, AgentSkill
 from dotenv import load_dotenv
 
 

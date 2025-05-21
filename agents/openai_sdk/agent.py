@@ -66,7 +66,12 @@ async def update_seat(
 
 
 def request_customer_info():
-    return AirlineAgentContext(passenger_name="John Doe", confirmation_number="12345", seat_number="12A", flight_number="AA123")
+    return AirlineAgentContext(
+        passenger_name="John Doe",
+        confirmation_number="12345",
+        seat_number="12A",
+        flight_number="AA123",
+    )
 
 
 ### AGENTS
@@ -114,7 +119,9 @@ triage_agent = Agent[AirlineAgentContext](
 faq_agent.handoffs.append(triage_agent)
 seat_booking_agent.handoffs.append(triage_agent)
 
-agent_dict = {agent.name: agent for agent in [faq_agent, seat_booking_agent, triage_agent]}
+agent_dict = {
+    agent.name: agent for agent in [faq_agent, seat_booking_agent, triage_agent]
+}
 
 # AGENT
 
@@ -123,7 +130,6 @@ agent = restate.VirtualObject("Agent")
 
 # Keys of the K/V state stored in Restate per chat
 INPUT_ITEMS = "input-items"
-
 
 
 @agent.handler()
@@ -139,16 +145,22 @@ async def run(ctx: restate.ObjectContext, req: str) -> str:
     """
 
     input_items = await ctx.get(INPUT_ITEMS) or []
-    input_items.append({ "role": "user", "content": req })
+    input_items.append({"role": "user", "content": req})
     ctx.set(INPUT_ITEMS, input_items)
 
     last_agent_name = await ctx.get("agent") or triage_agent.name
     last_agent = agent_dict[last_agent_name]
 
-    agent_context = await ctx.run("request customer info", lambda: request_customer_info(), type_hint=AirlineAgentContext)
+    agent_context = await ctx.run(
+        "request customer info",
+        lambda: request_customer_info(),
+        type_hint=AirlineAgentContext,
+    )
 
     async def run_agent_session() -> tuple[str, str]:
-        result = await agents.Runner.run(last_agent, input=input_items, context=agent_context)
+        result = await agents.Runner.run(
+            last_agent, input=input_items, context=agent_context
+        )
         return str(result.final_output), result.last_agent.name
 
     output, last_agent_name = await ctx.run("run agent session", run_agent_session)

@@ -1,8 +1,8 @@
 # Resilient A2A Agents with Restate
 
-These examples uses [Restate](https://ai.restate.dev/) to implement the [Agent2Agent (A2A) protocol](https://github.com/google/A2A).
+These examples use [Restate](https://ai.restate.dev/) to implement the [Agent2Agent (A2A) protocol](https://github.com/google/A2A).
 
-In this example, Restate acts as a scalable, resilient task orchestrator that speaks the A2A protocol and gives you:
+Restate acts as a scalable, resilient task orchestrator that speaks the A2A protocol and gives you:
 - 🔁 **Automatic retries** - Handles LLM API downtime, timeouts, and infrastructure failures
 - 🔄 **Smart recovery** - Preserves progress across failures without duplicating work
 - ⏱️ **Persistent task handles** - Tracks progress across failures, time, and processes
@@ -39,7 +39,7 @@ This example shows how to run a single agent and use the A2A protocol to communi
     ```
 
 2. Start one of the agents, including their A2A server:
-   - **Restate Reimbursement Agent**: Run the Restate agent ([`agents/restatedev`](agents/restatedev/__main__.py)), if you want an agent with end-to-end durability for the agent loop and full observability of what the agent executes:
+   - **Restate Reimbursement Agent**: Run the Restate agent ([`agents/restatedev`](agents/restatedev/__main__.py)), if you want an agent with end-to-end durability for the agent loop and full observability of what the agent executes. The reimburse tool implements a long-running workflow that waits on a human approval:
        ```shell
        uv run agents/restatedev
        ```
@@ -76,17 +76,17 @@ You can now send A2A messages directly to agents via `curl` or the UI playground
 curl localhost:8080/CurrencyAgentA2AServer/process_request \
   --json '{
     "jsonrpc": "2.0",
-    "id": 67892,
+    "id": 67892345,
     "method":"tasks/send",
     "params": {
-    "id": "unique-task-id-790",
-    "sessionId": "session-id-013",
-    "message": {
-      "role":"user",
-      "parts": [{
-      "type":"text",
-      "text": "Convert 10 US dollars into euros."
-      }]
+        "id": "unique-task-id-79051",
+        "sessionId": "session-id-0135",
+        "message": {
+          "role":"user",
+          "parts": [{
+          "type":"text",
+          "text": "What is the exchange rate from USD to euro?"
+          }]
     },
     "metadata": {}
     }
@@ -99,33 +99,39 @@ curl localhost:8080/CurrencyAgentA2AServer/process_request \
 ```json
 {
   "jsonrpc": "2.0",
-  "id": 67892,
+  "id": 67892345,
   "result": {
-    "id": "unique-task-id-790",
-    "sessionId": "session-id-013",
+    "id": "unique-task-id-79051",
+    "sessionId": "session-id-0135",
     "status": {
-      "state": "input-required",
-      "message": {
-        "role": "agent",
+      "state": "completed",
+      "message": null,
+      "timestamp": "2025-05-21T09:38:05.097677"
+    },
+    "artifacts": [
+      {
+        "name": null,
+        "description": null,
         "parts": [
           {
             "type": "text",
-            "text": "I can only provide the exchange rate between USD and EUR. I cannot perform calculations. Would you like me to get the exchange rate between USD and EUR?",
+            "text": "The exchange rate from USD to EUR is 0.8896. That means 1 USD is equivalent to 0.8896 EUR.",
             "metadata": null
           }
         ],
-        "metadata": null
-      },
-      "timestamp": "2025-05-16T13:48:15.865158"
-    },
-    "artifacts": null,
+        "metadata": null,
+        "index": 0,
+        "append": null,
+        "lastChunk": null
+      }
+    ],
     "history": [
       {
         "role": "user",
         "parts": [
           {
             "type": "text",
-            "text": "Convert 10 US dollars into euros.",
+            "text": "What is the exchange rate from USD to euro?",
             "metadata": null
           }
         ],
@@ -179,7 +185,7 @@ curl localhost:8080/GoogleReimbursementAgentA2AServer/process_request \
     "status": {
       "state": "completed",
       "message": null,
-      "timestamp": "2025-05-16T13:56:12.541585"
+      "timestamp": "2025-05-21T09:38:54.553926"
     },
     "artifacts": [
       {
@@ -188,7 +194,7 @@ curl localhost:8080/GoogleReimbursementAgentA2AServer/process_request \
         "parts": [
           {
             "type": "text",
-            "text": "OK. I have created a request form for you. Please fill out the form and return it to me. The required fields are: Date, Amount, and Business Justification/Purpose.\n",
+            "text": "Your reimbursement request with request ID `request_id_9559913` has been approved.\n",
             "metadata": null
           }
         ],
@@ -384,10 +390,10 @@ This example shows how to run multiple agents and use the A2A protocol to commun
 
 <img src="img/multi_agent.png" alt="Restate UI" width="600"/>
 
-Make sure you have no other Restate server/services running. Then bring up the multi-agent example:
+Make sure you have no other Restate server/services running. Then bring up the multi-agent example **from the root of the repository**:
 
 ```shell
-docker compose up
+docker compose -f a2a/compose.yml up
 ```
 
 Go to the Restate UI ([`http://localhost:9070`](`http://localhost:9070`)). You see here the overview of the services that are running:
@@ -408,7 +414,7 @@ You can see in the Restate UI to which agents your host agent has access. For `m
 To bring the services down, run:
 
 ```shell
-docker compose down
-docker compose rm
+docker compose -f a2a/compose.yml down
+docker compose -f a2a/compose.yml rm
 ```
 

@@ -8,8 +8,8 @@ import random
 
 from typing import Any, Optional
 
-from common.server.middleware import AgentInvokeResult
-from common.types import TextPart
+from common.a2a_middleware import AgentInvokeResult
+from common.models import TextPart
 from google.adk.agents.llm_agent import LlmAgent
 from google.adk.artifacts import InMemoryArtifactService
 from google.adk.memory.in_memory_memory_service import InMemoryMemoryService

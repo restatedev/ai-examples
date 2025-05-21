@@ -31,6 +31,7 @@ Restate can also be used for other use cases, such as:
 [microservice orchestration](https://docs.restate.dev/use-cases/microservice-orchestration),
 [async tasks](https://docs.restate.dev/use-cases/async-tasks), 
 and [event processing](https://docs.restate.dev/use-cases/event-processing).
+Or check out the [Restate examples repository](https://github.com/restatedev/examples).
 
 This repository contains examples of how to use Restate for AI / Agent use cases.
 

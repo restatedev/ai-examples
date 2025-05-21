@@ -4,14 +4,11 @@ import calendar
 import json
 import logging
 
-from typing import Optional, Any
+from typing import Optional
 from datetime import datetime, timedelta
 from pydantic import BaseModel, ConfigDict
 
-from common.server.agent_session import (
-    restate_tool,
-    Agent,
-)
+from common.agent_session import Agent, restate_tool
 
 logger = logging.getLogger(__name__)
 
