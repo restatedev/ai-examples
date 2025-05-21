@@ -2,6 +2,7 @@ import sys
 
 import httpx
 
+
 def main():
     if len(sys.argv) == 0:
         raise ValueError("No input provided")

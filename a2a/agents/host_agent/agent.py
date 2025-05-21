@@ -52,7 +52,7 @@ host_agent = Agent(
     
     If there is an active agent, just forward the request to that agent as a handoff.
     """,
-    handoffs=[remote_agent.name for remote_agent in REMOTE_AGENTS]
+    handoffs=[remote_agent.name for remote_agent in REMOTE_AGENTS],
 )
 
 # Keyed by user id
@@ -62,7 +62,12 @@ host_agent_object = restate.VirtualObject("HostAgent")
 @host_agent_object.handler()
 async def handle_message(ctx: restate.ObjectContext, message: str) -> str:
     """Handle a message from the user."""
-    agent_response = await run_agent(ctx, AgentInput(
-        starting_agent=host_agent, agents=[host_agent, *REMOTE_AGENTS], message=message
-    ))
+    agent_response = await run_agent(
+        ctx,
+        AgentInput(
+            starting_agent=host_agent,
+            agents=[host_agent, *REMOTE_AGENTS],
+            message=message,
+        ),
+    )
     return agent_response.final_output

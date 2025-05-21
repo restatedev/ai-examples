@@ -25,7 +25,6 @@ def main():
     if not os.getenv("OPENAI_API_KEY"):
         raise MissingAPIKeyError("OPENAI_API_KEY environment variable not set.")
 
-
     app = restate.app(services=[host_agent_object])
 
     conf = hypercorn.Config()
