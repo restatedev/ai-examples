@@ -298,7 +298,7 @@ class SessionState:
         self._new_items.extend(user_messages)
 
     def add_system_message(
-            self, ctx: restate.ObjectContext, item: str, flush: bool = True
+        self, ctx: restate.ObjectContext, item: str, flush: bool = True
     ):
         system_message = SessionItem(content=item, role="system")
         self._input_items.append(system_message)
@@ -307,7 +307,7 @@ class SessionState:
             ctx.set(self.state_name, self._input_items)
 
     def add_system_messages(
-            self, ctx: restate.ObjectContext, items: List[str], flush: bool = False
+        self, ctx: restate.ObjectContext, items: List[str], flush: bool = False
     ):
         system_messages = [SessionItem(content=item, role="system") for item in items]
         self._input_items.extend(system_messages)
@@ -327,16 +327,12 @@ agent_session = restate.VirtualObject("AgentSession")
 
 
 @agent_session.handler()
-async def run_agent_session(
-        ctx: restate.ObjectContext, req: AgentInput
-):
+async def run_agent_session(ctx: restate.ObjectContext, req: AgentInput):
     return await run_agent(ctx, req)
 
 
 # Option 2: call this method immediately from the chat session/workflow
-async def run_agent(
-        ctx: restate.ObjectContext, req: AgentInput
-) -> AgentResponse:
+async def run_agent(ctx: restate.ObjectContext, req: AgentInput) -> AgentResponse:
     """
     Runs an end-to-end agent interaction:
     1. calls the LLM with the input
@@ -571,9 +567,9 @@ async def run_agent(
 
 
 async def parse_llm_response(
-        agents_dict: Dict[str, Agent],
-        output: List[ResponseOutputItem],
-        tools: Dict[str, RestateTool],
+    agents_dict: Dict[str, Agent],
+    output: List[ResponseOutputItem],
+    tools: Dict[str, RestateTool],
 ):
     tool_calls = []
     run_handoffs = []
@@ -582,10 +578,10 @@ async def parse_llm_response(
         if isinstance(item, ResponseOutputMessage):
             output_messages.append(item)
         elif (
-                isinstance(item, ResponseFileSearchToolCall)
-                or isinstance(item, ResponseFunctionWebSearch)
-                or isinstance(item, ResponseReasoningItem)
-                or isinstance(item, ResponseComputerToolCall)
+            isinstance(item, ResponseFileSearchToolCall)
+            or isinstance(item, ResponseFunctionWebSearch)
+            or isinstance(item, ResponseReasoningItem)
+            or isinstance(item, ResponseComputerToolCall)
         ):
             raise ValueError(
                 "This implementation does not support file search, web search, computer tools, or reasoning yet."
@@ -688,7 +684,7 @@ def to_tool_call(tool: RestateTool, item: ResponseFunctionToolCall) -> ToolCall:
 
 
 async def call_remote_agent(
-        ctx: restate.ObjectContext, card: AgentCard, message: str
+    ctx: restate.ObjectContext, card: AgentCard, message: str
 ) -> Task | None:
     request = await ctx.run(
         "Generate send request",

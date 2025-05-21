@@ -25,7 +25,6 @@ members = [
     "a2a",
     "agents",
     "diy-patterns",
-    "end-to-end-applications/credit-workflows",
 ]
 
 [build-system]

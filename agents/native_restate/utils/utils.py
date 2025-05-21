@@ -3,8 +3,15 @@ import random
 
 from datetime import datetime, timedelta
 
-from .models import TransactionHistory, Transaction, CustomerLoanOverview, LoanRequest, Loan, LoanDecision, \
-    RecurringLoanPayment
+from .models import (
+    TransactionHistory,
+    Transaction,
+    CustomerLoanOverview,
+    LoanRequest,
+    Loan,
+    LoanDecision,
+    RecurringLoanPayment,
+)
 
 
 async def time_now(ctx: restate.WorkflowContext | restate.ObjectContext) -> int:
@@ -82,16 +89,15 @@ def generate_loan_overview():
                 loan_request=LoanRequest(
                     customer_id="customer_123",
                     loan_amount=10000,
-                    loan_duration_months=12
+                    loan_duration_months=12,
                 ),
-                loan_decision= LoanDecision(
-                    approved= True,
+                loan_decision=LoanDecision(
+                    approved=True,
                     reason="You have a good credit score. And you do not do risky transactions such as gambling.",
                 ),
-                loan_payment= RecurringLoanPayment(
-                    monthly_amount= 9856.07,
-                    months_left= 11
-                )
+                loan_payment=RecurringLoanPayment(
+                    monthly_amount=9856.07, months_left=11
+                ),
             )
         ]
     )

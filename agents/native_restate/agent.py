@@ -2,7 +2,8 @@ import restate
 
 from account import (
     get_balance,
-    get_transaction_history, get_customer_loans,
+    get_transaction_history,
+    get_customer_loans,
 )
 from common.agent_session import (
     run_agent as agent_session_run,
@@ -82,6 +83,7 @@ chat_agents = [bank_agent, loan_agent, intake_agent]
 # Keyed by customer id
 agent = restate.VirtualObject("Agent")
 
+
 @agent.handler()
 async def run(ctx: restate.ObjectContext, req: str) -> str:
     """
@@ -93,7 +95,9 @@ async def run(ctx: restate.ObjectContext, req: str) -> str:
     Returns:
         str: The response from the agent.
     """
-    result = await agent_session_run(ctx, AgentInput(
+    result = await agent_session_run(
+        ctx,
+        AgentInput(
             starting_agent=intake_agent,
             agents=chat_agents,
             message=f"For customer ID {ctx.key()}: {req}",  # this is the input for the LLM call
