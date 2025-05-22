@@ -2,6 +2,7 @@ import sys
 
 import httpx
 
+
 def main():
     if len(sys.argv) == 0:
         raise ValueError("No input provided")
@@ -9,9 +10,7 @@ def main():
 
     r = httpx.post(
         "http://localhost:8080/ChatService/my-user/send_message",
-        json={
-
-        },
+        json={},
         timeout=60,
     )
     r.raise_for_status()

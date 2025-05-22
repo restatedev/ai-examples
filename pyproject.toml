@@ -25,6 +25,8 @@ members = [
     "a2a",
     "agents",
     "diy-patterns",
+    "end-to-end-applications/credit-workflows",
+    "end-to-end-applications/insurance-claims",
 ]
 
 [build-system]

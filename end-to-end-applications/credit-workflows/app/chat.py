@@ -1,12 +1,12 @@
 import restate
 
-from .account import (
+from account import (
     get_customer_credits,
     submit_credit_request,
     get_balance,
     get_transaction_history,
 )
-from .credit_review_agent import on_additional_info
+from credit_review_agent import on_additional_info
 from utils.models import ChatMessage, ChatHistory
 from common.agent_session import (
     run_agent_session,
@@ -52,9 +52,7 @@ async def send_message(ctx: restate.ObjectContext, req: ChatMessage) -> ChatMess
         ),
     )
 
-    new_message = ChatMessage(
-        role="system", content=result.final_output
-    )
+    new_message = ChatMessage(role="system", content=result.final_output)
     history.entries.append(new_message)
     ctx.set(CHAT_HISTORY, history)
     return new_message

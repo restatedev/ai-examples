@@ -3,13 +3,18 @@ import restate
 
 from datetime import timedelta
 
-from .utils.utils import time_now_string
-from .utils.models import (
+from utils.utils import time_now_string
+from utils.models import (
     Transaction,
     TransactionHistory,
-    Credit, CreditRequest, CreditReviewRequest, CreditDecision, RecurringCreditPayment, CustomerCreditOverview,
+    Credit,
+    CreditRequest,
+    CreditReviewRequest,
+    CreditDecision,
+    RecurringCreditPayment,
+    CustomerCreditOverview,
 )
-from .utils.utils import generate_transactions, time_now
+from utils.utils import generate_transactions, time_now
 
 # Keyed by customer ID
 account = restate.VirtualObject("Account")
@@ -158,7 +163,8 @@ async def get_customer_credits(ctx: restate.ObjectContext) -> CustomerCreditOver
         CustomerCreditOverview: The overview of the customer's outstanding credits and credit requests.
     """
     return (
-        await ctx.get(CREDITS, type_hint=CustomerCreditOverview) or CustomerCreditOverview()
+        await ctx.get(CREDITS, type_hint=CustomerCreditOverview)
+        or CustomerCreditOverview()
     )
 
 

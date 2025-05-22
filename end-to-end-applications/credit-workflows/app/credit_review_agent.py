@@ -1,10 +1,10 @@
 import restate
 
-from .utils.agent_session import (
+from common.agent_session import (
     restate_tool,
     RECOMMENDED_PROMPT_PREFIX,
     Agent,
-    run as agent_session_run,
+    run_agent_session,
     AgentInput,
 )
 from .credit_review_workflow import on_credit_decision
@@ -144,7 +144,7 @@ async def request_additional_info(
     from .chat import message_to_customer_agent, chat_agents
 
     ctx.object_send(
-        agent_session_run,
+        run_agent_session,
         key=req.customer_id,
         arg=AgentInput(
             starting_agent=message_to_customer_agent,

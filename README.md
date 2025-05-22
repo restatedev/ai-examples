@@ -49,6 +49,9 @@ This repository contains examples of how to use Restate for AI / Agent use cases
 2. [**Agents**](agents): Using Restate (optionally with Agent SDKs) for resilient agentic workflows.
 3. [**MCP**](mcp): Using Restate for exposing tools and resilient orchestration of tool calls.
 4. [**A2A**](a2a): Implement Google's Agent-to-Agent protocol with Restate as resilient, scalable task orchestrator.
+5. [**End-to-end applications**](end-to-end-applications): 
+   - [Insurance claims](end-to-end-applications/insurance-claims): Filing insurance claims by parsing PDF receipts with LLMs.
+   - [Credit workflows](end-to-end-applications/credit-workflows): A credit approval workflow with agentic steps.
 
 
 Restate supports 6 languages:

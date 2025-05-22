@@ -2,13 +2,10 @@ import restate
 
 from datetime import timedelta
 
-from .utils.models import CreditReviewRequest, CreditDecision, CreditDecisionSerde
-from .utils.utils import time_now_string
-from .utils.agent_session import (
-    AgentInput,
-    run as agent_session_run,
-)
-from .account import (
+from utils.models import CreditReviewRequest, CreditDecision, CreditDecisionSerde
+from utils.utils import time_now_string
+from common.agent_session import AgentInput, run_agent_session
+from account import (
     Transaction,
     process_credit_decision,
     withdraw as account_withdraw,
@@ -74,8 +71,8 @@ async def run(
     """
     req = credit_review_request.credit_request
     # 1. Assess the credit request
-    if req.credit_amount < 1000000:
-        # Credits under 1M can be approved by the AI agent
+    if req.credit_amount < 5000:
+        # Credits under 5K can be approved by the AI agent
         history = credit_review_request.transaction_history.model_dump_json()
         credit_intake_data = (
             f"Credit approval workflow ID: {ctx.key()} --> Use this key to communicate back to the workflow."
@@ -85,7 +82,7 @@ async def run(
         from .credit_review_agent import credit_review_agent
 
         ctx.object_send(
-            agent_session_run,
+            run_agent_session,
             key=ctx.key(),
             arg=AgentInput(
                 starting_agent=credit_review_agent,
@@ -124,7 +121,9 @@ async def run(
 
 
 @credit_review_workflow.handler()
-async def on_credit_decision(ctx: restate.WorkflowSharedContext, decision: CreditDecision):
+async def on_credit_decision(
+    ctx: restate.WorkflowSharedContext, decision: CreditDecision
+):
     """
     This tool lets you approve or reject a credit.
 
