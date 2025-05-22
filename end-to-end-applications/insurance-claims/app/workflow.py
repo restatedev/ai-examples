@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 client = OpenAI()
 
-claim_workflow = restate.Workflow("InsuranceClaimWorkflow")
+claim_workflow = restate.Service("InsuranceClaimWorkflow")
 
 
 @claim_workflow.handler()

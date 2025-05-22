@@ -5,20 +5,13 @@ import logging
 
 from workflow import claim_workflow
 
-
-def setup_logging():
-    """
-    Set up logging configuration.
-    """
-    logging.basicConfig(
-        level=logging.INFO,
-        format="[%(asctime)s] [%(process)d] [%(levelname)s] - %(message)s",
-    )
+logging.basicConfig(
+    level=logging.INFO,
+    format="[%(asctime)s] [%(process)d] [%(levelname)s] - %(message)s",
+)
 
 
 def main():
-    setup_logging()
-
     app = restate.app(services=[claim_workflow])
 
     conf = hypercorn.Config()

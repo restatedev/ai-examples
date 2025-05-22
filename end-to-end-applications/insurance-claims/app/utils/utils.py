@@ -1,14 +1,11 @@
 import logging
 import uuid
 
-from openai import OpenAI
 from pypdf import PdfReader
 
 from .models import ClaimData
 
 logger = logging.getLogger(__name__)
-
-client = OpenAI()
 
 
 def extract_text_from_pdf(url: str) -> str:
