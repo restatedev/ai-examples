@@ -53,10 +53,6 @@ from .models import (
     TaskState,
 )
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="[%(asctime)s] [%(process)d] [%(levelname)s] - %(message)s",
-)
 logger = logging.getLogger(__name__)
 
 I = TypeVar("I", bound=BaseModel)
@@ -327,7 +323,9 @@ agent_session = restate.VirtualObject("AgentSession")
 
 
 @agent_session.handler()
-async def run_agent_session(ctx: restate.ObjectContext, req: AgentInput):
+async def run_agent_session(
+    ctx: restate.ObjectContext, req: AgentInput
+) -> AgentResponse:
     return await run_agent(ctx, req)
 
 

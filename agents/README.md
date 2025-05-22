@@ -110,7 +110,7 @@ Or with the [client](client/__main__.py):
 
 This example implements a bank agent that can answer questions about your balance, loans and transactions.
 
-1. Export your OpenAI or Anthrophic API key as an environment variable:
+1. Export your OpenAI key as an environment variable:
     ```shell
     export OPENAI_API_KEY=your_openai_api_key
     ```
