@@ -4,8 +4,9 @@ This example implements an agent whose work can be interrupted when new input be
 
 
 Important files:
-- [`chat.py`](app/chat.py): The chat VO, which receives the user input and agent responses. It tracks ongoing agent sessions and cancels them on new user input.
-- [`agent.py`](app/agent.py): The agent session VO, which executes the agent loop.
+- [`chat.py`](app/chat.py): The chat service, which receives the user input and agent responses. Based on the selected operational mode, it interacts differently with the ongoing agent runs on new inputs. 
+The chat session is keyed by the user ID. 
+- [`agent.py`](app/agent.py): The agent session which executes the customized agent loop.
 
 The agent has three modes:
 - **INTERRUPT**: The current agent run will be canceled when a new user input is received. A new run will be started. You could implement a rollback mechanism to restore the previous state.
@@ -87,6 +88,25 @@ In this mode, the current agent will be canceled when a new user input is receiv
 
 Start the service with `MODE=INTERRUPT`.
 
+To start from a clean slate, use a different chat session name (e.g. `ella` instead of `ella`).
+
+```shell
+curl localhost:8080/ChatService/ella/process_user_message \
+  --json '{
+  "content": "Prepare a burger and a caesar salad.",
+  "role": "user"
+}'
+```
+
+A bit later, start a new task:
+
+```shell
+curl localhost:8080/ChatService/ella/process_user_message \
+  --json '{
+  "content": "Oh, and please add some croutons to the salad!",
+  "role": "user"
+}'
+
 If you send a few messages to the same session, you will see the cancellation in the logs and the UI will show only the new task.
 
 ```text
@@ -108,5 +128,8 @@ If you send a few messages to the same session, you will see the cancellation in
 ### `QUEUE` mode
 
 In this mode, the new tasks get queued. If you send a few messages to the same session, you will see the pending tasks in the UI.
+
+Start the service with `MODE=QUEUE`. And use again a different chat session name (replace `peter`).
+
 
 <img src="img/queue.png" alt="Interruptible agent" width="1000"/>
