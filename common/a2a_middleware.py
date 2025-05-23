@@ -314,6 +314,8 @@ def _build_services(middleware: AgentMiddleware):
             try:
                 json_rpc_request = A2ARequest.validate_python(req.model_dump())
             except Exception as e:
+                if isinstance(e, restate.vm.SuspendedException):
+                    raise e
                 logger.error("Error validating request: %s", e)
                 return JSONRPCResponse(
                     id=req.id,

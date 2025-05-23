@@ -34,7 +34,6 @@ from openai.types.responses import (
 from pydantic import BaseModel, ConfigDict, Field
 from restate import TerminalError
 from restate.handler import handler_from_callable
-from restate.serde import PydanticJsonSerde
 from typing_extensions import Generic
 
 from .models import (
@@ -47,7 +46,6 @@ from .models import (
     SendTaskResponse,
     JSONRPCRequest,
     A2AClientHTTPError,
-    A2AClientJSONError,
     Message,
     TextPart,
     TaskState,
@@ -232,7 +230,6 @@ class AgentInput(BaseModel):
     starting_agent: Agent
     agents: list[Agent]
     message: str
-    force_starting_agent: bool = False
 
 
 class AgentResponse(BaseModel):
@@ -348,12 +345,8 @@ async def run_agent(ctx: restate.ObjectContext, req: AgentInput) -> AgentRespons
     logging.info(f"{logging_prefix} Starting agent session")
     session_state = SessionState(input_items=await ctx.get("agent_state"))
     session_state.add_user_message(ctx, req.message)
-
-    if req.force_starting_agent:
-        # We ignore the current agent, and use the starting agent in the message
-        agent_name = req.starting_agent.formatted_name
-    else:
-        agent_name = await ctx.get("agent_name") or req.starting_agent.formatted_name
+    
+    agent_name = await ctx.get("agent_name") or req.starting_agent.formatted_name
     ctx.set("agent_name", agent_name)
     logging.info(f"{logging_prefix} Current agent is {agent_name}")
 
@@ -405,7 +398,7 @@ async def run_agent(ctx: restate.ObjectContext, req: AgentInput) -> AgentRespons
                 parallel_tool_calls=True,
                 stream=False,
             ),
-            serde=PydanticJsonSerde(Response),
+            type_hint=Response,
         )
 
         # Register the output in the session state
@@ -419,13 +412,8 @@ async def run_agent(ctx: restate.ObjectContext, req: AgentInput) -> AgentRespons
                 agents_dict, response.output, tools
             )
         except Exception as e:
-            logger.info(
-                f"""{logging_prefix} Output of LLM response parsing:
-                Tool calls: {tool_calls}
-                Run handoffs: {run_handoffs}
-                Output messages: {output_messages}
-                """
-            )
+            if isinstance(e, restate.vm.SuspendedException):
+                raise e
             logger.warning(f"{logging_prefix} Failed to parse LLM response: {str(e)}")
             session_state.add_system_message(
                 ctx, f"Failed to parse LLM response: {str(e)}"
@@ -437,7 +425,6 @@ async def run_agent(ctx: restate.ObjectContext, req: AgentInput) -> AgentRespons
         parallel_tools = []
         for tool_call in tool_calls:
             logger.info(f"{logging_prefix} Executing tool {tool_call.name}")
-            # session_state.add_system_message(ctx, f"Executing tool {tool_call.name}.")
             try:
                 if tool_call.delay_in_millis is None:
                     handle = ctx.generic_call(
@@ -460,17 +447,17 @@ async def run_agent(ctx: restate.ObjectContext, req: AgentInput) -> AgentRespons
                     ctx, f"Task {tool_call.name} was scheduled"
                 )
             except Exception as e:
-                if not isinstance(e, restate.vm.SuspendedException):
-                    logger.warning(
-                        f"{logging_prefix} Failed to execute tool {tool_call.name}: {str(e)}"
-                    )
-                    session_state.add_system_message(
-                        ctx,
-                        f"Failed to execute tool {tool_call.name}: {str(e)}",
-                    )
-                    # We add it to the session_state to feed it back into the next LLM call
-                else:
+                if isinstance(e, restate.vm.SuspendedException):
                     raise e
+                # We add it to the session_state to feed it back into the next LLM call
+                logger.warning(
+                    f"{logging_prefix} Failed to execute tool {tool_call.name}: {str(e)}"
+                )
+                session_state.add_system_message(
+                    ctx,
+                    f"Failed to execute tool {tool_call.name}: {str(e)}",
+                )
+
         if len(parallel_tools) > 0:
             results_done = await restate.gather(*parallel_tools)
             results = [(await result).decode() for result in results_done]
@@ -513,7 +500,7 @@ async def run_agent(ctx: restate.ObjectContext, req: AgentInput) -> AgentRespons
                 try:
                     remote_agent_to_call = agents_dict.get(handoff_command.name)
                     if remote_agent_to_call is None:
-                        raise ValueError(
+                        raise TerminalError(
                             f"Agent {handoff_command.name} not found in the list of agents."
                         )
                     remote_agent_output = await call_remote_agent(
@@ -525,21 +512,15 @@ async def run_agent(ctx: restate.ObjectContext, req: AgentInput) -> AgentRespons
                         ctx,
                         f"Agent response: {remote_agent_output}",
                     )
-                except Exception as e:
-                    # if isinstance(e, restate.vm.SuspendedException) or isinstance(e, httpx.ReadTimeout):
-                    # Surface suspensions
-                    # And surface read timeouts --> leads to a retry with idempotency key (=attach)
-                    raise e
-                # TODO Are there some errors that we don't want to retry but feed back into the model? Think about the split here
-                # else:
-                #     logger.warning(
-                #         f"{logging_prefix} Failed to call remote agent {handoff_command.model_dump_json()}: {str(e)}"
-                #     )
-                #     session_state.add_system_message(
-                #         ctx,
-                #         f"Failed to call remote agent {handoff_command.model_dump_json()}: {str(e)}",
-                #     )
-                # We add it to the session_state to feed it back into the next LLM call
+                except TerminalError as e:
+                    logger.warning(
+                        f"{logging_prefix} Failed to call remote agent {handoff_command.model_dump_json()}: {str(e)}"
+                    )
+                    session_state.add_system_message(
+                        ctx,
+                        f"Failed to call remote agent {handoff_command.model_dump_json()}: {str(e)}",
+                    )
+                    # We add it to the session_state to feed it back into the next LLM call
             else:
                 # Start a new agent loop with the new agent
                 agent = next_agent
@@ -606,7 +587,6 @@ async def parse_llm_response(
 
 
 # UTILS
-
 
 def format_name(name: str) -> str:
     return name.replace(" ", "_").lower()
@@ -699,13 +679,11 @@ async def call_remote_agent(
     logger.info(
         f"Sending request to {card.name} at {card.url} with request payload: {request.model_dump()}"
     )
-    response_json = await ctx.run("Call Agent", send_request, args=(card.url, request))
-    response = SendTaskResponse(**response_json)
+    response = await ctx.run("Call Agent", send_request, args=(card.url, request))
     logger.info(
         f"Received response from {card.name}: {response.result.model_dump_json()}"
     )
 
-    # TODO Check with the protocol to see if it is expected behavior to find these fields for these states
     match response.result.status.state:
         case TaskState.INPUT_REQUIRED:
             final_output = f"MISSING_INFO: {response.result.status.message.parts}"
@@ -722,13 +700,10 @@ async def call_remote_agent(
         case _:
             final_output = "Task status unknown"
 
-    # if task_callback:
-    #     task_callback(final_output)
-
     return final_output
 
 
-async def send_request(url: str, request: JSONRPCRequest) -> dict[str, Any]:
+async def send_request(url: str, request: JSONRPCRequest) -> SendTaskResponse:
     async with httpx.AsyncClient() as client:
         try:
             # Image generation could take time, increasing timeout
@@ -736,11 +711,8 @@ async def send_request(url: str, request: JSONRPCRequest) -> dict[str, Any]:
             resp = await client.post(
                 url, json=request.model_dump(), headers=headers, timeout=300
             )
-            # TODO handle httpx.ReadTimeout --> for long-running tasks what is the behavior we want here? Use push notifications?
             # Right now we are just catching these and letting it retry
             resp.raise_for_status()
-            return resp.json()
-        except httpx.HTTPStatusError as e:
-            raise A2AClientHTTPError(e.response.status_code, str(e)) from e
-        except json.JSONDecodeError as e:
-            raise A2AClientJSONError(str(e)) from e
+            return SendTaskResponse(**resp.json())
+        except (json.JSONDecodeError, TypeError) as e:
+            raise TerminalError(str(e)) from e
