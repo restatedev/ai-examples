@@ -1,0 +1,21 @@
+[project]
+name = "restate-interruptible-agent"
+version = "0.1.0"
+description = "Python example of an interruptible agent using Restate"
+readme = "README.md"
+requires-python = ">=3.12"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+dependencies = [
+    "restate-ai-examples",
+    "pypdf"
+]
+
+[tool.uv.sources]
+restate-ai-examples = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
