@@ -419,13 +419,6 @@ async def run_agent(ctx: restate.ObjectContext, req: AgentInput) -> AgentRespons
                 agents_dict, response.output, tools
             )
         except Exception as e:
-            logger.info(
-                f"""{logging_prefix} Output of LLM response parsing:
-                Tool calls: {tool_calls}
-                Run handoffs: {run_handoffs}
-                Output messages: {output_messages}
-                """
-            )
             logger.warning(f"{logging_prefix} Failed to parse LLM response: {str(e)}")
             session_state.add_system_message(
                 ctx, f"Failed to parse LLM response: {str(e)}"
@@ -526,20 +519,9 @@ async def run_agent(ctx: restate.ObjectContext, req: AgentInput) -> AgentRespons
                         f"Agent response: {remote_agent_output}",
                     )
                 except Exception as e:
-                    # if isinstance(e, restate.vm.SuspendedException) or isinstance(e, httpx.ReadTimeout):
                     # Surface suspensions
                     # And surface read timeouts --> leads to a retry with idempotency key (=attach)
                     raise e
-                # TODO Are there some errors that we don't want to retry but feed back into the model? Think about the split here
-                # else:
-                #     logger.warning(
-                #         f"{logging_prefix} Failed to call remote agent {handoff_command.model_dump_json()}: {str(e)}"
-                #     )
-                #     session_state.add_system_message(
-                #         ctx,
-                #         f"Failed to call remote agent {handoff_command.model_dump_json()}: {str(e)}",
-                #     )
-                # We add it to the session_state to feed it back into the next LLM call
             else:
                 # Start a new agent loop with the new agent
                 agent = next_agent
@@ -704,8 +686,6 @@ async def call_remote_agent(
     logger.info(
         f"Received response from {card.name}: {response.result.model_dump_json()}"
     )
-
-    # TODO Check with the protocol to see if it is expected behavior to find these fields for these states
     match response.result.status.state:
         case TaskState.INPUT_REQUIRED:
             final_output = f"MISSING_INFO: {response.result.status.message.parts}"
@@ -721,10 +701,6 @@ async def call_remote_agent(
             final_output = "Task is in progress"
         case _:
             final_output = "Task status unknown"
-
-    # if task_callback:
-    #     task_callback(final_output)
-
     return final_output
 
 
