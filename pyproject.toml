@@ -26,6 +26,7 @@ members = [
     "agents",
     "diy-patterns",
     "end-to-end-applications/insurance-claims",
+    "end-to-end-applications/interruptible-agent",
 ]
 
 [build-system]

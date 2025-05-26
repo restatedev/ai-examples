@@ -14,6 +14,7 @@ members = [
     "diy-patterns",
     "insurance-claims",
     "restate-ai-examples",
+    "restate-interruptible-agent",
 ]
 
 [[package]]
@@ -1771,6 +1772,11 @@ requires-dist = [
     { name = "restate-sdk", extras = ["serde"], specifier = ">=0.7.3" },
 ]
 provides-extras = ["dev"]
+
+[[package]]
+name = "restate-interruptible-agent"
+version = "0.1.0"
+source = { editable = "end-to-end-applications/interruptible-agent" }
 
 [[package]]
 name = "restate-sdk"
