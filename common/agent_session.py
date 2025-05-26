@@ -28,7 +28,6 @@ from openai.types.responses import (
     ResponseFunctionWebSearch,
     ResponseReasoningItem,
     ResponseComputerToolCall,
-    ResponseOutputText,
     ResponseOutputItem,
 )
 from pydantic import BaseModel, ConfigDict, Field
@@ -45,7 +44,6 @@ from .models import (
     SendTaskRequest,
     SendTaskResponse,
     JSONRPCRequest,
-    A2AClientHTTPError,
     Message,
     TextPart,
     TaskState,
@@ -350,7 +348,7 @@ async def run_agent(ctx: restate.ObjectContext, req: AgentInput) -> AgentRespons
     ctx.set("agent_name", agent_name)
     logging.info(f"{logging_prefix} Current agent is {agent_name}")
 
-    agents_dict = {agent.formatted_name: agent for agent in req.agents}
+    agents_dict = {ag.formatted_name: ag for ag in req.agents}
     agent = agents_dict.get(agent_name)
 
     if agent is None:
@@ -369,12 +367,12 @@ async def run_agent(ctx: restate.ObjectContext, req: AgentInput) -> AgentRespons
         tools = {tool.formatted_name: tool for tool in agent.tools}
         tool_and_handoffs_list = [tool.tool_schema for tool in agent.tools]
         logger.info(
-            f"{logging_prefix}  Starting iteration of agent loop with agent: {agent.name} and tools/handoffs: {[tool.formatted_name for tool in agent.tools]}"
+            f"{logging_prefix}  Starting iteration of agent loop with agent: {agent.name} and tools/handoffs: {[t.formatted_name for t in agent.tools]}"
         )
 
         for handoff_agent_name in agent.handoffs:
             handoff_agent = agents_dict.get(format_name(handoff_agent_name))
-            # If the agent is not found, we ignore only use the other handoff agents.
+            # If the agent is not found, we ignore it
             if handoff_agent is None:
                 logger.warning(
                     f"Agent {handoff_agent_name} not found in the list of agents. Ignoring this agent. Available agents: {list(agents_dict.keys())}"
@@ -446,9 +444,7 @@ async def run_agent(ctx: restate.ObjectContext, req: AgentInput) -> AgentRespons
                 session_state.add_system_message(
                     ctx, f"Task {tool_call.name} was scheduled"
                 )
-            except Exception as e:
-                if isinstance(e, restate.vm.SuspendedException):
-                    raise e
+            except TerminalError as e:
                 # We add it to the session_state to feed it back into the next LLM call
                 logger.warning(
                     f"{logging_prefix} Failed to execute tool {tool_call.name}: {str(e)}"
@@ -532,18 +528,14 @@ async def run_agent(ctx: restate.ObjectContext, req: AgentInput) -> AgentRespons
 
         # Handle output messages
         # If there are no output messages, then we just continue the loop
-        if output_messages:
-            last_content = (
-                output_messages[-1].content[-1] if output_messages[-1].content else None
+        final_output = response.output_text
+        if final_output != "":
+            logger.info(f"{logging_prefix} Final output message: {final_output}")
+            return AgentResponse(
+                agent=agent.name,
+                messages=session_state.get_new_items(),
+                final_output=final_output,
             )
-            if isinstance(last_content, ResponseOutputText):
-                logger.info(f"{logging_prefix} Final output message: {last_content}")
-                return AgentResponse(
-                    agent=agent.name,
-                    messages=session_state.get_new_items(),
-                    final_output=last_content.text,
-                )
-
 
 async def parse_llm_response(
     agents_dict: Dict[str, Agent],
@@ -586,7 +578,6 @@ async def parse_llm_response(
     return output_messages, run_handoffs, tool_calls
 
 
-# UTILS
 
 def format_name(name: str) -> str:
     return name.replace(" ", "_").lower()
