@@ -101,6 +101,16 @@ class Empty(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
+class AgentError(Exception):
+    """
+    Errors that should be fed back into the next agent loop.
+    """
+
+    def __init__(self, message: str):
+        self.message = message
+        super().__init__(f"Agent Error: {message}")
+
+
 class RestateRequest(BaseModel, Generic[I]):
     """
     Represents a request to a Restate service.
@@ -343,7 +353,7 @@ async def run_agent(ctx: restate.ObjectContext, req: AgentInput) -> AgentRespons
     logging.info(f"{logging_prefix} Starting agent session")
     session_state = SessionState(input_items=await ctx.get("agent_state"))
     session_state.add_user_message(ctx, req.message)
-    
+
     agent_name = await ctx.get("agent_name") or req.starting_agent.formatted_name
     ctx.set("agent_name", agent_name)
     logging.info(f"{logging_prefix} Current agent is {agent_name}")
@@ -397,6 +407,7 @@ async def run_agent(ctx: restate.ObjectContext, req: AgentInput) -> AgentRespons
                 stream=False,
             ),
             type_hint=Response,
+            max_attempts=3,  # To using too many credits on infinite retries during development
         )
 
         # Register the output in the session state
@@ -409,9 +420,7 @@ async def run_agent(ctx: restate.ObjectContext, req: AgentInput) -> AgentRespons
             output_messages, run_handoffs, tool_calls = await parse_llm_response(
                 agents_dict, response.output, tools
             )
-        except Exception as e:
-            if isinstance(e, restate.vm.SuspendedException):
-                raise e
+        except AgentError as e:
             logger.warning(f"{logging_prefix} Failed to parse LLM response: {str(e)}")
             session_state.add_system_message(
                 ctx, f"Failed to parse LLM response: {str(e)}"
@@ -496,7 +505,7 @@ async def run_agent(ctx: restate.ObjectContext, req: AgentInput) -> AgentRespons
                 try:
                     remote_agent_to_call = agents_dict.get(handoff_command.name)
                     if remote_agent_to_call is None:
-                        raise TerminalError(
+                        raise AgentError(
                             f"Agent {handoff_command.name} not found in the list of agents."
                         )
                     remote_agent_output = await call_remote_agent(
@@ -508,7 +517,7 @@ async def run_agent(ctx: restate.ObjectContext, req: AgentInput) -> AgentRespons
                         ctx,
                         f"Agent response: {remote_agent_output}",
                     )
-                except TerminalError as e:
+                except AgentError as e:
                     logger.warning(
                         f"{logging_prefix} Failed to call remote agent {handoff_command.model_dump_json()}: {str(e)}"
                     )
@@ -537,6 +546,7 @@ async def run_agent(ctx: restate.ObjectContext, req: AgentInput) -> AgentRespons
                 final_output=final_output,
             )
 
+
 async def parse_llm_response(
     agents_dict: Dict[str, Agent],
     output: List[ResponseOutputItem],
@@ -554,7 +564,8 @@ async def parse_llm_response(
             or isinstance(item, ResponseReasoningItem)
             or isinstance(item, ResponseComputerToolCall)
         ):
-            raise ValueError(
+            # feed error message back to LLM
+            raise AgentError(
                 "This implementation does not support file search, web search, computer tools, or reasoning yet."
             )
 
@@ -565,18 +576,19 @@ async def parse_llm_response(
             else:
                 # Tool calls
                 if item.name not in tools.keys():
-                    raise ValueError(
+                    # feed error message back to LLM
+                    raise AgentError(
                         f"This agent does not have access to this tool: {item.name}. Use another tool or handoff."
                     )
                 tool = tools[item.name]
                 tool_calls.append(to_tool_call(tool, item))
         else:
-            raise ValueError(
+            # feed error message back to LLM
+            raise AgentError(
                 f"This agent cannot handle this output type {type(item)}. Use another tool or handoff.",
             )
 
     return output_messages, run_handoffs, tool_calls
-
 
 
 def format_name(name: str) -> str:
@@ -599,7 +611,7 @@ def restate_tool(tool_call: Callable[[Any, I], Awaitable[O]]) -> RestateTool:
         case "service":
             description = target_handler.description
         case _:
-            raise TerminalError(f"Unknown service type {service_type}")
+            raise TerminalError(f"Unknown service type {service_type}. Is this tool a Restate handler?")
 
     return RestateTool(
         service_name=target_handler.service_tag.name,
@@ -638,7 +650,8 @@ def to_tool_call(tool: RestateTool, item: ResponseFunctionToolCall) -> ToolCall:
     if tool.service_type in {"workflow", "object"}:
         key = tool_request.get("key")
         if key is None:
-            raise ValueError(
+            # feed error message back to LLM
+            raise AgentError(
                 f"Service key is required for {tool.service_type} ${tool.service_name} but not provided in the request."
             )
 
@@ -696,14 +709,19 @@ async def call_remote_agent(
 
 async def send_request(url: str, request: JSONRPCRequest) -> SendTaskResponse:
     async with httpx.AsyncClient() as client:
+        # retry any errors that come out of this
+        resp = await client.post(
+            url,
+            json=request.model_dump(),
+            headers={"idempotency-key": request.id},
+            timeout=300,
+        )
+        resp.raise_for_status()
+
         try:
-            # Image generation could take time, increasing timeout
-            headers = {"idempotency-key": request.id}
-            resp = await client.post(
-                url, json=request.model_dump(), headers=headers, timeout=300
-            )
-            # Right now we are just catching these and letting it retry
-            resp.raise_for_status()
             return SendTaskResponse(**resp.json())
         except (json.JSONDecodeError, TypeError) as e:
-            raise TerminalError(str(e)) from e
+            # feed error message back to LLM
+            raise AgentError(
+                f"Response was not in A2A SendTaskResponse format. Error: {str(e)}"
+            ) from e

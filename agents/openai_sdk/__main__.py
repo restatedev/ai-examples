@@ -10,6 +10,7 @@ logging.basicConfig(
     format="[%(asctime)s] [%(process)d] [%(levelname)s] - %(message)s",
 )
 
+
 def main():
     app = restate.app(services=[agent])
 
