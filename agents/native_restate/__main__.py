@@ -1,9 +1,15 @@
 import hypercorn
 import asyncio
 import restate
+import logging
 
 from agent import agent
 from account import account
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="[%(asctime)s] [%(process)d] [%(levelname)s] - %(message)s",
+)
 
 
 def main():

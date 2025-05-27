@@ -4,11 +4,7 @@ import logging
 
 from datetime import timedelta
 from openai import OpenAI
-from openai.types.responses import (
-    Response,
-    ResponseFunctionToolCall,
-    FunctionToolParam
-)
+from openai.types.responses import Response, ResponseFunctionToolCall, FunctionToolParam
 from pydantic import BaseModel
 
 from utils.models import AgentResponse, AgentInput
@@ -17,6 +13,7 @@ logger = logging.getLogger(__name__)
 
 client = OpenAI()
 
+
 class Task(BaseModel):
     """
     The task that needs to get executed
@@ -24,6 +21,7 @@ class Task(BaseModel):
     Args:
         description (str): The description of the task to execute.
     """
+
     description: str
 
     class Config:
@@ -57,9 +55,10 @@ async def run(ctx: restate.ObjectContext, req: AgentInput):
             input_items.append({"role": "system", "content": task_result})
 
         # peek for new input
-        match await restate.select(new_input_promise=new_input_promise,
-                                   timeout=ctx.sleep(timedelta(seconds=0))):
-            case ['new_input_promise', new_input]:
+        match await restate.select(
+            new_input_promise=new_input_promise, timeout=ctx.sleep(timedelta(seconds=0))
+        ):
+            case ["new_input_promise", new_input]:
                 logger.info(f"Incorporating new input for {ctx.key()}: {new_input}")
                 id, new_input_promise = ctx.awakeable()
                 ctx.set(NEW_INPUT_PROMISE, id)
@@ -74,12 +73,11 @@ async def run(ctx: restate.ObjectContext, req: AgentInput):
         if response.output_text != "":
             logger.info(f"Final output message: {response.output_text}")
             from chat import process_agent_response
+
             ctx.object_send(
                 process_agent_response,
                 key=ctx.key(),
-                arg=AgentResponse(
-                    final_output=response.output_text
-                ),
+                arg=AgentResponse(final_output=response.output_text),
             )
             ctx.clear(NEW_INPUT_PROMISE)
             return
@@ -90,15 +88,20 @@ async def incorporate_new_input(ctx: restate.ObjectSharedContext, req: str) -> b
     id = await ctx.get(NEW_INPUT_PROMISE)
 
     if id is None:
-        logger.warning(f"No awakeable ID found. Maybe invocation finished in the meantime. Cannot incorporate new input for {ctx.key()}.")
+        logger.warning(
+            f"No awakeable ID found. Maybe invocation finished in the meantime. Cannot incorporate new input for {ctx.key()}."
+        )
         return False
 
     ctx.resolve_awakeable(id, req)
-    logger.info(f"Resolved awakeable with ID {id} with new input for {ctx.key()}: {req}")
+    logger.info(
+        f"Resolved awakeable with ID {id} with new input for {ctx.key()}: {req}"
+    )
     return True
 
 
 # UTILS
+
 
 async def execute_task(ctx: restate.ObjectContext, req: Task) -> str:
     """
@@ -113,10 +116,13 @@ async def execute_task(ctx: restate.ObjectContext, req: Task) -> str:
     return f"Task executed successfully: {req.description}"
 
 
-execute_task_tool=FunctionToolParam(
+execute_task_tool = FunctionToolParam(
     name=execute_task.__name__,
     description=execute_task.__doc__,
-    parameters=Task.model_json_schema(), strict=True, type="function")
+    parameters=Task.model_json_schema(),
+    strict=True,
+    type="function",
+)
 
 
 async def call_task_agent(input_items) -> Response:
@@ -129,5 +135,5 @@ async def call_task_agent(input_items) -> Response:
         input=input_items,
         tools=[execute_task_tool],
         parallel_tool_calls=False,
-        stream=False
+        stream=False,
     )

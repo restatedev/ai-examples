@@ -62,15 +62,12 @@ async def process_user_message(ctx: restate.ObjectContext, req: ChatMessage):
             # Queue the new agent run
             await send_message_to_agent(ctx, history)
 
+
 async def send_message_to_agent(ctx, history):
     handle = ctx.object_send(
         agent_session_run,
         key=ctx.key(),
-        arg=AgentInput(
-            message_history=[
-                entry.content for entry in history.entries
-            ]
-        ),
+        arg=AgentInput(message_history=[entry.content for entry in history.entries]),
     )
     ctx.set(ACTIVE_AGENT_INVOCATION_ID, await handle.invocation_id())
 
