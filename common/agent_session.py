@@ -24,10 +24,6 @@ from openai.types.responses import (
     ResponseFunctionToolCall,
     Response,
     ResponseOutputMessage,
-    ResponseFileSearchToolCall,
-    ResponseFunctionWebSearch,
-    ResponseReasoningItem,
-    ResponseComputerToolCall,
     ResponseOutputItem,
 )
 from pydantic import BaseModel, ConfigDict, Field
@@ -191,8 +187,6 @@ class Agent(BaseModel):
     push_notifications_support: bool = False
 
     def to_tool_schema(self) -> dict[str, Any]:
-        # If the agent is a remote agent, we want to attach extra context/message to the request
-        # TODO it might be better to use the A2A TaskSendRequest format here?
         schema = to_strict_json_schema(RemoteAgentMessage if self.remote_url else Empty)
         return {
             "type": "function",
@@ -298,18 +292,13 @@ class SessionState:
         ctx.set(self.state_name, self._input_items)
         self._new_items.extend(user_messages)
 
-    def add_system_message(
-        self, ctx: restate.ObjectContext, item: str, flush: bool = True
-    ):
+    def add_system_message(self, ctx: restate.ObjectContext, item: str):
         system_message = SessionItem(content=item, role="system")
         self._input_items.append(system_message)
         self._new_items.append(system_message)
-        if flush:
-            ctx.set(self.state_name, self._input_items)
+        ctx.set(self.state_name, self._input_items)
 
-    def add_system_messages(
-        self, ctx: restate.ObjectContext, items: List[str], flush: bool = False
-    ):
+    def add_system_messages(self, ctx: restate.ObjectContext, items: List[str]):
         system_messages = [SessionItem(content=item, role="system") for item in items]
         self._input_items.extend(system_messages)
         ctx.set(self.state_name, self._input_items)
@@ -347,203 +336,164 @@ async def run_agent(ctx: restate.ObjectContext, req: AgentInput) -> AgentRespons
     Args:
         req (AgentInput): The input for the agent
     """
-    logging_prefix = f"Agent session {ctx.key()} - "
+    log_prefix = f"{ctx.request().id} - agent-session {ctx.key()}- - "
 
     # === 1. initialize the agent session ===
-    logging.info(f"{logging_prefix} Starting agent session")
+    logging.info(f"{log_prefix} Starting agent session")
     session_state = SessionState(input_items=await ctx.get("agent_state"))
     session_state.add_user_message(ctx, req.message)
 
     agent_name = await ctx.get("agent_name") or req.starting_agent.formatted_name
     ctx.set("agent_name", agent_name)
-    logging.info(f"{logging_prefix} Current agent is {agent_name}")
 
-    agents_dict = {ag.formatted_name: ag for ag in req.agents}
+    agents_dict = {a.formatted_name: a for a in req.agents}
     agent = agents_dict.get(agent_name)
 
     if agent is None:
-        # Don't retry this. It's a configuration error
-        session_state.add_system_message(
-            ctx,
-            f"Current/starting agent not found in the list of agents {agent_name}. Available agents: {list(agents_dict.keys())}",
-        )
         raise TerminalError(
-            f"Agent {agent_name} not found in the list of agents. Available agents: {list(agents_dict.keys())}"
+            f"Agent {agent_name} not found in the list of agents: {list(agents_dict.keys())}"
         )
 
     # === 2. Run the agent loop ===
     while True:
         # Get the tools in the right format for the LLM
-        tools = {tool.formatted_name: tool for tool in agent.tools}
-        tool_and_handoffs_list = [tool.tool_schema for tool in agent.tools]
-        logger.info(
-            f"{logging_prefix}  Starting iteration of agent loop with agent: {agent.name} and tools/handoffs: {[t.formatted_name for t in agent.tools]}"
-        )
-
-        for handoff_agent_name in agent.handoffs:
-            handoff_agent = agents_dict.get(format_name(handoff_agent_name))
-            # If the agent is not found, we ignore it
-            if handoff_agent is None:
-                logger.warning(
-                    f"Agent {handoff_agent_name} not found in the list of agents. Ignoring this agent. Available agents: {list(agents_dict.keys())}"
-                )
-                session_state.add_system_message(
-                    ctx,
-                    f"Agent {handoff_agent_name} not found in the list of agents. Available agents: {list(agents_dict.keys())}",
-                )
-            else:
-                tool_and_handoffs_list.append(handoff_agent.to_tool_schema())
-
-        # Call the LLM - OpenAPI Responses API
-        logger.info(f"{logging_prefix} Calling LLM")
-        response: Response = await ctx.run(
-            "Call LLM",
-            lambda: client.responses.create(
-                model="gpt-4o",
-                instructions=agent.instructions,
-                input=session_state.get_input_items(),
-                tools=tool_and_handoffs_list,
-                parallel_tool_calls=True,
-                stream=False,
-            ),
-            type_hint=Response,
-            max_attempts=3,  # To using too many credits on infinite retries during development
-        )
-
-        # Register the output in the session state
-        session_state.add_system_messages(
-            ctx, [item.model_dump_json() for item in response.output], flush=True
-        )
-
-        # Parse LLM response
         try:
+            tools = {tool.formatted_name: tool for tool in agent.tools}
+            logger.info(
+                f"{log_prefix} Starting iteration of agent: {agent.name} with tools/handoffs: {list(tools.keys())}"
+            )
+
+            tool_schemas = [tool.tool_schema for tool in agent.tools]
+            for handoff_agent_name in agent.handoffs:
+                handoff_agent = agents_dict.get(format_name(handoff_agent_name))
+                if handoff_agent is None:
+                    logger.warning(
+                        f"Agent {handoff_agent_name} not found in the list of agents. Ignoring this handoff agent."
+                    )
+                tool_schemas.append(handoff_agent.to_tool_schema())
+
+            # Call the LLM - OpenAPI Responses API
+            logger.info(f"{log_prefix} Calling LLM")
+            response: Response = await ctx.run(
+                "Call LLM",
+                lambda: client.responses.create(
+                    model="gpt-4o",
+                    instructions=agent.instructions,
+                    input=session_state.get_input_items(),
+                    tools=tool_schemas,
+                    parallel_tool_calls=True,
+                    stream=False,
+                ),
+                type_hint=Response,
+                max_attempts=3,  # To using too many credits on infinite retries during development
+            )
+
+            # Register the output in the session state
+            session_state.add_system_messages(
+                ctx, [item.model_dump_json() for item in response.output]
+            )
+
+            # Parse LLM response
             output_messages, run_handoffs, tool_calls = await parse_llm_response(
                 agents_dict, response.output, tools
             )
-        except AgentError as e:
-            logger.warning(f"{logging_prefix} Failed to parse LLM response: {str(e)}")
-            session_state.add_system_message(
-                ctx, f"Failed to parse LLM response: {str(e)}"
-            )
-            # Let the LLM evaluate what it did wrong and correct
-            continue
 
-        # Execute (parallel) tool calls
-        parallel_tools = []
-        for tool_call in tool_calls:
-            logger.info(f"{logging_prefix} Executing tool {tool_call.name}")
-            try:
-                if tool_call.delay_in_millis is None:
-                    handle = ctx.generic_call(
-                        service=tool_call.tool.service_name,
-                        handler=tool_call.tool.name,
-                        arg=tool_call.input_bytes,
-                        key=tool_call.key,
-                    )
-                    parallel_tools.append(handle)
-                else:
-                    # Used for scheduling tasks in the future or long-running tasks like workflows
-                    ctx.generic_send(
-                        service=tool_call.tool.service_name,
-                        handler=tool_call.tool.name,
-                        arg=tool_call.input_bytes,
-                        key=tool_call.key,
-                        send_delay=timedelta(milliseconds=tool_call.delay_in_millis),
-                    )
-                session_state.add_system_message(
-                    ctx, f"Task {tool_call.name} was scheduled"
-                )
-            except TerminalError as e:
-                # We add it to the session_state to feed it back into the next LLM call
-                logger.warning(
-                    f"{logging_prefix} Failed to execute tool {tool_call.name}: {str(e)}"
-                )
-                session_state.add_system_message(
-                    ctx,
-                    f"Failed to execute tool {tool_call.name}: {str(e)}",
-                )
-
-        if len(parallel_tools) > 0:
-            results_done = await restate.gather(*parallel_tools)
-            results = [(await result).decode() for result in results_done]
-            logger.info(f"{logging_prefix} Gathered tool execution results: {results}")
-            session_state.add_system_messages(ctx, results)
-
-        # Handle handoffs
-        if run_handoffs:
-            # Only one agent can be in charge of the conversation at a time.
-            # So if there are multiple handoffs in the response, only run the first one.
-            # For the others, we add a tool response that we will not handle them.
-            if len(run_handoffs) > 1:
-                for handoff in run_handoffs[1:]:
-                    logger.info(
-                        f"{logging_prefix} Multiple handoffs detected, ignoring this one: {handoff.name} with arguments {handoff.arguments}."
-                    )
-
-            handoff_command = run_handoffs[0]
-
-            # Determine the new agent in charge
-            next_agent = agents_dict.get(handoff_command.name)
-            if next_agent is None:
-                session_state.add_system_message(
-                    ctx,
-                    f"Agent {handoff_command.name} not found in the list of agents.",
-                )
-                logger.info(
-                    f"{logging_prefix} Agent {handoff_command.name} not found in the list of agents."
-                )
-                continue
-
-            if next_agent.remote_url not in {None, ""}:
-                logger.info(
-                    f"{logging_prefix} Calling Remote Agent over A2A {handoff_command.name}"
-                )
-                session_state.add_system_message(
-                    ctx,
-                    f"Calling Remote Agent: {handoff_command.name} with arguments {handoff_command.arguments}.",
-                )
+            # Execute (parallel) tool calls
+            parallel_tools = []
+            for tool_call in tool_calls:
+                logger.info(f"{log_prefix} Executing tool {tool_call.name}")
                 try:
+                    if tool_call.delay_in_millis is None:
+                        handle = ctx.generic_call(
+                            service=tool_call.tool.service_name,
+                            handler=tool_call.tool.name,
+                            arg=tool_call.input_bytes,
+                            key=tool_call.key,
+                        )
+                        parallel_tools.append(handle)
+                    else:
+                        # Used for scheduling tasks in the future or long-running tasks like workflows
+                        ctx.generic_send(
+                            service=tool_call.tool.service_name,
+                            handler=tool_call.tool.name,
+                            arg=tool_call.input_bytes,
+                            key=tool_call.key,
+                            send_delay=timedelta(
+                                milliseconds=tool_call.delay_in_millis
+                            ),
+                        )
+                    session_state.add_system_message(
+                        ctx, f"Task {tool_call.name} was scheduled"
+                    )
+                except TerminalError as e:
+                    # We add it to the session_state to feed it back into the next LLM call
+                    # Let the other parallel tool executions continue
+                    session_state.add_system_message(
+                        ctx,
+                        f"Failed to execute tool {tool_call.name}: {str(e)}",
+                    )
+
+            if len(parallel_tools) > 0:
+                results_done = await restate.gather(*parallel_tools)
+                results = [(await result).decode() for result in results_done]
+                session_state.add_system_messages(ctx, results)
+
+            # Handle handoffs
+            if run_handoffs:
+                # Only one agent can be in charge of the conversation at a time.
+                # So if there are multiple handoffs in the response, only run the first one.
+                if len(run_handoffs) > 1:
+                    logger.info(
+                        f"{log_prefix} Multiple handoffs detected. Ignoring: {[h.name for h in run_handoffs[1:]]}"
+                    )
+
+                handoff_command = run_handoffs[0]
+                next_agent = agents_dict.get(handoff_command.name)
+                if next_agent is None:
+                    raise AgentError(
+                        f"Agent {handoff_command.name} not found in the list of agents."
+                    )
+
+                if next_agent.remote_url not in {None, ""}:
                     remote_agent_to_call = agents_dict.get(handoff_command.name)
                     if remote_agent_to_call is None:
                         raise AgentError(
                             f"Agent {handoff_command.name} not found in the list of agents."
                         )
+
+                    logger.info(
+                        f"{log_prefix} Calling Remote A2A Agent {handoff_command.name}"
+                    )
                     remote_agent_output = await call_remote_agent(
                         ctx,
                         remote_agent_to_call.as_agent_card(),
                         handoff_command.arguments,
                     )
                     session_state.add_system_message(
-                        ctx,
-                        f"Agent response: {remote_agent_output}",
+                        ctx, f"{handoff_command.name} response: {remote_agent_output}"
                     )
-                except AgentError as e:
-                    logger.warning(
-                        f"{logging_prefix} Failed to call remote agent {handoff_command.model_dump_json()}: {str(e)}"
-                    )
-                    session_state.add_system_message(
-                        ctx,
-                        f"Failed to call remote agent {handoff_command.model_dump_json()}: {str(e)}",
-                    )
-                    # We add it to the session_state to feed it back into the next LLM call
-            else:
-                # Start a new agent loop with the new agent
-                agent = next_agent
-                logger.info(f"{logging_prefix} Handing off to agent {agent.name}")
-                session_state.add_system_message(ctx, f"Transferred to {agent.name}.")
-                ctx.set("agent_name", format_name(agent.name))
+                else:
+                    # Start a new agent loop with the new agent
+                    agent = next_agent
+                    ctx.set("agent_name", format_name(agent.name))
+                continue
 
-            continue
-
-        # Handle output messages
-        # If there are no output messages, then we just continue the loop
-        final_output = response.output_text
-        if final_output != "":
-            logger.info(f"{logging_prefix} Final output message: {final_output}")
-            return AgentResponse(
-                agent=agent.name,
-                messages=session_state.get_new_items(),
-                final_output=final_output,
+            # Handle output messages
+            # If there are no output messages, then we just continue the loop
+            final_output = response.output_text
+            if final_output != "":
+                logger.info(f"{log_prefix} Final output message generated.")
+                return AgentResponse(
+                    agent=agent.name,
+                    messages=session_state.get_new_items(),
+                    final_output=final_output,
+                )
+        except AgentError as e:
+            logger.warning(
+                f"{log_prefix} Iteration of agent run failed. Updating state and feeding back error to LLM: {str(e)}"
+            )
+            session_state.add_system_message(
+                ctx, f"Failed iteration of agent run: {str(e)}"
             )
 
 
@@ -558,16 +508,6 @@ async def parse_llm_response(
     for item in output:
         if isinstance(item, ResponseOutputMessage):
             output_messages.append(item)
-        elif (
-            isinstance(item, ResponseFileSearchToolCall)
-            or isinstance(item, ResponseFunctionWebSearch)
-            or isinstance(item, ResponseReasoningItem)
-            or isinstance(item, ResponseComputerToolCall)
-        ):
-            # feed error message back to LLM
-            raise AgentError(
-                "This implementation does not support file search, web search, computer tools, or reasoning yet."
-            )
 
         elif isinstance(item, ResponseFunctionToolCall):
             if item.name in agents_dict.keys():
@@ -578,14 +518,14 @@ async def parse_llm_response(
                 if item.name not in tools.keys():
                     # feed error message back to LLM
                     raise AgentError(
-                        f"This agent does not have access to this tool: {item.name}. Use another tool or handoff."
+                        f"Error while parsing LLM response: This agent does not have access to this tool: {item.name}. Use another tool or handoff."
                     )
                 tool = tools[item.name]
                 tool_calls.append(to_tool_call(tool, item))
         else:
             # feed error message back to LLM
             raise AgentError(
-                f"This agent cannot handle this output type {type(item)}. Use another tool or handoff.",
+                f"Error while parsing LLM response: This agent cannot handle this output type {type(item)}. Use another tool or handoff.",
             )
 
     return output_messages, run_handoffs, tool_calls
@@ -611,7 +551,9 @@ def restate_tool(tool_call: Callable[[Any, I], Awaitable[O]]) -> RestateTool:
         case "service":
             description = target_handler.description
         case _:
-            raise TerminalError(f"Unknown service type {service_type}. Is this tool a Restate handler?")
+            raise TerminalError(
+                f"Unknown service type {service_type}. Is this tool a Restate handler?"
+            )
 
     return RestateTool(
         service_name=target_handler.service_tag.name,
@@ -703,7 +645,7 @@ async def call_remote_agent(
             final_output = "Task is in progress"
         case _:
             final_output = "Task status unknown"
-            
+
     return final_output
 
 
