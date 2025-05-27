@@ -363,14 +363,7 @@ async def run_agent(ctx: restate.ObjectContext, req: AgentInput) -> AgentRespons
                 f"{log_prefix} Starting iteration of agent: {agent.name} with tools/handoffs: {list(tools.keys())}"
             )
 
-            tool_schemas = [tool.tool_schema for tool in agent.tools]
-            for handoff_agent_name in agent.handoffs:
-                handoff_agent = agents_dict.get(format_name(handoff_agent_name))
-                if handoff_agent is None:
-                    logger.warning(
-                        f"Agent {handoff_agent_name} not found in the list of agents. Ignoring this handoff agent."
-                    )
-                tool_schemas.append(handoff_agent.to_tool_schema())
+            tool_schemas = await generate_tool_schemas(agent, agents_dict)
 
             # Call the LLM - OpenAPI Responses API
             logger.info(f"{log_prefix} Calling LLM")
@@ -428,6 +421,7 @@ async def run_agent(ctx: restate.ObjectContext, req: AgentInput) -> AgentRespons
                 except TerminalError as e:
                     # We add it to the session_state to feed it back into the next LLM call
                     # Let the other parallel tool executions continue
+                    logger.warning(f"Failed to execute tool {tool_call.name}: {str(e)}")
                     session_state.add_system_message(
                         ctx,
                         f"Failed to execute tool {tool_call.name}: {str(e)}",
@@ -436,6 +430,7 @@ async def run_agent(ctx: restate.ObjectContext, req: AgentInput) -> AgentRespons
             if len(parallel_tools) > 0:
                 results_done = await restate.gather(*parallel_tools)
                 results = [(await result).decode() for result in results_done]
+                logger.info(f"{log_prefix} Gathered tool results.")
                 session_state.add_system_messages(ctx, results)
 
             # Handle handoffs
@@ -495,6 +490,18 @@ async def run_agent(ctx: restate.ObjectContext, req: AgentInput) -> AgentRespons
             session_state.add_system_message(
                 ctx, f"Failed iteration of agent run: {str(e)}"
             )
+
+
+async def generate_tool_schemas(agent, agents_dict) -> list[dict[str, Any]]:
+    tool_schemas = [tool.tool_schema for tool in agent.tools]
+    for handoff_agent_name in agent.handoffs:
+        handoff_agent = agents_dict.get(format_name(handoff_agent_name))
+        if handoff_agent is None:
+            logger.warning(
+                f"Agent {handoff_agent_name} not found in the list of agents. Ignoring this handoff agent."
+            )
+        tool_schemas.append(handoff_agent.to_tool_schema())
+    return tool_schemas
 
 
 async def parse_llm_response(
