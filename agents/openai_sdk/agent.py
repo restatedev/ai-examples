@@ -1,4 +1,3 @@
-import uuid
 import agents
 import restate
 from pydantic import BaseModel, ConfigDict
@@ -7,6 +6,7 @@ from agents import (
     function_tool,
     handoff,
     RunContextWrapper,
+    RunConfig
 )
 from agents.extensions.handoff_prompt import RECOMMENDED_PROMPT_PREFIX
 
@@ -161,7 +161,7 @@ async def run(ctx: restate.ObjectContext, req: str) -> str:
         last_agent,
         input=input_items,
         context=tool_context,
-        run_config=agents.RunConfig(model_provider=RestateModelProvider(ctx)),
+        run_config=RunConfig(model_provider=RestateModelProvider(ctx)),
     )
 
     ctx.set("agent", result.last_agent.name)
