@@ -12,6 +12,7 @@ from agents.extensions.handoff_prompt import RECOMMENDED_PROMPT_PREFIX
 
 from openai_sdk.middleware import RestateModelProvider
 
+
 class ToolContext(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
@@ -57,12 +58,19 @@ async def update_seat(
     """
 
     success = await context.context.restate_context.run(
-        "Generate seat uuid", update_seat_in_booking_system, args=(context.context.customer_id, confirmation_number, new_seat)
+        "Generate seat uuid",
+        update_seat_in_booking_system,
+        args=(context.context.customer_id, confirmation_number, new_seat),
     )
     return f"Updated seat to {new_seat} for confirmation number {confirmation_number}."
 
+
 # Update the context based on the customer's input
-async def update_seat_in_booking_system(customer_id:str, confirmation_number: str, new_seat: str,):
+async def update_seat_in_booking_system(
+    customer_id: str,
+    confirmation_number: str,
+    new_seat: str,
+):
     # Simulate updating the seat in a booking system
     # In a real application, this would involve an API call or database update
     print(f"Updating seat for confirmation number {confirmation_number} to {new_seat}")
@@ -147,10 +155,7 @@ async def run(ctx: restate.ObjectContext, req: str) -> str:
     last_agent_name = await ctx.get("agent") or triage_agent.name
     last_agent = agent_dict[last_agent_name]
 
-    tool_context = ToolContext(
-        restate_context=ctx,
-        customer_id=ctx.key()
-    )
+    tool_context = ToolContext(restate_context=ctx, customer_id=ctx.key())
 
     result = await agents.Runner.run(
         last_agent,
