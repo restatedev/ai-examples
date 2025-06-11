@@ -10,17 +10,14 @@ from agents import (
 )
 from agents.extensions.handoff_prompt import RECOMMENDED_PROMPT_PREFIX
 
-from openai_sdk.middleware import RestateModelWrapper
+from openai_sdk.middleware import RestateModelProvider
 
-
-class AirlineAgentContext(BaseModel):
+class ToolContext(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     restate_context: restate.ObjectContext
-    passenger_name: str | None = None
-    confirmation_number: str | None = None
-    seat_number: str | None = None
-    flight_number: str | None = None
+    customer_id: str | None = None
+
 
 # TOOLS
 @function_tool(
@@ -47,7 +44,7 @@ async def faq_lookup_tool(question: str) -> str:
 
 @function_tool
 async def update_seat(
-    context: RunContextWrapper[AirlineAgentContext],
+    context: RunContextWrapper[ToolContext],
     confirmation_number: str,
     new_seat: str,
 ) -> str:
@@ -58,16 +55,23 @@ async def update_seat(
         confirmation_number: The confirmation number for the flight.
         new_seat: The new seat to update to.
     """
-    # Update the context based on the customer's input
-    my_uuid = await context.context.restate_context.run("Generate seat uuid", lambda: uuid.uuid4().hex)
-    context.context.confirmation_number = confirmation_number
-    context.context.seat_number = new_seat
-    return f"Updated seat to {new_seat} for confirmation number {confirmation_number}. My seat uuid is {my_uuid}."
+
+    success = await context.context.restate_context.run(
+        "Generate seat uuid", update_seat_in_booking_system, args=(context.context.customer_id, confirmation_number, new_seat)
+    )
+    return f"Updated seat to {new_seat} for confirmation number {confirmation_number}."
+
+# Update the context based on the customer's input
+async def update_seat_in_booking_system(customer_id:str, confirmation_number: str, new_seat: str,):
+    # Simulate updating the seat in a booking system
+    # In a real application, this would involve an API call or database update
+    print(f"Updating seat for confirmation number {confirmation_number} to {new_seat}")
+    return True
 
 
 ### AGENTS
 
-faq_agent = Agent[AirlineAgentContext](
+faq_agent = Agent[ToolContext](
     name="FAQ Agent",
     handoff_description="A helpful agent that can answer questions about the airline.",
     instructions=f"""{RECOMMENDED_PROMPT_PREFIX}
@@ -80,8 +84,7 @@ faq_agent = Agent[AirlineAgentContext](
     tools=[faq_lookup_tool],
 )
 
-seat_booking_agent = Agent[AirlineAgentContext](
-    model=RestateModelWrapper,
+seat_booking_agent = Agent[ToolContext](
     name="Seat Booking Agent",
     handoff_description="A helpful agent that can update a seat on a flight.",
     instructions=f"""{RECOMMENDED_PROMPT_PREFIX}
@@ -95,8 +98,8 @@ seat_booking_agent = Agent[AirlineAgentContext](
     tools=[update_seat],
 )
 
-triage_agent = Agent[AirlineAgentContext](
-    model=RestateModelWrapper,
+triage_agent = Agent[ToolContext](
+    model="o3-mini",
     name="Triage Agent",
     handoff_description="A triage agent that can delegate a customer's request to the appropriate agent.",
     instructions=(
@@ -144,20 +147,21 @@ async def run(ctx: restate.ObjectContext, req: str) -> str:
     last_agent_name = await ctx.get("agent") or triage_agent.name
     last_agent = agent_dict[last_agent_name]
 
-    result = await agents.Runner.run(
-        last_agent, input=input_items, context=AirlineAgentContext(
-            restate_context=ctx,
-            passenger_name="John Doe",
-            confirmation_number="12345",
-            seat_number="12A",
-            flight_number="AA123",
-        ),
-        run_config=agents.RunConfig(model=RestateModelWrapper(ctx))
+    tool_context = ToolContext(
+        restate_context=ctx,
+        customer_id=ctx.key()
     )
 
-    output, last_agent_name = str(result.final_output), result.last_agent.name
-    ctx.set("agent", last_agent_name)
+    result = await agents.Runner.run(
+        last_agent,
+        input=input_items,
+        context=tool_context,
+        run_config=agents.RunConfig(model_provider=RestateModelProvider(ctx)),
+    )
 
+    ctx.set("agent", result.last_agent.name)
+
+    output = str(result.final_output)
     input_items.append({"role": "system", "content": output})
     ctx.set(INPUT_ITEMS, input_items)
     return output
