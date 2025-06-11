@@ -5,7 +5,6 @@ from pydantic import BaseModel, ConfigDict
 from agents import (
     Agent,
     function_tool,
-    handoff,
     RunContextWrapper,
 )
 from agents.extensions.handoff_prompt import RECOMMENDED_PROMPT_PREFIX
@@ -22,27 +21,8 @@ class AirlineAgentContext(BaseModel):
     seat_number: str | None = None
     flight_number: str | None = None
 
+
 # TOOLS
-@function_tool(
-    name_override="faq_lookup_tool",
-    description_override="Lookup frequently asked questions.",
-)
-async def faq_lookup_tool(question: str) -> str:
-    if "bag" in question or "baggage" in question:
-        return (
-            "You are allowed to bring one bag on the plane. "
-            "It must be under 50 pounds and 22 inches x 14 inches x 9 inches."
-        )
-    elif "seats" in question or "plane" in question:
-        return (
-            "There are 120 seats on the plane. "
-            "There are 22 business class seats and 98 economy seats. "
-            "Exit rows are rows 4 and 16. "
-            "Rows 5-8 are Economy Plus, with extra legroom. "
-        )
-    elif "wifi" in question:
-        return "We have free wifi on the plane, join Airline-Wifi"
-    return "I'm sorry, I don't know the answer to that question."
 
 
 @function_tool
@@ -67,19 +47,6 @@ async def update_seat(
 
 ### AGENTS
 
-faq_agent = Agent[AirlineAgentContext](
-    name="FAQ Agent",
-    handoff_description="A helpful agent that can answer questions about the airline.",
-    instructions=f"""{RECOMMENDED_PROMPT_PREFIX}
-    You are an FAQ agent. If you are speaking to a customer, you probably were transferred to from the triage agent.
-    Use the following routine to support the customer.
-    # Routine
-    1. Identify the last question asked by the customer.
-    2. Use the faq lookup tool to answer the question. Do not rely on your own knowledge.
-    3. If you cannot answer the question, transfer back to the triage agent.""",
-    tools=[faq_lookup_tool],
-)
-
 seat_booking_agent = Agent[AirlineAgentContext](
     model=RestateModelWrapper,
     name="Seat Booking Agent",
@@ -95,25 +62,9 @@ seat_booking_agent = Agent[AirlineAgentContext](
     tools=[update_seat],
 )
 
-triage_agent = Agent[AirlineAgentContext](
-    model=RestateModelWrapper,
-    name="Triage Agent",
-    handoff_description="A triage agent that can delegate a customer's request to the appropriate agent.",
-    instructions=(
-        f"{RECOMMENDED_PROMPT_PREFIX} "
-        "You are a helpful triaging agent. You can use your tools to delegate questions to other appropriate agents."
-    ),
-    handoffs=[
-        faq_agent,
-        handoff(agent=seat_booking_agent),
-    ],
-)
-
-faq_agent.handoffs.append(triage_agent)
-seat_booking_agent.handoffs.append(triage_agent)
 
 agent_dict = {
-    agent.name: agent for agent in [faq_agent, seat_booking_agent, triage_agent]
+    agent.name: agent for agent in [seat_booking_agent]
 }
 
 # AGENT
@@ -141,7 +92,7 @@ async def run(ctx: restate.ObjectContext, req: str) -> str:
     input_items.append({"role": "user", "content": req})
     ctx.set(INPUT_ITEMS, input_items)
 
-    last_agent_name = await ctx.get("agent") or triage_agent.name
+    last_agent_name = await ctx.get("agent") or seat_booking_agent.name
     last_agent = agent_dict[last_agent_name]
 
     result = await agents.Runner.run(

@@ -6,7 +6,7 @@ requires-python = ">=3.12"
 
 dependencies = [
     "restate-ai-examples",
-    "openai-agents",
+    "openai-agents==0.0.17",
 ]
 
 [tool.hatch.build.targets.wheel]
