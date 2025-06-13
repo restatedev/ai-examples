@@ -5,6 +5,19 @@ import { openai } from "@ai-sdk/openai";
 import { generateText, tool, wrapLanguageModel } from "ai";
 import { z } from "zod";
 import { durableCalls } from "./utils/ai_infra";
+import { fetchWeather, parseWeatherResponse } from "./utils/utils";
+
+// Durable tool workflow
+const getWeather = async (ctx: restate.Context, city: string) => {
+  // implement durable tool steps using the Restate context
+  const result = await ctx.run("get weather", async () => fetchWeather(city));
+  if (result.startsWith("Unknown location")) {
+    return `Unknown location: ${city}. Please provide a valid city name.`;
+  }
+
+  const { temperature, description } = await parseWeatherResponse(result);
+  return `Weather in ${city}: ${temperature}°C, ${description}`;
+};
 
 const agent = restate.service({
   name: "Agent",
@@ -13,9 +26,9 @@ const agent = restate.service({
       { input: serde.zod(z.string()) },
       async (ctx: restate.Context, prompt) => {
 
+        // Persist the results of LLM calls via the durableCalls middleware
         const model = wrapLanguageModel({
           model: openai("gpt-4o-2024-08-06", { structuredOutputs: true }),
-          // Persist the results of LLM calls via the durableCalls middleware
           middleware: durableCalls(ctx, { maxRetryAttempts: 3 }),
         });
 
@@ -24,13 +37,10 @@ const agent = restate.service({
           system: "You are a helpful agent.",
           messages: [{ role: "user", content: prompt }],
           tools: {
-            getWeather: tool({
+            getWeatherTool: tool({
               description: "Get the current weather for a given city.",
               parameters: z.object({ city: z.string() }),
-              execute: async ({ city }) => {
-                // implement durable tool steps using the Restate context
-                return ctx.run("get weather", () => getWeather(ctx, city));
-              },
+              execute: async ({ city }) => getWeather(ctx, city),
             }),
           },
           maxRetries: 0,
@@ -44,21 +54,3 @@ const agent = restate.service({
 });
 
 restate.endpoint().bind(agent).listen(9080);
-
-// Utils
-
-type WeatherResponse = {
-  current_condition: {
-    temp_C: string;
-    weatherDesc: { value: string }[];
-  }[];
-};
-
-async function getWeather(ctx: restate.Context, city: string) {
-  const url = `https://wttr.in/${encodeURIComponent(city)}?format=j1`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Failed calling weather API: ${res.status}`);
-  const data = (await res.json()) as WeatherResponse;
-  const { temp_C, weatherDesc } = data.current_condition[0];
-  return `Weather in ${city}: ${temp_C}°C, ${weatherDesc[0].value}`;
-}

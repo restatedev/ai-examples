@@ -24,16 +24,16 @@ The example is an agent that can search for the weather in certain city.
     ```
 4. Register the services: 
     ```shell
-    restate -y deployments register localhost:9080 --force
+    restate -y deployments register localhost:9080
     ```
 
 5. Send requests to your agent:
 
     ```shell
-    curl localhost:8080/Agent/run --json '"What is the weather in London?"'
+    curl localhost:8080/Agent/run --json '"What is the weather in Detroit?"'
     ```
     
-    Returns: `The weather in London is currently 22°C and sunny.`
+    Returns: `The weather in Detroit is currently 22°C and sunny.`
 
 
 Check the Restate UI (`http://localhost:9080`) to see the journals of your invocations (remove the filters).
@@ -44,7 +44,7 @@ Check the Restate UI (`http://localhost:9080`) to see the journals of your invoc
 
 To make the agent resilient, we need to:
 - Persist the results of LLM calls in Restate's journal by wrapping them in `ctx.run()`. This is handled by the `RestateModelProvider`.
-- To persist the intermediate tool execution steps, we pass it along with the context.
+- To persist the intermediate tool execution steps, we pass the Restate context along to the tools.
 
 ⚠ **LIMITATIONS**: You cannot do parallel tool calls or any type of parallel execution if you integrate Restate with an Agent SDK. 
 If you execute actions on the context in different tools in parallel, Restate will not be able to deterministically replay them because the order might be different during recovery and will crash. 
