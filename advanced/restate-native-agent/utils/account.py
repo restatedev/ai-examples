@@ -1,6 +1,6 @@
 import restate
 
-from native_restate.utils.utils import generate_loan_overview
+from utils.utils import generate_loan_overview
 from utils.models import (
     TransactionHistory,
     CustomerLoanOverview,

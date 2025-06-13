@@ -9,12 +9,11 @@ requires-python = ">=3.12"
 packages = ["app"]
 
 dependencies = [
-    "restate-ai-examples",
+    "hypercorn",
+    "restate_sdk[serde]>=0.7.3",
+    "pydantic>=2.10.6",
     "pypdf"
 ]
-
-[tool.uv.sources]
-restate-ai-examples = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]

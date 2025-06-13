@@ -4,7 +4,7 @@ import restate
 import logging
 
 from agent import agent
-from account import account
+from utils.account import account
 
 logging.basicConfig(
     level=logging.INFO,

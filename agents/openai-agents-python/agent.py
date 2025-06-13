@@ -4,8 +4,12 @@ from pydantic import BaseModel, ConfigDict
 from agents import Agent, function_tool, handoff, RunContextWrapper, RunConfig
 from agents.extensions.handoff_prompt import RECOMMENDED_PROMPT_PREFIX
 
-from openai_sdk.middleware import RestateModelProvider
-from openai_sdk.utils import retrieve_flight_info, send_invoice, update_seat_in_booking_system
+from utils.middleware import RestateModelProvider
+from utils.utils import (
+    retrieve_flight_info,
+    send_invoice,
+    update_seat_in_booking_system,
+)
 
 """
 This example shows how to turn the OpenAI SDK example into a resilient Restate agent.

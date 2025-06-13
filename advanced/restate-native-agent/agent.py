@@ -1,11 +1,11 @@
 import restate
 
-from account import (
+from utils.account import (
     get_balance,
     get_transaction_history,
     get_customer_loans,
 )
-from common.agent_session import (
+from restate_agent.agent_session import (
     run_agent as agent_session_run,
     AgentInput,
     restate_tool,

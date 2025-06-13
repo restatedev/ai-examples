@@ -16,6 +16,7 @@ from typing import AsyncIterator
 
 from pydantic import BaseModel
 
+
 # The OpenAI ModelResponse class is a dataclass with Pydantic fields.
 # The Restate SDK cannot serialize this. So we turn the ModelResponse int a Pydantic model.
 class RestateModelResponse(BaseModel):
@@ -42,6 +43,7 @@ class RestateModelProvider(MultiProvider):
     It let
     to return a Restate persist LLM calls in the Restate journal.
     """
+
     def __init__(self, ctx: restate.Context):
         super().__init__()
         self.ctx = ctx
@@ -54,6 +56,7 @@ class RestateModelWrapper(Model):
     """
     A wrapper around the OpenAI SDK's Model that persists LLM calls in the Restate journal.
     """
+
     def __init__(self, ctx: restate.Context, model: Model):
         self.ctx = ctx
         self.model = model
