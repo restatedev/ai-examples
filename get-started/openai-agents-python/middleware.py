@@ -13,7 +13,6 @@ from agents import (
 from agents.models.multi_provider import MultiProvider
 from agents.items import TResponseStreamEvent, TResponseOutputItem
 from typing import AsyncIterator
-from restate.serde import PydanticJsonSerde
 
 from pydantic import BaseModel
 
