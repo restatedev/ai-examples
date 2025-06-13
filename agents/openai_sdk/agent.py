@@ -77,7 +77,7 @@ async def invoice_sending(
     )
 
     # 2. Send the invoice to the customer
-    await ctx.run("Info lookup", send_invoice, args=(confirmation_number, flight))
+    await ctx.run("Send invoice", send_invoice, args=(confirmation_number, flight))
 
 
 ### AGENTS

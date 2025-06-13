@@ -44,6 +44,9 @@ This is [an OpenAI SDK example](https://github.com/openai/openai-agents-python/b
 
 <img src="img/using_agent_sdk.png" alt="Using Agent SDK" width="650px"/>
 
+<img src="img/invocation_ui_agent_sdk.png" alt="Using Agent SDK - journal" width="1200px"/>
+<img src="img/invocation_ui_agent_state.png" alt="Using Agent SDK - state" width="1200px"/>
+
 ### Other Agent SDKs
 Are you using another Agent SDK? We can help you evaluate whether it can be integrated with Restate. 
 Join our [Discord](https://discord.gg/skW3AZ6uGd) or [Slack](https://join.slack.com/t/restatecommunity/shared_invite/zt-2v9gl005c-WBpr167o5XJZI1l7HWKImA) to discuss.
@@ -66,7 +69,6 @@ The agent session is a Restate Virtual Object that has a handler that runs the a
 This example implements an airline customer service agent that can answer questions about your flights, and change your seat.
 
 The example uses the OpenAI Agent SDK to implement the agent. Although this could be adapted to other agent SDKs.
-
 
 1. Export your OpenAI or Anthrophic API key as an environment variable:
     ```shell
@@ -115,7 +117,7 @@ Or with the [client](client/__main__.py):
    
    Example response: `Your seat has been successfully changed to 5B. If there's anything else you need, feel free to ask!`
 
-
+Don't forget to check the Restate UI (`http://localhost:9080`) to see the journals of your invocations (remove the filters) and the state tab.
 
 ### Restate-native example
 [<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](native_restate/agent.py)
