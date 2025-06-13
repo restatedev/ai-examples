@@ -41,6 +41,11 @@ class RestateModelResponse(BaseModel):
 
 
 class RestateModelProvider(MultiProvider):
+    """
+    A Restate model provider that wraps the OpenAI SDK's default MultiProvider.
+    It let
+    to return a Restate persist LLM calls in the Restate journal.
+    """
     def __init__(self, ctx: restate.Context):
         super().__init__()
         self.ctx = ctx
@@ -50,6 +55,9 @@ class RestateModelProvider(MultiProvider):
 
 
 class RestateModelWrapper(Model):
+    """
+    A wrapper around the OpenAI SDK's Model that persists LLM calls in the Restate journal.
+    """
     def __init__(self, ctx: restate.Context, model: Model):
         self.ctx = ctx
         self.model = model
