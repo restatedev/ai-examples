@@ -27,6 +27,7 @@ from agents.models.multi_provider import MultiProvider
 from agents.items import TResponseStreamEvent
 from typing import AsyncIterator
 
+
 class ModelResponseSerde(Serde[bytes]):
     def deserialize(self, buf: bytes) -> ModelResponse:
         """
@@ -118,15 +119,14 @@ class ModelResponseSerde(Serde[bytes]):
             }
         ).encode("utf-8")
 
+
 class RestateModelProvider(MultiProvider):
     def __init__(self, ctx: restate.Context):
         super().__init__()
         self.ctx = ctx
 
     def get_model(self, model_name: str | None) -> Model:
-        return RestateModelWrapper(
-            self.ctx, super().get_model(model_name or None)
-        )
+        return RestateModelWrapper(self.ctx, super().get_model(model_name or None))
 
 
 class RestateModelWrapper(Model):
@@ -157,7 +157,10 @@ class RestateModelWrapper(Model):
                 tracing=tracing,
                 previous_response_id=previous_response_id,
             )
-        return await self.ctx.run("call LLM", call_llm, args=(), serde=ModelResponseSerde())
+
+        return await self.ctx.run(
+            "call LLM", call_llm, args=(), serde=ModelResponseSerde()
+        )
 
     def stream_response(
         self,
