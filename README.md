@@ -33,9 +33,11 @@ Move beyond fragile demos by giving your agents **innate resilience**—persiste
 
 Restate provides the following capabilities:
 - 🚀 **Move fast and far** - Innate resiliency and control from your first LLM-SDK-based app to low-level, customized multi-agent applications.
+- 🛠️ **SDK-agnostic** - Use Restate with any agent SDK, such as [OpenAI Agent SDK](https://openai.github.io/openai-agents-python/), [Vercel AI SDK](https://ai-sdk.dev/docs/introduction), or your own custom agent implementation.
 - ✅ **Resilience where it matters most** – Automatically recover from failures in your agentic workflows and tools.
 - 🎮 **Task control** - Cancel tasks, query status, re-subscribe to ongoing tasks, and track progress across failures, time, and processes.
 - 🤖 **Reliable multi-agent** - Flexible and reliable communication patterns including RPC, scheduled tasks, events, human-in-the-loop and parallel execution.
+- 🙂 **Human-in-the-loop** – Resiliently integrate human feedback into your agentic workflows.
 - 👀 **Full observability** – Line-by-line execution tracking with a built-in audit trail and UI. Seamless integration with OpenTelemetry.
 - 🔁 **Orchestrate long-running processes** – Coordinate durable and stateful agentic processes for millis or months.
 - 🔧 **Rich primitives** – Leverage workflows, durable promises, communication, and persistent state.
@@ -43,10 +45,6 @@ Restate provides the following capabilities:
 - 💾 **Persistent memory** - Maintain consistent agent memory across infrastructure events.
 - 🌍 **Deploy anywhere** – Whether it's AWS Lambda, CloudRun, Fly.io, Cloudflare, Kubernetes, Deno Deploy,...
 - ☁️ **Easy to self-host** – Single-binary self-hosted deployments or connect to [Restate Cloud](https://restate.dev/cloud/).
-
-human in the loop
-
-sdk-agnostic
 
 Restate can also be used for other use cases, such as: 
 [workflows](https://docs.restate.dev/use-cases/workflows),
