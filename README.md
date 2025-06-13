@@ -61,7 +61,7 @@ This repository contains examples of how to use Restate for AI / Agent use cases
    - [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24"> Restate + Vercel AI SDK](get-started/vercel-ai/README.md): A minimal example of how to use Restate with the Vercel AI SDK.
    - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Restate + OpenAI Agents SDK](get-started/openai-agents-python/README.md): A minimal example of how to use Restate with the OpenAI Agents SDK.
 2. [**Agents**](agents): 
-   - [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24"> Restate + Vercel AI SDK](agents/vercel-ai-sdk/README.md): A more advanced example of how to use Restate with the Vercel AI SDK that can be deployed as a Next.js app on Vercel.
+   - [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24"> Restate + Vercel AI SDK](agents/vercel-ai/README.md): A more advanced example of how to use Restate with the Vercel AI SDK that can be deployed as a Next.js app on Vercel.
    - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Restate + OpenAI Agents SDK](agents/openai-agents-python/README.md): A more advanced example of how to use Restate with the OpenAI Agents SDK.
 2. [**DIY patterns**](diy-patterns): Patterns for hardening custom LLM orchestration logic.
    - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Chaining LLM calls](diy-patterns#chaining-llm-calls)
