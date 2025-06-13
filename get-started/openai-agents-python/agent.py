@@ -17,10 +17,11 @@ class ToolContext(BaseModel):
 @function_tool
 async def get_weather(context: RunContextWrapper[ToolContext], city: str) -> str:
     """Get the current weather for a given city."""
+    # Do durable steps using the Restate context
     restate_ctx = context.context.restate_context
 
     async def get_weather_data(city: str) -> dict[str, str]:
-        resp = httpx.get(f"https://wttr.in/{city}?format=j1", timeout=10.0)
+        resp = httpx.get(f"https://wttr.in/{httpx.URL(city)}?format=j1", timeout=10.0)
         resp.raise_for_status()
         return resp.json()["current_condition"][0]
 
