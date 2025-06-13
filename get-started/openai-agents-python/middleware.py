@@ -91,12 +91,7 @@ class RestateModelWrapper(Model):
                 response_id=resp.response_id,
             )
 
-        return await self.ctx.run(
-            "call LLM",
-            call_llm,
-            args=None,
-            serde=PydanticJsonSerde(RestateModelResponse),
-        )
+        return await self.ctx.run("call LLM", call_llm)
 
     def stream_response(
         self,
