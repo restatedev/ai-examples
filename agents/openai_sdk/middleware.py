@@ -33,10 +33,6 @@ class RestateModelResponse(BaseModel):
     """
 
     def to_input_items(self) -> list[TResponseInputItem]:
-        """Convert the output into a list of input items suitable for passing to the model."""
-        # We happen to know that the shape of the Pydantic output items are the same as the
-        # equivalent TypedDict input items, so we can just convert each one.
-        # This is also tested via unit tests.
         return [it.model_dump(exclude_unset=True) for it in self.output]  # type: ignore
 
 
