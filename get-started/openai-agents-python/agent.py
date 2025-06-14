@@ -16,11 +16,7 @@ class ToolContext(BaseModel):
 
 class WeatherRequest(BaseModel):
     """Request to get the weather for a city."""
-
     city: str
-
-    class Config:
-        extra = "forbid"
 
 
 @function_tool
@@ -36,7 +32,6 @@ async def get_weather(
         return f"Unknown location: {req.city}. Please provide a valid city name."
 
     weather = await parse_weather_data(response)
-
     return (
         f"Weather in {req.city}: {weather["temperature"]}°C, {weather['description']}"
     )

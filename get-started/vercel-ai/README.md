@@ -1,11 +1,11 @@
 # Resilient agents with Restate + Vercel AI SDK
-[<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](src/app.py)
+[<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](src/app.ts)
 
 Use the Vercel AI SDK to implement your agent, and let Restate handle the persistence and resiliency of the agent's decisions and tool executions.
 
 The example is an agent that can search for the weather in certain city.
 
-<img src="img/invocation_ui.png" alt="Using Agent SDK - journal" width="1200px"/>
+<img src="img/invocations_ui_vercel.png" alt="Using Agent SDK - journal" width="1200px"/>
 
 ## Running the example
 
@@ -38,14 +38,17 @@ The example is an agent that can search for the weather in certain city.
 
 Check the Restate UI (`http://localhost:9080`) to see the journals of your invocations (remove the filters).
 
-<img src="img/detailed_invocation_ui.png" alt="Using Agent SDK - journal" width="1200px"/>
+<img src="img/journal_vercel.png" alt="Using Agent SDK - journal" width="1200px"/>
 
-## Integrating Restate with the OpenAI Python Agent SDK
+## Integrating Restate with the Vercel AI SDK
 
 To make the agent resilient, we need to:
 - Persist the results of LLM calls in Restate's journal by wrapping them in `ctx.run()`. This is handled by the `durableCalls` middleware for the model.
 - To persist the intermediate tool execution steps, we use the Restate context.
 
-⚠ **LIMITATIONS**: You cannot do parallel tool calls or any type of parallel execution if you integrate Restate with an Agent SDK.
+## Limitations
+1. You cannot do parallel tool calls or any type of parallel execution if you integrate Restate with an Agent SDK.
 If you execute actions on the context in different tools in parallel, Restate will not be able to deterministically replay them because the order might be different during recovery and will crash.
 We are working on a solution to this, but for now, you can only use Restate with Agent SDKs for sequential tool calls.
+
+2. Restate does not yet support streaming responses from the Vercel AI SDK.
