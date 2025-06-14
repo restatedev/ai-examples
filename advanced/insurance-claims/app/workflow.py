@@ -47,18 +47,17 @@ async def run(ctx: restate.Context, req: ClaimRequest) -> ClaimData:
     # Repetitively check for missing fields and request additional information if needed
     while True:
         missing_fields = await ctx.run(
-            "completeness check", check_missing_fields, args=(claim,)
-        )
+            "completeness check", lambda last_claim=claim: check_missing_fields(last_claim))
         if not missing_fields:
             break
 
         id, promise = ctx.awakeable()
         await ctx.run(
-            "Request missing info", send_message_to_customer, args=(missing_fields, id)
+            "Request missing info", lambda last_id=id: send_message_to_customer(missing_fields, last_id)
         )
         extra_info = await promise
-        claim = await ctx.run("Extracting", parse_claim_data, args=(extra_info,))
+        claim = await ctx.run("Extracting", lambda new_info=extra_info: parse_claim_data(new_info), type_hint=ClaimData)
 
     # Create the claim in the legacy system
-    await ctx.run("create", create_claim, args=(claim,))
+    await ctx.run("create", lambda last_claim=claim: create_claim(last_claim))
     return claim
