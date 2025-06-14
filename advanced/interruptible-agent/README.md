@@ -96,7 +96,10 @@ Depending on how you want to handle the new input, you can also choose to cancel
 
 In this mode, the current agent will be canceled when a new user input is received. A new run will be started. You could implement a rollback mechanism to restore the previous state ([see saga guide](https://docs.restate.dev/guides/sagas)).
 
-Start the service with `MODE=INTERRUPT`.
+Start the service with `MODE=INTERRUPT`:
+```shell
+MODE=INTERRUPT uv run app
+```
 
 To start from a clean slate, use a different chat session name (e.g. `ella` instead of `ella`).
 
@@ -139,7 +142,10 @@ If you send a few messages to the same session, you will see the cancellation in
 
 In this mode, the new tasks get queued. If you send a few messages to the same session, you will see the pending tasks in the UI.
 
-Start the service with `MODE=QUEUE`. And use again a different chat session name (replace `peter`).
+Start the service with `MODE=QUEUE`. And use again a different chat session name (replace `peter`):
+```shell
+MODE=QUEUE uv run app
+```
 
 
 <img src="img/queue.png" alt="Interruptible agent" width="1000"/>
