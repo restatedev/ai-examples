@@ -13,6 +13,8 @@ This way, the LLM and the user collaborate to get to the final result of the fil
 
 Restate durably persists every step, whether the customer responds within a minute or after a month.
  
+<img src="img/journal.png" alt="Insurance claims UI"/>
+
 ## Running the example
 
 1. Export your OpenAI key as an environment variable:
@@ -75,5 +77,7 @@ To unblock the workflow we provide the date as described in the logs:
 ```shell
 curl localhost:8080/restate/awakeables/sign_15KyvxGvGU_gBlvNm5mvREPXbsCH2Mr4pAAAAEQ/resolve --json '"02/02/2025"'
 ```
+
+_(Write the date in the format ""MM/dd/YYYY")_
 
 And finally get the response: `{"date":"2025-02-02","amount":511.5,"description":"Frames, Lenses (Pair), Anti-Reflective Coating, Premium Lens Cleaner","category":"vision","place_of_service":"Through your eyes - opticians, Dr. Eagle"}`
