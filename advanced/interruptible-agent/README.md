@@ -36,12 +36,16 @@ Start Restate:
 restate-server
 ```
 
-Open the UI on http://localhost:9070 and register your deployment running at `http://localhost:9080`.
+Open the UI on http://localhost:9070 and register your deployment running at `http://localhost:9080`, or do:
+
+```shell
+restate -y deployments register localhost:9080 --force
+```
 
 Then, start a task:
+
 ```shell
-curl localhost:8080/ChatService/peter/process_user_message \
-  --json '{
+curl localhost:8080/ChatService/peter/process_user_message --json '{
   "content": "Prepare a burger and a caesar salad.",
   "role": "user"
 }'
@@ -50,14 +54,20 @@ curl localhost:8080/ChatService/peter/process_user_message \
 A bit later, start a new task:
 
 ```shell
-curl localhost:8080/ChatService/peter/process_user_message \
-  --json '{
+curl localhost:8080/ChatService/peter/process_user_message --json '{
   "content": "Oh, and please add some croutons to the salad!",
   "role": "user"
 }'
 ```
 
 Depending on the mode you selected, the behavior will be different.
+
+You can see the chat history by executing:
+```shell
+curl localhost:8080/ChatService/peter/get_chat_history
+```
+
+You will see the agent response after a while.
 
 
 ### `INCORPORATE` mode

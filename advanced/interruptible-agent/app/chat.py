@@ -86,3 +86,14 @@ async def process_agent_response(ctx: restate.ObjectContext, req: AgentResponse)
     ctx.set(CHAT_HISTORY, history)
 
     ctx.clear(ACTIVE_AGENT_INVOCATION_ID)
+
+
+@chat_service.handler(kind="shared")
+async def get_chat_history(ctx: restate.ObjectSharedContext) -> ChatHistory:
+    """
+    Get the chat history for the current conversation.
+
+    Returns:
+        ChatHistory: The chat history for the current conversation.
+    """
+    return await ctx.get(CHAT_HISTORY, type_hint=ChatHistory) or ChatHistory()
