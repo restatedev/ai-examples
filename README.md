@@ -75,7 +75,7 @@ This repository contains examples of how to use Restate for AI / Agent use cases
 3. [**MCP** <img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](mcp/README.md): Using Restate for exposing tools and resilient orchestration of tool calls.
 4. [**A2A** <img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> ](a2a/README.md): Implement Google's Agent-to-Agent protocol with Restate as resilient, scalable task orchestrator.
 5. [**Advanced examples**](end-to-end-applications): 
-   - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Customizable Restate agent loop](advanced/restate-native-agent/README.md)
+   - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Restate-native agent](advanced/restate-native-agent/README.md): A fully customizable agent implemented with Restate without an Agent SDK. 
    - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Interruptible agents](advanced/interruptible-agent/README.md): A customized agent with different operational modes to process new inputs: interrupting, incorporating, queueing.
    - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Insurance claims](advanced/insurance-claims/README.md): Filing insurance claims by parsing PDF receipts with LLMs.
 
