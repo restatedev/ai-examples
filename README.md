@@ -116,7 +116,7 @@ git clone git@github.com:restatedev/restate-ai-examples.git
 
 ## Disclaimers and acknowledgements
 
-**Disclaimer 1**: The implementations of the agent loops in this repo are heavily inspired by the [OpenAI Agents SDK](https://github.com/openai/openai-agents-python). 
+**Disclaimer 1**: The implementations of the Restate-native agent in this repo are heavily inspired by the [OpenAI Agents SDK](https://github.com/openai/openai-agents-python). 
 We therefore want to give credit to the developers of this SDK for the great work they have done.
 This repo builds further on their work to make it benefit from Restate's programming model and capabilities.
 
