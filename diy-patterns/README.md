@@ -811,7 +811,7 @@ Then use the printed curl command to incorporate external feedback. And supply `
 
 You can see how the feedback gets incorporated in the Invocations tab in the Restate UI (`http://localhost:9070`):
 
-<img src="../img/human_in_the_loop_promise.png" alt="Human-in-the-loop" width="900px"/>
+<img src="../doc/img/patterns/human_in_the_loop_promise.png" alt="Human-in-the-loop" width="900px"/>
 
 #### Option 2: `run` handler
 [<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](human_in_the_loop/service.py)
@@ -827,11 +827,11 @@ Use the UI playground to test the human-in-the-loop.
 2. Click on the `HumanInTheLoopService` and then on the `Playground` button.
 3. Select the `run` handler and send it a message. For example:
 
-   <img src="../img/human_in_the_loop.png" alt="Human-in-the-loop" width="900px"/>
+   <img src="../doc/img/patterns/human_in_the_loop.png" alt="Human-in-the-loop" width="900px"/>
 
 4. You can then provide feedback on the response and send it back to the handler.
 
-   <img src="../img/human_in_the_loop_2.png" alt="Human-in-the-loop" width="900px"/>
+   <img src="../doc/img/patterns/human_in_the_loop_2.png" alt="Human-in-the-loop" width="900px"/>
 
 
 Alternatively, you can use `curl`:

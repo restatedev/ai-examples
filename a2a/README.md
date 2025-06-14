@@ -41,6 +41,8 @@ Make sure you have no other Restate server/services running. Then bring up the m
 docker compose up
 ```
 
+(It will take a while before all the services are up and running and you will see a few retries for the registration.)
+
 Go to the Restate UI ([`http://localhost:9070`](`http://localhost:9070`)). You see here the overview of the services that are running:
 
 <img src="img/multi_agent_overview.png" alt="Restate UI" width="1000"/>
