@@ -25,9 +25,7 @@ The agent session is a Restate Virtual Object that has a handler that runs the a
 
 ## Running the example
 
-This example implements an airline customer service agent that can answer questions about your flights, and change your seat.
-
-The example uses the OpenAI Agent SDK to implement the agent. Although this could be adapted to other agent SDKs.
+This example implements a bank agent that can answer questions about your balance, loans and transactions.
 
 1. Export your OpenAI or Anthrophic API key as an environment variable:
     ```shell
@@ -37,62 +35,7 @@ The example uses the OpenAI Agent SDK to implement the agent. Although this coul
     ```shell
     restate-server
     ```
-3. Start the services:
-    ```shell
-    cd openai_sdk
-    uv run .
-    ```
-4. Register the services: 
-    ```shell
-    restate -y deployments register localhost:9080 --force
-    ```
-   
-
-Now you can send requests to the agent via the UI playground (click on the agent service and then `playground`):
-
-<img src="img/ui_openai.png" alt="UI example" width="1000px"/>
-
-Or with the [client](client/__main__.py):
-
-- **Request**: 
-   
-   ```shell
-    uv run client "can you send me an invoice for booking AB4568?"          
-   ```
-   
-   Example response: `I've sent the invoice to your email associated with confirmation number AB4568. If there's anything else you need, feel free to ask!.`
-
-- **Or have longer conversations**: 
-   
-   ```shell
-   uv run client "can you change my seat to 10b?"
-   ```
-   
-   Example response: `To change your seat to 10B, I'll need your confirmation number. Could you please provide that?`
-
-   Respond to the question by sending a new message to the same stateful session:
-   ```shell
-   uv run client "5666"                         
-   ```
-   
-   Example response: `Your seat has been successfully changed to 5B. If there's anything else you need, feel free to ask!`
-
-Don't forget to check the Restate UI (`http://localhost:9080`) to see the journals of your invocations (remove the filters) and the state tab.
-
-### Restate-native example
-[<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](native_restate/agent.py)
-
-This example implements a bank agent that can answer questions about your balance, loans and transactions.
-
-1. Export your OpenAI key as an environment variable:
-    ```shell
-    export OPENAI_API_KEY=your_openai_api_key
-    ```
-2. [Start the Restate Server](https://docs.restate.dev/develop/local_dev) in a separate shell:
-    ```shell
-    restate-server
-    ```
-3. Start the services:
+3. Start the service:
     ```shell
     uv run .
     ```
@@ -103,7 +46,7 @@ This example implements a bank agent that can answer questions about your balanc
    
 Now you can send requests to the agent via the UI playground (click on the agent service and then `playground`):
 
-<img src="img/ui_example.png" alt="UI example" width="1000px"/>
+<img src="img/ui_example.png" alt="UI example" width="1200px"/>
 
 Or with the [client](client/__main__.py):
 
@@ -112,6 +55,8 @@ Or with the [client](client/__main__.py):
    uv run client "how much is my balance?"
    ```
    Example response: `Your current balance is $100,000.00. If you have any other questions, feel free to ask!`
+
+    <img src="img/journal.png" alt="UI example" width="1200px"/>
 
 - **Request**:
    ```shell
