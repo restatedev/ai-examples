@@ -8,7 +8,7 @@ from typing import Optional
 from datetime import datetime, timedelta
 from pydantic import BaseModel, ConfigDict
 
-from common.agent_session import Agent, restate_tool
+from a2a.common.agent_session import Agent, restate_tool
 
 logger = logging.getLogger(__name__)
 

@@ -7,6 +7,8 @@ The example is an agent that can search for the weather in certain city.
 
 <img src="img/invocations_ui_vercel.png" alt="Using Agent SDK - journal" width="1200px"/>
 
+> Also check out the advanced example in the [agents/vercel-ai](../../agents/vercel-ai/README.md) 
+
 ## Running the example
 
 1. Export your OpenAI or Anthrophic API key as an environment variable:
@@ -15,7 +17,7 @@ The example is an agent that can search for the weather in certain city.
     ```
 2. [Start the Restate Server](https://docs.restate.dev/develop/local_dev) in a separate shell:
     ```shell
-    restate-server
+    npx @restatedev/restate-server@latest
     ```
 3. Start the services:
     ```shell
@@ -39,6 +41,7 @@ The example is an agent that can search for the weather in certain city.
 Check the Restate UI (`http://localhost:9080`) to see the journals of your invocations (remove the filters).
 
 <img src="img/journal_vercel.png" alt="Using Agent SDK - journal" width="1200px"/>
+
 
 ## Integrating Restate with the Vercel AI SDK
 

@@ -2,7 +2,7 @@ import os
 import logging
 import restate
 
-from common.models import MissingAPIKeyError
+from a2a.common.models import MissingAPIKeyError
 
 from agent import host_agent_object
 from dotenv import load_dotenv

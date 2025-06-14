@@ -1,8 +1,8 @@
 import restate
 import os
 from agent import ReimbursementAgent
-from common.a2a_middleware import AgentMiddleware
-from common.models import MissingAPIKeyError, AgentCapabilities, AgentCard, AgentSkill
+from a2a.common.a2a_middleware import AgentMiddleware
+from a2a.common.models import MissingAPIKeyError, AgentCapabilities, AgentCard, AgentSkill
 from fastapi import FastAPI
 from dotenv import load_dotenv
 

@@ -8,8 +8,8 @@ import random
 
 from typing import Any, Optional
 
-from common.a2a_middleware import AgentInvokeResult
-from common.models import TextPart
+from a2a.common.a2a_middleware import AgentInvokeResult
+from a2a.common.models import TextPart
 from google.adk.agents.llm_agent import LlmAgent
 from google.adk.artifacts import InMemoryArtifactService
 from google.adk.memory.in_memory_memory_service import InMemoryMemoryService
@@ -145,14 +145,15 @@ class ReimbursementAgent:
 
     async def invoke(self, query, session_id) -> AgentInvokeResult:
         logger.info("Invoking LLM")
-        session = self._runner.session_service.get_session(
+        session = await self._runner.session_service.get_session(
             app_name=self._agent.name,
             user_id=self._user_id,
             session_id=session_id,
         )
+        logger.info(session)
         content = types.Content(role="user", parts=[types.Part.from_text(text=query)])
         if session is None:
-            self._runner.session_service.create_session(
+            await self._runner.session_service.create_session(
                 app_name=self._agent.name,
                 user_id=self._user_id,
                 state={},

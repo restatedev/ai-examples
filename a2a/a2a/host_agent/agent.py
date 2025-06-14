@@ -3,8 +3,8 @@ import os
 import restate
 import httpx
 
-from common.models import AgentCard
-from common.agent_session import (
+from a2a.common.models import AgentCard
+from a2a.common.agent_session import (
     Agent,
     AgentInput,
     run_agent,

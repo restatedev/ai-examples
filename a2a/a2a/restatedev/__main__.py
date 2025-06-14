@@ -3,11 +3,12 @@ import restate
 
 from fastapi import FastAPI
 
+
 from agent import chat_agents, reimbursement_agent
 from agent import reimbursement_service
-from common.a2a_middleware import AgentMiddleware
-from common.a2a_agent import GenericRestateAgent
-from common.models import MissingAPIKeyError
+from a2a.common.a2a_middleware import AgentMiddleware
+from a2a.common.a2a_agent import GenericRestateAgent
+from a2a.common.models import MissingAPIKeyError
 from dotenv import load_dotenv
 
 

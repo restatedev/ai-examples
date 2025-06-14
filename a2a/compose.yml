@@ -2,40 +2,48 @@ services:
   restatedev_agent:
     # Path to the Dockerfile from root of the project
     build:
-      context: ..
-      dockerfile: ./a2a/Dockerfile
+      context: .
     ports:
       - 9081:9081
     env_file: ".env"
     environment:
         - RESTATE_HOST=http://restate:8080
-    command: ["/app/.venv/bin/python", "/app/a2a/agents/restatedev"]
+    command: ["/app/.venv/bin/python", "/app/a2a/restatedev"]
   langgraph_agent:
     # Path to the Dockerfile from root of the project
     build:
-      context: ..
-      dockerfile: ./a2a/Dockerfile
+      context: .
     ports:
       - 9082:9082
     env_file: ".env"
     environment:
         - RESTATE_HOST=http://restate:8080
-    command: ["/app/.venv/bin/python", "/app/a2a/agents/langgraph"]
+    command: ["/app/.venv/bin/python", "/app/a2a/langgraph"]
+  googleadk_agent:
+    # Path to the Dockerfile from root of the project
+    build:
+      context: .
+    ports:
+      - 9083:9083
+    env_file: ".env"
+    environment:
+        - RESTATE_HOST=http://restate:8080
+    command: ["/app/.venv/bin/python", "/app/a2a/google_adk"]
   host_agent:
     # Path to the Dockerfile from root of the project
     build:
-      context: ..
-      dockerfile: ./a2a/Dockerfile
+      context: .
     ports:
       - 9080:9080
     depends_on:
       - restatedev_agent
       - langgraph_agent
+      - googleadk_agent
     env_file: ".env"
     environment:
         - RESTATE_HOST=http://restate:8080
-        - REMOTE_AGENTS=http://restatedev_agent:9081,http://langgraph_agent:9082
-    command: ["/app/.venv/bin/python", "/app/a2a/agents/host_agent"]
+        - REMOTE_AGENTS=http://restatedev_agent:9081,http://langgraph_agent:9082,http://googleadk_agent:9083
+    command: ["/app/.venv/bin/python", "/app/a2a/host_agent"]
     deploy:
       restart_policy:
         condition: on-failure
@@ -61,15 +69,18 @@ services:
       - restate
       - restatedev_agent
       - langgraph_agent
+      - googleadk_agent
       - host_agent
     restart: "no"
     entrypoint: [
         "sh",
         "-c",
-        'sleep 5 &&
+        'sleep 15 &&
         apk add --no-cache bash jq curl &&
-        curl -X POST ''restate:9070/deployments'' -H ''content-type: application/json'' -d ''{"uri": "http://host_agent:9080"}'' &&
-        curl -X POST ''restate:9070/deployments'' -H ''content-type: application/json'' -d ''{"uri": "http://restatedev_agent:9081/restate/v1"}'' &&
-        curl -X POST ''restate:9070/deployments'' -H ''content-type: application/json'' -d ''{"uri": "http://langgraph_agent:9082/restate/v1"}'' &&
+        curl ''restate:9070/deployments'' --json ''{"uri": "http://host_agent:9080"}'' &&
+        curl ''restate:9070/deployments'' --json ''{"uri": "http://restatedev_agent:9081/restate/v1"}'' &&
+        curl ''restate:9070/deployments'' --json ''{"uri": "http://langgraph_agent:9082/restate/v1"}'' &&
+        curl ''restate:9070/deployments'' --json ''{"uri": "http://googleadk_agent:9083/restate/v1"}'' &&
         exit 1',
       ]
+

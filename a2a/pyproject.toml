@@ -19,7 +19,7 @@ dependencies = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["agents", "common"]
+packages = ["a2a"]
 
 [build-system]
 requires = ["hatchling"]

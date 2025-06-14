@@ -7,6 +7,8 @@ The example is an agent that can search for the weather in certain city.
 
 <img src="img/invocation_ui.png" alt="Using Agent SDK - journal" width="1200px"/>
 
+> Also check out the advanced example in the [agents/openai-agents-python](../../agents/openai-agents-python/README.md) 
+
 ## Running the example
 
 1. Export your OpenAI or Anthrophic API key as an environment variable:

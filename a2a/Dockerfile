@@ -9,10 +9,9 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/
 # Then, add the rest of the project source code and install it
 # Installing separately from its dependencies allows optimal layer caching
 COPY pyproject.toml uv.lock /app/
-RUN uv sync --frozen --no-install-workspace --package a2a
+RUN uv sync --frozen --no-install-workspace
 
-COPY ./a2a /app/a2a
-COPY ./common /app/common
-RUN uv sync --frozen --package=a2a
+COPY . /app
+RUN uv sync --frozen
 
-CMD ["/app/.venv/bin/python", "/app/a2a/agents/restatedev"]
+CMD ["/app/.venv/bin/python", "/app/a2a/restatedev"]
