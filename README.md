@@ -46,6 +46,8 @@ Restate provides the following capabilities:
 - 🌍 **Deploy anywhere** – Whether it's AWS Lambda, CloudRun, Fly.io, Cloudflare, Kubernetes, Deno Deploy,...
 - ☁️ **Easy to self-host** – Single-binary self-hosted deployments or connect to [Restate Cloud](https://restate.dev/cloud/).
 
+<img src="agents/openai-agents-python/img/invocation_ui_agent_sdk.png" alt="OpenAI Agent SDK invocation UI" width="1000px"/>
+
 Restate can also be used for other use cases, such as: 
 [workflows](https://docs.restate.dev/use-cases/workflows),
 [microservice orchestration](https://docs.restate.dev/use-cases/microservice-orchestration),
