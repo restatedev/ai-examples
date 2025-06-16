@@ -1,0 +1,20 @@
+[project]
+name = "insurance-claims"
+version = "0.1.0"
+description = "Restate insurance claims example"
+requires-python = ">=3.12"
+
+dependencies = [
+    "hypercorn",
+    "restate_sdk[serde]>=0.7.3",
+    "pydantic>=2.10.6",
+    "openai",
+    "pypdf"
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

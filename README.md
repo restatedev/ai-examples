@@ -5,19 +5,39 @@
 [![Twitter](https://img.shields.io/twitter/follow/restatedev.svg?style=social&label=Follow)](https://x.com/intent/follow?screen_name=restatedev)
 <!-- markdown-link-check-enable -->
 
-# Restate: a next-gen runtime for robust, stateful, production-grade agents 
+# Restate: SDK-agnostic resilient agentic workflows 
 
+Restate turns brittle agents into **resilient agents**.
+
+Restate is Agent-SDK-agnostic and turns your agentic workflows into **reliable applications** that work consistently in production.
+
+Restate has got your back: whether you start by adding resiliency to an existing agent SDK, or decide the agent SDK not flexible enough and implement everything from scratch while keeping your resiliency guarantees.
+
+
+## Restate + Vercel AI SDK
+
+Use Restate in combination with the [Vercel AI SDK](https://ai-sdk.dev/docs/introduction) to turn your Vercel AI SDK-based agents into resilient agents:
+- **[<img src="https://skillicons.dev/icons?i=ts" width="24" height="24"> Restate + Vercel AI SDK template](get-started/vercel-ai/README.md)**
+- For a more advanced example that can be deployed as a Next.js app on Vercel: [Vercel AI SDK example](agents/vercel-ai-sdk/README.md).
+
+## Restate + OpenAI Agent SDK
+
+Use Restate in combination with the [OpenAI Agent SDK](https://openai.github.io/openai-agents-python/) to turn your OpenAI Agent SDK-based agents into resilient agents:
+- **[<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Restate + OpenAI Agent SDK template](get-started/openai-agents-python/README.md)**
+- For a more advanced example (including memory, handoffs etc.), check out this [OpenAI Agent SDK example](agents/openai-agents-python/README.md).
+
+## Why Restate?
 [Restate](https://ai.restate.dev/) lets you easily build **reliable applications** that work consistently in production. 
 Restate's capabilities and programming model work very well for implementing **agentic workflows**.
 Move beyond fragile demos by giving your agents **innate resilience**—persistent memory, fault-tolerant tool/LLM calls, and robust handling of long-running tasks. Focus on your agent's intelligence, not the infrastructure complexity tax.
 
-## Why Restate?
-
 Restate provides the following capabilities:
 - 🚀 **Move fast and far** - Innate resiliency and control from your first LLM-SDK-based app to low-level, customized multi-agent applications.
+- 🛠️ **SDK-agnostic** - Use Restate with any agent SDK, such as [OpenAI Agent SDK](https://openai.github.io/openai-agents-python/), [Vercel AI SDK](https://ai-sdk.dev/docs/introduction), or your own custom agent implementation.
 - ✅ **Resilience where it matters most** – Automatically recover from failures in your agentic workflows and tools.
 - 🎮 **Task control** - Cancel tasks, query status, re-subscribe to ongoing tasks, and track progress across failures, time, and processes.
 - 🤖 **Reliable multi-agent** - Flexible and reliable communication patterns including RPC, scheduled tasks, events, human-in-the-loop and parallel execution.
+- 🙂 **Human-in-the-loop** – Resiliently integrate human feedback into your agentic workflows.
 - 👀 **Full observability** – Line-by-line execution tracking with a built-in audit trail and UI. Seamless integration with OpenTelemetry.
 - 🔁 **Orchestrate long-running processes** – Coordinate durable and stateful agentic processes for millis or months.
 - 🔧 **Rich primitives** – Leverage workflows, durable promises, communication, and persistent state.
@@ -25,6 +45,8 @@ Restate provides the following capabilities:
 - 💾 **Persistent memory** - Maintain consistent agent memory across infrastructure events.
 - 🌍 **Deploy anywhere** – Whether it's AWS Lambda, CloudRun, Fly.io, Cloudflare, Kubernetes, Deno Deploy,...
 - ☁️ **Easy to self-host** – Single-binary self-hosted deployments or connect to [Restate Cloud](https://restate.dev/cloud/).
+
+<img src="agents/openai-agents-python/img/invocation_ui_agent_sdk.png" alt="OpenAI Agent SDK invocation UI" width="1000px"/>
 
 Restate can also be used for other use cases, such as: 
 [workflows](https://docs.restate.dev/use-cases/workflows),
@@ -35,23 +57,27 @@ Or check out the [Restate examples repository](https://github.com/restatedev/exa
 
 This repository contains examples of how to use Restate for AI / Agent use cases.
 
+## Full Example Catalog
 
-## Example catalog
-
-1. [**DIY patterns**](diy-patterns): Patterns for hardening custom LLM orchestration logic.
-   - [Chaining LLM calls](diy-patterns#chaining-llm-calls)
-   - [Parallelizing tool calls](diy-patterns#parallelizing-tool-calls)
-   - [Dynamic routing based on LLM output](diy-patterns#dynamic-routing-based-on-llm-output)
-   - [Orchestrator-worker pattern](diy-patterns#orchestrator-worker-pattern)
-   - [Evaluator-optimizer pattern](diy-patterns#evaluator-optimizer-pattern)
-   - [Human-in-the-loop pattern](diy-patterns#human-in-the-loop-pattern)
-
-2. [**Agents**](agents): Using Restate (optionally with Agent SDKs) for resilient agentic workflows.
-3. [**MCP**](mcp): Using Restate for exposing tools and resilient orchestration of tool calls.
-4. [**A2A**](a2a): Implement Google's Agent-to-Agent protocol with Restate as resilient, scalable task orchestrator.
-5. [**End-to-end applications**](end-to-end-applications): 
-   - [Interruptible agents](end-to-end-applications/interruptible-agent): A customized agent with different operational modes to process new inputs: interrupting, incorporating, queueing.
-   - [Insurance claims](end-to-end-applications/insurance-claims): Filing insurance claims by parsing PDF receipts with LLMs.
+1. [**Get started**](get-started): 
+   - [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24"> Restate + Vercel AI SDK](get-started/vercel-ai/README.md): A minimal example of how to use Restate with the Vercel AI SDK.
+   - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Restate + OpenAI Agents SDK](get-started/openai-agents-python/README.md): A minimal example of how to use Restate with the OpenAI Agents SDK.
+2. [**Agents**](agents): 
+   - [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24"> Restate + Vercel AI SDK](agents/vercel-ai/README.md): A more advanced example of how to use Restate with the Vercel AI SDK that can be deployed as a Next.js app on Vercel.
+   - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Restate + OpenAI Agents SDK](agents/openai-agents-python/README.md): A more advanced example of how to use Restate with the OpenAI Agents SDK.
+2. [**DIY patterns**](diy-patterns): Patterns for hardening custom LLM orchestration logic.
+   - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Chaining LLM calls](diy-patterns#chaining-llm-calls)
+   - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Parallelizing tool calls](diy-patterns#parallelizing-tool-calls)
+   - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Dynamic routing based on LLM output](diy-patterns#dynamic-routing-based-on-llm-output)
+   - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Orchestrator-worker](diy-patterns#orchestrator-worker-pattern)
+   - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Evaluator-optimizer](diy-patterns#evaluator-optimizer-pattern)
+   - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Human-in-the-loop](diy-patterns#human-in-the-loop-pattern)
+3. [**MCP** <img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](mcp/README.md): Using Restate for exposing tools and resilient orchestration of tool calls.
+4. [**A2A** <img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> ](a2a/README.md): Implement Google's Agent-to-Agent protocol with Restate as resilient, scalable task orchestrator.
+5. [**Advanced examples**](end-to-end-applications): 
+   - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Restate-native agent](advanced/restate-native-agent/README.md): A fully customizable agent implemented with Restate without an Agent SDK. 
+   - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Interruptible agents](advanced/interruptible-agent/README.md): A customized agent with different operational modes to process new inputs: interrupting, incorporating, queueing.
+   - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Insurance claims](advanced/insurance-claims/README.md): Filing insurance claims by parsing PDF receipts with LLMs.
 
 
 Restate supports 6 languages:
@@ -90,7 +116,7 @@ git clone git@github.com:restatedev/restate-ai-examples.git
 
 ## Disclaimers and acknowledgements
 
-**Disclaimer 1**: The implementations of the agent loops in this repo are heavily inspired by the [OpenAI Agents SDK](https://github.com/openai/openai-agents-python). 
+**Disclaimer 1**: The implementations of the Restate-native agent in this repo are heavily inspired by the [OpenAI Agents SDK](https://github.com/openai/openai-agents-python). 
 We therefore want to give credit to the developers of this SDK for the great work they have done.
 This repo builds further on their work to make it benefit from Restate's programming model and capabilities.
 

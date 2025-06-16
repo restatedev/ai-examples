@@ -5,7 +5,11 @@ description = "A2A submodule for Restate and GenAI integrations"
 requires-python = ">=3.12"
 
 dependencies = [
-    "restate-ai-examples",
+    "httpx>=0.28.1",
+    "hypercorn",
+    "restate_sdk[serde]>=0.7.3",
+    "pydantic>=2.10.6",
+    "openai",
     "langchain-google-genai>=2.0.10",
     "langgraph>=0.3.18",
     "google-adk>=0.0.3",
@@ -15,10 +19,7 @@ dependencies = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["agents"]
-
-[tool.uv.sources]
-restate-ai-examples = { workspace = true }
+packages = ["a2a"]
 
 [build-system]
 requires = ["hatchling"]

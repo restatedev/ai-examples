@@ -29,48 +29,39 @@ Restate acts as a scalable, resilient task orchestrator that speaks the A2A prot
     echo "GOOGLE_API_KEY=your_api_key_here" >> .env
     ```
 
-## Running the example: Single agent
+## Running the example: multi-agent 
 
-This example shows how to run a single agent and use the A2A protocol to communicate with it.
+This example shows how to run multiple agents and use the A2A protocol to communicate with them.
 
-1. [Start the Restate Server](https://docs.restate.dev/develop/local_dev) in a separate shell:
-    ```shell
-    restate-server
-    ```
+<img src="img/multi_agent.png" alt="Restate UI" width="600"/>
 
-2. Start one of the agents, including their A2A server:
-   - **Restate Reimbursement Agent**: Run the Restate agent ([`agents/restatedev`](agents/restatedev/__main__.py)), if you want an agent with end-to-end durability for the agent loop and full observability of what the agent executes. The reimburse tool implements a long-running workflow that waits on a human approval:
-       ```shell
-       uv run agents/restatedev
-       ```
-     Then register the service:
-       ```shell
-       restate -y deployments register http://localhost:9081/restate/v1
-       ```
-   - **Google ADK Reimbursement Agent**: To run an agent that uses the Google ADK ([`agents/google_adk`](agents/google_adk/__main__.py)):
-       ```shell
-       uv run agents/google_adk
-       ```
-     Then register the service:
-       ```shell
-       restate -y deployments register http://localhost:9083/restate/v1
-       ```
-   - **LangGraph Currency Agent**: To run an agent that uses the LangGraph SDK ([`agents/langgraph`](agents/langgraph/__main__.py)):
-       ```shell
-       uv run agents/langgraph
-       ```
-     Then register the service:
-       ```shell
-       restate -y deployments register http://localhost:9082/restate/v1
-       ```
+Make sure you have no other Restate server/services running. Then bring up the multi-agent example:
 
+```shell
+docker compose up
+```
 
-You can now send A2A messages directly to agents via `curl` or the UI playground (click on your service in the overview at `localhost:9070` and then on `Playground`). 
+(It will take a while before all the services are up and running and you will see a few retries for the registration.)
 
+Go to the Restate UI ([`http://localhost:9070`](`http://localhost:9070`)). You see here the overview of the services that are running:
 
-### Send a Task to the Agent
+<img src="img/multi_agent_overview.png" alt="Restate UI" width="1000"/>
 
-#### Option 1: Send an A2A Task Send request to the LangGraph Currency Agent
+To send messages to the host agent, click on it and then click on the "Playground" button. 
+
+<img src="img/multi_agent_chat.png" alt="Restate UI" width="1000"/>
+
+The host agent will forward messages to the registered agents that it knows of, and it will use the A2A protocol to communicate with them.
+
+You can see in the Restate UI to which agents your host agent has access. For `my-user`, we have access to the following:
+
+<img src="img/multi_agent_list.png" alt="Restate UI" width="1000"/>
+
+You can also send messages with the A2A protocol directly to the agents, without going through the host agent:
+
+### LangGraph Currency Agent
+
+To start a task:
 
 ```shell
 curl localhost:8080/CurrencyAgentA2AServer/process_request \
@@ -149,8 +140,10 @@ curl localhost:8080/CurrencyAgentA2AServer/process_request \
 If you send the same task twice, the second attempt will get resolved immediately with the response of the first attempt.
 The Restate A2A server automatically takes care of the deduplication.
 
-#### Option 2:  Send a Task to the Google ADK Reimbursement Agent
+### Google ADK Reimbursement Agent
 
+To start a task:
+     
 ```shell
 curl localhost:8080/GoogleReimbursementAgentA2AServer/process_request \
     --json '{
@@ -225,10 +218,10 @@ curl localhost:8080/GoogleReimbursementAgentA2AServer/process_request \
 
 </details>
 
-#### Option 3:  Send a Task to the Restate Reimbursement Agent
+### Restate Reimbursement Agent
 
-If you use the Restate Reimbursement Agent, then this task will block on a human approval if the amount is greater than 100 USD.
 
+To start a task that **will block on human approval if the amount is greater than 100 USD**, run the following command:
 
 ```shell
 curl localhost:8080/ReimbursementAgentA2AServer/process_request \
@@ -272,7 +265,10 @@ While the task is waiting on human approval, you can have a look at the Restate 
 
 <img src="img/restate_ui_journal.png" alt="Restate UI" width="1000"/>
 
-#### Get a Task
+
+**You can now also use the A2A protocol to query the task status and history, or cancel the task:**
+
+#### Get the task
 
 ```shell
 curl localhost:8080/ReimbursementAgentA2AServer/process_request \
@@ -384,37 +380,36 @@ curl localhost:8080/ReimbursementAgentA2AServer/process_request \
 
 This is implemented via Restate's [cancel task API](https://docs.restate.dev/develop/python/service-communication#cancel-an-invocation).
 
-## Running the example: multi-agent 
-
-This example shows how to run multiple agents and use the A2A protocol to communicate with them.
-
-<img src="img/multi_agent.png" alt="Restate UI" width="600"/>
-
-Make sure you have no other Restate server/services running. Then bring up the multi-agent example **from the root of the repository**:
-
-```shell
-docker compose -f a2a/compose.yml up
-```
-
-Go to the Restate UI ([`http://localhost:9070`](`http://localhost:9070`)). You see here the overview of the services that are running:
-
-<img src="img/multi_agent_overview.png" alt="Restate UI" width="1000"/>
-
-To send messages to the host agent, click on it and then click on the "Playground" button. 
-
-<img src="img/multi_agent_chat.png" alt="Restate UI" width="1000"/>
-
-The host agent will forward messages to the registered agents that it knows of, and it will use the A2A protocol to communicate with them.
-
-You can see in the Restate UI to which agents your host agent has access. For `my-user`, we have access to the following:
-
-<img src="img/multi_agent_list.png" alt="Restate UI" width="1000"/>
-
+### Stopping the example
 
 To bring the services down, run:
 
 ```shell
-docker compose -f a2a/compose.yml down
-docker compose -f a2a/compose.yml rm
+docker compose down
+docker compose rm
 ```
 
+
+## Running a single agent
+
+You can also start a single agent together with Restate. 
+
+
+For example, to run an agent that uses the LangGraph SDK ([`a2a/langgraph`](a2a/langgraph/__main__.py)):
+
+```shell
+uv run a2a/langgraph
+```
+
+[Start the Restate Server](https://docs.restate.dev/develop/local_dev) in a separate shell:
+    ```shell
+    restate-server
+    ```
+
+Then register the service:
+
+```shell
+restate -y deployments register http://localhost:9082/restate/v1
+```
+
+Then send requests to the agent.

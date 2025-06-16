@@ -1,0 +1,16 @@
+[project]
+name = "restate-interruptible-agent"
+version = "0.1.0"
+description = "Python example of an interruptible agent using Restate"
+readme = "README.md"
+requires-python = ">=3.12"
+
+dependencies = [
+    "hypercorn",
+    "restate_sdk[serde]>=0.7.3",
+    "pydantic>=2.10.6",
+    "openai"
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
