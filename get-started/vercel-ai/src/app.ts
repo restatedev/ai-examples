@@ -8,16 +8,15 @@ import { durableCalls } from "./utils/ai_infra";
 import { fetchWeather, parseWeatherResponse } from "./utils/utils";
 
 // Durable tool workflow
-const getWeather = async (ctx: restate.Context, city: string) => {
-  // implement durable tool steps using the Restate context
-  const result = await ctx.run("get weather", async () => fetchWeather(city));
-  if (result.startsWith("Unknown location")) {
-    return `Unknown location: ${city}. Please provide a valid city name.`;
-  }
-
-  const { temperature, description } = await parseWeatherResponse(result);
-  return `Weather in ${city}: ${temperature}°C, ${description}`;
-};
+const getWeatherTool = (restate_context: restate.Context) => tool({
+  description: "Get the current weather for a given city.",
+  parameters: z.object({ city: z.string() }),
+  execute: async ({ city }) => {
+    // implement durable tool steps using the Restate context
+    const result = await restate_context.run("get weather", async () => fetchWeather(city));
+    return await parseWeatherResponse(result);
+  },
+});
 
 const agent = restate.service({
   name: "Agent",
@@ -25,7 +24,6 @@ const agent = restate.service({
     run: restate.handlers.handler(
       { input: serde.zod(z.string()) },
       async (ctx: restate.Context, prompt) => {
-
         // Persist the results of LLM calls via the durableCalls middleware
         const model = wrapLanguageModel({
           model: openai("gpt-4o-2024-08-06", { structuredOutputs: true }),
@@ -36,13 +34,7 @@ const agent = restate.service({
           model,
           system: "You are a helpful agent.",
           messages: [{ role: "user", content: prompt }],
-          tools: {
-            getWeatherTool: tool({
-              description: "Get the current weather for a given city.",
-              parameters: z.object({ city: z.string() }),
-              execute: async ({ city }) => getWeather(ctx, city),
-            }),
-          },
+          tools: { getWeather: getWeatherTool(ctx) },
           maxRetries: 0,
           maxSteps: 10,
         });

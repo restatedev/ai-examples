@@ -1,10 +1,9 @@
 import agents
 import restate
-from pydantic import BaseModel, ConfigDict
 from agents import Agent, function_tool, handoff, RunContextWrapper, RunConfig
 from agents.extensions.handoff_prompt import RECOMMENDED_PROMPT_PREFIX
 
-from utils.middleware import RestateModelProvider
+from utils.middleware import DurableModelCalls
 from utils.utils import (
     retrieve_flight_info,
     send_invoice,
@@ -19,21 +18,11 @@ This is an OpenAI SDK example that has been adapted to use Restate for resilienc
 https://github.com/openai/openai-agents-python/blob/main/examples/customer_service/main.py
 """
 
-
-# To have access to the Restate context in the tools, we can pass it along in the context that we pass to the tools
-class ToolContext(BaseModel):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
-    restate_context: restate.ObjectContext
-    customer_id: str | None = None
-
-
 # TOOLS
-
 
 @function_tool
 async def update_seat(
-    context: RunContextWrapper[ToolContext],
+    wrapper: RunContextWrapper[restate.ObjectContext],
     confirmation_number: str,
     new_seat: str,
 ) -> str:
@@ -46,15 +35,15 @@ async def update_seat(
     """
 
     # Do durable steps in your tools by using the Restate context
-    ctx = context.context.restate_context
+    restate_context = wrapper.context
 
     # 1. Look up the flight using the confirmation number
-    flight = await ctx.run(
+    flight = await restate_context.run(
         "Info lookup", retrieve_flight_info, args=(confirmation_number,)
     )
 
     # 2. Update the seat in the booking system
-    success = await ctx.run(
+    success = await restate_context.run(
         "Update seat",
         update_seat_in_booking_system,
         args=(confirmation_number, new_seat, flight),
@@ -70,24 +59,24 @@ async def update_seat(
     description_override="Sends invoices to customers for booked flights.",
 )
 async def invoice_sending(
-    context: RunContextWrapper[ToolContext], confirmation_number: str
+    wrapper: RunContextWrapper[restate.ObjectContext], confirmation_number: str
 ):
     # Do durable steps in your tools by using the Restate context
-    ctx = context.context.restate_context
+    restate_context = wrapper.context
 
     # 1. Look up the flight using the confirmation number
-    flight = await ctx.run(
+    flight = await restate_context.run(
         "Info lookup", retrieve_flight_info, args=(confirmation_number,)
     )
 
     # 2. Send the invoice to the customer
-    await ctx.run("Send invoice", send_invoice, args=(confirmation_number, flight))
+    await restate_context.run("Send invoice", send_invoice, args=(confirmation_number, flight))
 
 
 ### AGENTS
 
 # This is identical to the examples of the OpenAI SDK
-faq_agent = Agent[ToolContext](
+faq_agent = Agent[restate.ObjectContext](
     name="Invoice Sending Agent",
     handoff_description="A helpful agent that can send invoices.",
     instructions=f"""{RECOMMENDED_PROMPT_PREFIX}
@@ -100,7 +89,7 @@ faq_agent = Agent[ToolContext](
     tools=[invoice_sending],
 )
 
-seat_booking_agent = Agent[ToolContext](
+seat_booking_agent = Agent[restate.ObjectContext](
     name="Seat Booking Agent",
     handoff_description="A helpful agent that can update a seat on a flight.",
     instructions=f"""{RECOMMENDED_PROMPT_PREFIX}
@@ -114,8 +103,7 @@ seat_booking_agent = Agent[ToolContext](
     tools=[update_seat],
 )
 
-triage_agent = Agent[ToolContext](
-    model="o3-mini",
+triage_agent = Agent[restate.ObjectContext](
     name="Triage Agent",
     handoff_description="A triage agent that can delegate a customer's request to the appropriate agent.",
     instructions=(
@@ -140,43 +128,30 @@ agent_dict = {
 # Keyed by conversation id
 agent = restate.VirtualObject("Agent")
 
-# Keys of the K/V state stored in Restate per chat
-INPUT_ITEMS = "input-items"
+# Restate stores the conversation history in its embedded K/V store
+MEMORY = "memory"
 
 
 @agent.handler()
-async def run(ctx: restate.ObjectContext, req: str) -> str:
-    """
-    Send a message to the agent.
+async def run(restate_context: restate.ObjectContext, message: str) -> str:
+    """Send a message to the agent."""
 
-    Args:
-        req (str): The message to send to the agent.
-
-    Returns:
-        str: The response from the agent.
-    """
     # Use Restate's K/V store to keep track of the conversation history and last agent
-    input_items = await ctx.get(INPUT_ITEMS) or []
-    input_items.append({"role": "user", "content": req})
-    ctx.set(INPUT_ITEMS, input_items)
+    memory = await restate_context.get(MEMORY) or []
+    memory.append({"role": "user", "content": message})
+    restate_context.set(MEMORY, memory)
 
-    last_agent_name = await ctx.get("agent") or triage_agent.name
-    last_agent = agent_dict[last_agent_name]
-
-    # Pass the Restate context to the tools
-    tool_context = ToolContext(restate_context=ctx, customer_id=ctx.key())
-
+    last_agent_name = await restate_context.get("agent") or triage_agent.name
     result = await agents.Runner.run(
-        last_agent,
-        input=input_items,
-        context=tool_context,
-        # Use the RestateModelProvider to persist the LLM calls in Restate
-        run_config=RunConfig(model_provider=RestateModelProvider(ctx)),
+        agent_dict[last_agent_name],
+        input=memory,
+        # Pass the Restate context to the tools to make tool execution steps durable
+        context=restate_context,
+        # Choose any model and let Restate persist your calls
+        run_config=RunConfig(model="gpt-4o", model_provider=DurableModelCalls(restate_context)),
     )
 
-    ctx.set("agent", result.last_agent.name)
-
-    output = str(result.final_output)
-    input_items.append({"role": "system", "content": output})
-    ctx.set(INPUT_ITEMS, input_items)
-    return output
+    restate_context.set("agent", result.last_agent.name)
+    memory.append({"role": "system", "content": result.final_output})
+    restate_context.set(MEMORY, memory)
+    return result.final_output
