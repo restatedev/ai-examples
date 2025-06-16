@@ -19,8 +19,9 @@ async def get_weather(
     """Get the current weather for a given city."""
     # Do durable steps using the Restate context
     restate_context = wrapper.context
-    response = await restate_context.run("Get weather", fetch_weather, args=(req.city,))
-    return await parse_weather_data(response)
+    resp = await restate_context.run(
+        "Get weather", fetch_weather, args=(req.city,))
+    return await parse_weather_data(resp)
 
 
 my_agent = Agent[restate.Context](
@@ -44,7 +45,10 @@ async def run(restate_context: restate.Context, message: str) -> str:
         # Pass the Restate context to tools to make tool execution steps durable
         context=restate_context,
         # Choose any model and let Restate persist your calls
-        run_config=RunConfig(model="gpt-4o", model_provider=DurableModelCalls(restate_context)),
+        run_config=RunConfig(
+            model="gpt-4o",
+            model_provider=DurableModelCalls(restate_context)
+        ),
     )
 
     return result.final_output

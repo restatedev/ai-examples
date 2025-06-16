@@ -1,6 +1,6 @@
 import { TerminalError } from "@restatedev/restate-sdk";
 import * as os from "node:os";
-import {parseEnv} from "node:util";
+import { parseEnv } from "node:util";
 
 type WeatherResponse = {
   current_condition: {
@@ -21,9 +21,7 @@ export async function fetchWeather(city: string): Promise<string> {
   if (!res.ok) throw new Error(`Failed calling weather API: ${res.status}`);
   const output = await res.text();
   if (output.startsWith("Unknown location")) {
-    throw new TerminalError(
-      `Unknown location: ${city}. Please provide a valid city name.`,
-    );
+    throw new TerminalError(`Unknown location: ${city}. Please provide a valid city name.`);
   }
   return output;
 }
@@ -40,15 +38,14 @@ export async function parseWeatherResponse(
   };
 }
 
-
-function runAgent(prompt: string){
+function runAgent(prompt: string) {
   let step = callLLM(prompt);
 
-  while(!step.done){
-    callTool(step.tool)
+  while (!step.done) {
+    callTool(step.tool);
     step = callLLM(prompt, step);
   }
-  return step.result
+  return step.result;
 }
 
 export function callLLM(prompt: string, step?: any): any {
@@ -58,7 +55,7 @@ export function callLLM(prompt: string, step?: any): any {
 }
 
 function callTool(tool: any): any {
-    // Simulate a call to a tool
-    console.log(`Calling tool: ${tool.name} with params: ${JSON.stringify(tool.params)}`);
-    return { result: "Tool result" };
+  // Simulate a call to a tool
+  console.log(`Calling tool: ${tool.name} with params: ${JSON.stringify(tool.params)}`);
+  return { result: "Tool result" };
 }

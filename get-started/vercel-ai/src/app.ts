@@ -8,15 +8,15 @@ import { durableCalls } from "./utils/ai_infra";
 import { fetchWeather, parseWeatherResponse } from "./utils/utils";
 
 // Durable tool workflow
-const getWeatherTool = (restate_context: restate.Context) => tool({
-  description: "Get the current weather for a given city.",
-  parameters: z.object({ city: z.string() }),
-  execute: async ({ city }) => {
-    // implement durable tool steps using the Restate context
-    const result = await restate_context.run("get weather", async () => fetchWeather(city));
-    return await parseWeatherResponse(result);
-  },
-});
+const getWeatherTool = (restate_context: restate.Context) =>
+  tool({
+    description: "Get the current weather for a given city.",
+    parameters: z.object({ city: z.string() }),
+    execute: async ({ city }) => {
+      const result = await restate_context.run("get weather", async () => fetchWeather(city));
+      return await parseWeatherResponse(result);
+    },
+  });
 
 const agent = restate.service({
   name: "Agent",

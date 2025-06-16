@@ -1,16 +1,10 @@
 import { openai } from "@ai-sdk/openai";
 import { google } from "@ai-sdk/google";
 import * as restate from "@restatedev/restate-sdk";
-import {
-  LanguageModelV1,
-  LanguageModelV1CallOptions,
-  LanguageModelV1Middleware,
-} from "ai";
+import { LanguageModelV1, LanguageModelV1CallOptions, LanguageModelV1Middleware } from "ai";
 import superjson from "superjson";
 
-export type DoGenerateResponseType = Awaited<
-  ReturnType<LanguageModelV1["doGenerate"]>
->;
+export type DoGenerateResponseType = Awaited<ReturnType<LanguageModelV1["doGenerate"]>>;
 
 export type RemoteModelCallOptions = {
   /**
@@ -63,11 +57,7 @@ export const durableCalls = (
 
   return {
     wrapGenerate({ model, doGenerate }) {
-      return ctx.run(
-        `calling ${model.provider}`,
-        async () => doGenerate(),
-        runOpts,
-      );
+      return ctx.run(`calling ${model.provider}`, async () => doGenerate(), runOpts);
     },
   };
 };
@@ -107,10 +97,7 @@ export const remoteCalls = (
 
       return ctx
         .objectClient<ModelService>({ name: "models" }, concurrencyKey)
-        .doGenerate(
-          request,
-          restate.rpc.opts({ input: superJson, output: superJson }),
-        );
+        .doGenerate(request, restate.rpc.opts({ input: superJson, output: superJson }));
     },
   };
 };
@@ -138,9 +125,7 @@ export const models = restate.object({
         } else if (modelProvider === "google") {
           model = google(modelId, { structuredOutputs: true });
         } else {
-          throw new restate.TerminalError(
-            `Model provider ${modelProvider} is not supported.`,
-          );
+          throw new restate.TerminalError(`Model provider ${modelProvider} is not supported.`);
         }
 
         return await ctx.run(

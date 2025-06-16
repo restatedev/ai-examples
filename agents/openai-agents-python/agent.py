@@ -128,18 +128,15 @@ agent_dict = {
 # Keyed by conversation id
 agent = restate.VirtualObject("Agent")
 
-# Restate stores the conversation history in its embedded K/V store
-MEMORY = "memory"
-
 
 @agent.handler()
 async def run(restate_context: restate.ObjectContext, message: str) -> str:
     """Send a message to the agent."""
 
     # Use Restate's K/V store to keep track of the conversation history and last agent
-    memory = await restate_context.get(MEMORY) or []
+    memory = await restate_context.get("memory") or []
     memory.append({"role": "user", "content": message})
-    restate_context.set(MEMORY, memory)
+    restate_context.set("memory", memory)
 
     last_agent_name = await restate_context.get("agent") or triage_agent.name
     result = await agents.Runner.run(
@@ -152,6 +149,6 @@ async def run(restate_context: restate.ObjectContext, message: str) -> str:
     )
 
     restate_context.set("agent", result.last_agent.name)
-    memory.append({"role": "system", "content": result.final_output})
-    restate_context.set(MEMORY, memory)
+    memory.append({"role": "assistant", "content": result.final_output})
+    restate_context.set("memory", memory)
     return result.final_output
