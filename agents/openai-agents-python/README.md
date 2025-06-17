@@ -16,16 +16,15 @@ Restate powers your agents with the following features:
 - 🙂 **Resilient human-in-the-loop**: Both approaches support human intervention in workflows
 - 👬 **Idempotency/deduplication**: Prevents duplicate agent requests
 
+As opposed to the [OpenAI Agents + Restate template](../../get-started/openai-agents-python/README.md), this example shows how to do handoffs and stateful sessions.
+
 ## Plugging Restate into the OpenAI Agents Python SDK
 
 Use the OpenAI Agent SDK to implement the agent loop, while Restate handles the persistence and resiliency of the agent's decisions and tool executions.
 
 To make the agent resilient, we need to:
-- persist the results of LLM calls in Restate's journal by wrapping them in `ctx.run()`
-- persist intermediate tool execution steps by wrapping steps in Restate SDK actions
-
-The OpenAI Agent SDK lets you wrap the LLM calls into durable actions by implementing a Restate Model Provider ([code](utils/middleware.py)).
-In order to have access to the Restate context in the tools, we can pass it along in the context that we pass to the tools. 
+- persist the results of LLM calls in Restate's journal by wrapping them in `ctx.run()`. This is handled by the [`DurableModelCalls` model provider](utils/middleware.py).
+- persist intermediate tool execution steps by wrapping steps in Restate SDK actions. To do this, we pass the Restate context along to the tools.
 
 <img src="img/using_agent_sdk.png" alt="Using Agent SDK" width="650px"/>
 

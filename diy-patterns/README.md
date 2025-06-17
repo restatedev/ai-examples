@@ -71,6 +71,9 @@ Send an HTTP request to the service by running the [client](chaining/client.py):
 uv run chaining_client
 ```
 
+You see in the UI how the LLM is called multiple times, and how the results are refined step by step:
+
+<img src="./img/chaining.png" alt="Chaining LLM calls - UI"/>
 
 <details>
 <summary>View output</summary>
@@ -136,6 +139,12 @@ Send an HTTP request to the service by running the [client](parallelization/clie
 ```shell
 uv run parallelization_client
 ```
+
+You see in the UI how the different tasks are executed in parallel: 
+
+<img src="./img/parallel.png" alt="Chaining LLM calls - UI"/>
+
+Once all tasks are done, the results are aggregated and returned to the client.
 
 <details>
 <summary>View output</summary>
@@ -376,6 +385,10 @@ Send an HTTP request to the service by running the [client](routing/client.py):
 uv run routing_client
 ```
 
+In the UI, you can see how the LLM decides to forward the request to the technical support team, and how the response is processed:
+
+<img src="./img/routing.png" alt="Dynamic routing based on LLM output - UI"/>
+
 <details>
 <summary>View Output</summary>
 
@@ -514,6 +527,8 @@ Send an HTTP request to the service by running the [client](orchestrator_workers
 uv run orchestrator_client
 ```
 
+<img src="./img/orchestrator.png" alt="Orchestrator-worker pattern - UI"/>
+
 <details>
 <summary>View output</summary>
 
@@ -646,6 +661,8 @@ Send an HTTP request to the service by running the [client](evaluator_optimizer/
 uv run evaluator_client
 ```
 
+<img src="./img/evaluator.png" alt="Evaluator-optimizer pattern - UI"/>
+
 <details>
 <summary>View Output</summary>
 
@@ -757,6 +774,12 @@ curl localhost:8080/HumanInTheLoopService/giselle/run_with_promise \
     --json '"Write a poem about Durable Execution"'
 ```
 
+Then use the printed curl command to incorporate external feedback. And supply `PASS` as feedback to accept the solution.
+
+You can see how the feedback gets incorporated in the Invocations tab in the Restate UI (`http://localhost:9070`):
+
+<img src="./img/human_in_the_loop.png" alt="Human-in-the-loop pattern - UI"/>
+
 <details>
 <summary>View Output</summary>
 
@@ -807,11 +830,6 @@ Answer 'PASS' to accept the solution.
 
 </details>
 
-Then use the printed curl command to incorporate external feedback. And supply `PASS` as feedback to accept the solution.
-
-You can see how the feedback gets incorporated in the Invocations tab in the Restate UI (`http://localhost:9070`):
-
-<img src="../doc/img/patterns/human_in_the_loop_promise.png" alt="Human-in-the-loop" width="900px"/>
 
 #### Option 2: `run` handler
 [<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](human_in_the_loop/service.py)
