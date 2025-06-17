@@ -26,10 +26,10 @@ To make the agent resilient, we need to:
 - persist the results of LLM calls in Restate's journal by wrapping them in `ctx.run()`. This is handled by the [`DurableModelCalls` model provider](utils/middleware.py).
 - persist intermediate tool execution steps by wrapping steps in Restate SDK actions. To do this, we pass the Restate context along to the tools.
 
-<img src="img/using_agent_sdk.png" alt="Using Agent SDK" width="650px"/>
+<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/agents-openai/using_agent_sdk.png" alt="Using Agent SDK" width="650px"/>
 
-<img src="img/invocation_ui_agent_sdk.png" alt="Using Agent SDK - journal" width="1200px"/>
-<img src="img/invocation_ui_agent_state.png" alt="Using Agent SDK - state" width="1200px"/>
+<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/agents-openai/invocation_ui_agent_sdk.png" alt="Using Agent SDK - journal" width="1200px"/>
+<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/agents-openai/invocation_ui_agent_state.png" alt="Using Agent SDK - state" width="1200px"/>
 
 
 ⚠ **LIMITATIONS**: You cannot do parallel tool calls or any type of parallel execution if you integrate Restate with an Agent SDK. 
@@ -59,7 +59,7 @@ This example implements an airline customer service agent that can answer questi
 
 Now you can send requests to the agent via the UI playground (click on the agent service and then `playground`):
 
-<img src="img/ui_openai.png" alt="UI example" width="1000px"/>
+<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/agents-openai/ui_openai.png" alt="UI example" width="1000px"/>
 
 Or with the [client](client/__main__.py):
 

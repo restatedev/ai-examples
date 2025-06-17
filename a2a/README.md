@@ -33,7 +33,7 @@ Restate acts as a scalable, resilient task orchestrator that speaks the A2A prot
 
 This example shows how to run multiple agents and use the A2A protocol to communicate with them.
 
-<img src="img/multi_agent.png" alt="Restate UI" width="600"/>
+<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/a2a/multi_agent.png" alt="Restate UI" width="600"/>
 
 Make sure you have no other Restate server/services running. Then bring up the multi-agent example:
 
@@ -45,17 +45,17 @@ docker compose up
 
 Go to the Restate UI ([`http://localhost:9070`](`http://localhost:9070`)). You see here the overview of the services that are running:
 
-<img src="img/multi_agent_overview.png" alt="Restate UI" width="1000"/>
+<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/a2a/multi_agent_overview.png" alt="Restate UI" width="1000"/>
 
 To send messages to the host agent, click on it and then click on the "Playground" button. 
 
-<img src="img/multi_agent_chat.png" alt="Restate UI" width="1000"/>
+<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/a2a/multi_agent_chat.png" alt="Restate UI" width="1000"/>
 
 The host agent will forward messages to the registered agents that it knows of, and it will use the A2A protocol to communicate with them.
 
 You can see in the Restate UI to which agents your host agent has access. For `my-user`, we have access to the following:
 
-<img src="img/multi_agent_list.png" alt="Restate UI" width="1000"/>
+<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/a2a/multi_agent_list.png" alt="Restate UI" width="1000"/>
 
 You can also send messages with the A2A protocol directly to the agents, without going through the host agent:
 
@@ -263,7 +263,7 @@ curl localhost:8080/restate/awakeables/sign_1oqmHpDF_RJQBltjnf48zszmfmRr4w9izAAA
 
 While the task is waiting on human approval, you can have a look at the Restate UI at http://localhost:9070/ui/invocations to see the task progress:
 
-<img src="img/restate_ui_journal.png" alt="Restate UI" width="1000"/>
+<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/a2a/restate_ui_journal.png" alt="Restate UI" width="1000"/>
 
 
 **You can now also use the A2A protocol to query the task status and history, or cancel the task:**
@@ -324,7 +324,7 @@ curl localhost:8080/ReimbursementAgentA2AServer/process_request \
 The Durable Task Object stores the Task data in Restate's embedded K/V store.
 We can query the K/V store via the UI. Have a look at the task progress in the Restate UI at http://localhost:9070/ui/state:
 
-<img src="img/restate_ui_task_state.png" alt="Restate UI" width="1000"/>
+<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/a2a/restate_ui_task_state.png" alt="Restate UI" width="1000"/>
 
 #### Cancel a Task
 

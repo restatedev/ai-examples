@@ -5,7 +5,7 @@ Use the Vercel AI SDK to implement your agent, and let Restate handle the persis
 
 The example is an agent that can search for the weather in certain city.
 
-<img src="img/invocations_ui_vercel.png" alt="Using Agent SDK - journal" width="1200px"/>
+<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/get-started-vercel/invocations_ui_vercel.png" alt="Using Agent SDK - journal" width="1200px"/>
 
 > Also check out the advanced example in the [agents/vercel-ai](../../agents/vercel-ai/README.md) 
 
@@ -40,7 +40,7 @@ The example is an agent that can search for the weather in certain city.
 
 Check the Restate UI (`http://localhost:9080`) to see the journals of your invocations (remove the filters).
 
-<img src="img/journal_vercel.png" alt="Using Agent SDK - journal" width="1200px"/>
+<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/get-started-vercel/journal_vercel.png" alt="Using Agent SDK - journal" width="1200px"/>
 
 
 ## Integrating Restate with the Vercel AI SDK

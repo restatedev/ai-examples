@@ -21,7 +21,7 @@ Restate powers your agents with the following features:
 If we implement the agent loop with Restate, Restate journals each of the decisions the agents make and manages the tool executions.
 The agent session is a Restate Virtual Object that has a handler that runs the agent loop.
 
-<img src="img/agentic_workflow.png" alt="Agentic workflow" width="650px"/>
+<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/restate-native-agent/agentic_workflow.png" alt="Agentic workflow" width="650px"/>
 
 ## Running the example
 
@@ -46,7 +46,7 @@ This example implements a bank agent that can answer questions about your balanc
    
 Now you can send requests to the agent via the UI playground (click on the agent service and then `playground`):
 
-<img src="img/ui_example.png" alt="UI example" width="1200px"/>
+<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/restate-native-agent/ui_example.png" alt="UI example" width="1200px"/>
 
 Or with the [client](client/__main__.py):
 
@@ -56,7 +56,7 @@ Or with the [client](client/__main__.py):
    ```
    Example response: `Your current balance is $100,000.00. If you have any other questions, feel free to ask!`
 
-    <img src="img/journal.png" alt="UI example" width="1200px"/>
+    <img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/restate-native-agent/journal.png" alt="UI example" width="1200px"/>
 
 - **Request**:
    ```shell
@@ -87,4 +87,4 @@ Or with the [client](client/__main__.py):
    
 You can see the state of your agent in the state tab in the UI:
 
-<img src="img/state_agent.png" alt="UI state" width="600px"/>
+<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/restate-native-agent/state_agent.png" alt="UI state" width="600px"/>

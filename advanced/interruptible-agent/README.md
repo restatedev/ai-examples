@@ -136,7 +136,7 @@ If you send a few messages to the same session, you will see the cancellation in
 [2025-05-23 09:44:32,715] [INFO] agent: Final output message: The burger is ready, and the Caesar salad has been prepared with croutons. Enjoy your meal!
 ```
 
-<img src="img/interrupt.png" alt="Interruptible agent" width="1000"/>
+<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/interruptible-agent/interrupt.png" alt="Interruptible agent" width="1000"/>
 
 ### `QUEUE` mode
 
@@ -148,4 +148,4 @@ MODE=QUEUE uv run app
 ```
 
 
-<img src="img/queue.png" alt="Interruptible agent" width="1000"/>
+<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/interruptible-agent/queue.png" alt="Interruptible agent" width="1000"/>

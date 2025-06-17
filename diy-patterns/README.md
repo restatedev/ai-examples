@@ -73,7 +73,7 @@ uv run chaining_client
 
 You see in the UI how the LLM is called multiple times, and how the results are refined step by step:
 
-<img src="./img/chaining.png" alt="Chaining LLM calls - UI"/>
+<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/chaining.png" alt="Chaining LLM calls - UI"/>
 
 <details>
 <summary>View output</summary>
@@ -142,7 +142,7 @@ uv run parallelization_client
 
 You see in the UI how the different tasks are executed in parallel: 
 
-<img src="./img/parallel.png" alt="Chaining LLM calls - UI"/>
+<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/parallel.png" alt="Chaining LLM calls - UI"/>
 
 Once all tasks are done, the results are aggregated and returned to the client.
 
@@ -387,7 +387,7 @@ uv run routing_client
 
 In the UI, you can see how the LLM decides to forward the request to the technical support team, and how the response is processed:
 
-<img src="./img/routing.png" alt="Dynamic routing based on LLM output - UI"/>
+<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/routing.png" alt="Dynamic routing based on LLM output - UI"/>
 
 <details>
 <summary>View Output</summary>
@@ -527,7 +527,7 @@ Send an HTTP request to the service by running the [client](orchestrator_workers
 uv run orchestrator_client
 ```
 
-<img src="./img/orchestrator.png" alt="Orchestrator-worker pattern - UI"/>
+<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/orchestrator.png" alt="Orchestrator-worker pattern - UI"/>
 
 <details>
 <summary>View output</summary>
@@ -661,7 +661,7 @@ Send an HTTP request to the service by running the [client](evaluator_optimizer/
 uv run evaluator_client
 ```
 
-<img src="./img/evaluator.png" alt="Evaluator-optimizer pattern - UI"/>
+<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/evaluator.png" alt="Evaluator-optimizer pattern - UI"/>
 
 <details>
 <summary>View Output</summary>
@@ -778,7 +778,7 @@ Then use the printed curl command to incorporate external feedback. And supply `
 
 You can see how the feedback gets incorporated in the Invocations tab in the Restate UI (`http://localhost:9070`):
 
-<img src="./img/human_in_the_loop.png" alt="Human-in-the-loop pattern - UI"/>
+<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/human_in_the_loop.png" alt="Human-in-the-loop pattern - UI"/>
 
 <details>
 <summary>View Output</summary>
@@ -845,11 +845,11 @@ Use the UI playground to test the human-in-the-loop.
 2. Click on the `HumanInTheLoopService` and then on the `Playground` button.
 3. Select the `run` handler and send it a message. For example:
 
-   <img src="../doc/img/patterns/human_in_the_loop.png" alt="Human-in-the-loop" width="900px"/>
+   <img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/human_in_the_loop.png" alt="Human-in-the-loop" width="900px"/>
 
 4. You can then provide feedback on the response and send it back to the handler.
 
-   <img src="../doc/img/patterns/human_in_the_loop_2.png" alt="Human-in-the-loop" width="900px"/>
+   <img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/human_in_the_loop_2.png" alt="Human-in-the-loop" width="900px"/>
 
 
 Alternatively, you can use `curl`:

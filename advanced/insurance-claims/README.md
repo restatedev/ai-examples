@@ -7,13 +7,13 @@ Restate makes sure the end-to-end workflow runs to completion with retries and r
 The example shows how a PDF receipt gets interpreted by an LLM. If there is information missing, then the customer gets asked to supply this information. 
 This way, the LLM and the user collaborate to get to the final result of the filled-in claim. 
 
-<img src="img/flow.png" alt="Insurance claims flow" width="1000px"/>
+<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/insurance-claims/flow.png" alt="Insurance claims flow" width="1000px"/>
 
 **Restate is a single workflow orchestrator that handles both agentic and traditional workflows and gives the same resiliency guarantees and observability across both.**
 
 Restate durably persists every step, whether the customer responds within a minute or after a month.
  
-<img src="img/journal.png" alt="Insurance claims UI"/>
+<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/insurance-claims/journal.png" alt="Insurance claims UI"/>
 
 ## Running the example
 
@@ -71,7 +71,7 @@ curl localhost:8080/InsuranceClaimWorkflow/run --json '{"user_id": "rogerHugs", 
 
 Try killing the service and restarting it. Restate makes sure that the workflow progress is still persisted as you can see in the UI:
 
-<img src="img/ui.png" alt="Insurance claims UI"/>
+<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/insurance-claims/ui.png" alt="Insurance claims UI"/>
 
 To unblock the workflow we provide the date as described in the logs:
 ```shell
