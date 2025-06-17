@@ -23,7 +23,7 @@ orchestrator_client = "orchestrator_workers.client:main"
 evaluator_client = "evaluator_optimizer.client:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["chaining", "evaluator_optimizer", "human_evaluator_optimizer", "orchestrator_workers", "parallelization", "routing"]
+packages = ["chaining", "evaluator_optimizer", "human_evaluator_optimizer", "orchestrator_workers", "parallelization", "routing", "util"]
 
 [build-system]
 requires = ["hatchling"]

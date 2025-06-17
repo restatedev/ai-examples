@@ -26,9 +26,8 @@ class ChainRequest(BaseModel):
 async def chain_call(ctx: restate.Context, req: ChainRequest) -> str:
     result = req.input
     for i, prompt in enumerate(req.prompts, 1):
-        print(f"\nStep {i}:")
         result = await ctx.run(
-            f"LLM call ${i}", lambda: llm_call(f"{prompt}\nInput: {result}")
+            f"LLM call {i}", lambda: llm_call(f"{prompt}\nInput: {result}")
         )
         print(result)
     return result

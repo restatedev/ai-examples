@@ -37,11 +37,9 @@ class RestateModelResponse(BaseModel):
         return [it.model_dump(exclude_unset=True) for it in self.output]  # type: ignore
 
 
-class RestateModelProvider(MultiProvider):
+class DurableModelCalls(MultiProvider):
     """
     A Restate model provider that wraps the OpenAI SDK's default MultiProvider.
-    It let
-    to return a Restate persist LLM calls in the Restate journal.
     """
 
     def __init__(self, ctx: restate.Context):
@@ -90,7 +88,7 @@ class RestateModelWrapper(Model):
                 response_id=resp.response_id,
             )
 
-        return await self.ctx.run("call LLM", call_llm)
+        return await self.ctx.run("call LLM", call_llm, max_attempts=3)
 
     def stream_response(
         self,

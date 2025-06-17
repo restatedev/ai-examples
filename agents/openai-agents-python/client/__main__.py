@@ -6,10 +6,11 @@ import httpx
 def main():
     if len(sys.argv) == 0:
         raise ValueError("No input provided")
-    data = sys.argv[1]
+    key = sys.argv[1]
+    data = sys.argv[2]
 
     r = httpx.post(
-        "http://localhost:8080/Agent/my-user/run",
+        f"http://localhost:8080/Agent/{key}/run",
         json=data,
         timeout=60,
     )
