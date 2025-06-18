@@ -10,12 +10,9 @@ dependencies = [
     "restate_sdk[serde]>=0.7.3",
     "pydantic>=2.10.6",
     "openai",
-    "langchain-google-genai>=2.0.10",
-    "langgraph>=0.3.18",
-    "google-adk>=0.0.3",
-    "google-genai>=1.9.0",
     "fastapi[standard]",
     "python-dotenv>=1.1.0",
+    "openai-agents==0.0.17",
 ]
 
 [tool.hatch.build.targets.wheel]

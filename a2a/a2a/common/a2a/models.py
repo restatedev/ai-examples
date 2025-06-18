@@ -1,4 +1,7 @@
+from abc import ABC, abstractmethod
 from typing import Union, Any
+
+import restate
 from pydantic import BaseModel, Field, TypeAdapter
 from typing import Literal, List, Annotated, Optional
 from datetime import datetime
@@ -144,6 +147,15 @@ class AgentInvokeResult(BaseModel):
     parts: List[Part]
     require_user_input: bool
     is_task_complete: bool
+
+
+class A2AAgent(ABC):
+    @abstractmethod
+    async def invoke(
+        self, ctx: restate.ObjectContext, query: str, session_id: str
+    ) -> AgentInvokeResult:
+        """Invoke the agent with a query either locally or remote in a side effect."""
+        pass
 
 
 ## RPC Messages

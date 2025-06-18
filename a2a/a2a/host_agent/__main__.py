@@ -2,7 +2,7 @@ import os
 import logging
 import restate
 
-from a2a.common.models import MissingAPIKeyError
+from a2a.common.a2a.models import MissingAPIKeyError
 
 from agent import host_agent_object
 from dotenv import load_dotenv
@@ -10,7 +10,10 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format="[%(asctime)s] [%(process)d] [%(levelname)s] - %(message)s",
+)
 logger = logging.getLogger(__name__)
 
 RESTATE_HOST = os.getenv("RESTATE_HOST", "http://localhost:8080")

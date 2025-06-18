@@ -8,7 +8,10 @@ from typing import Optional
 from datetime import datetime, timedelta
 from pydantic import BaseModel, ConfigDict
 
-from a2a.common.agent_session import Agent, restate_tool
+from agents import Agent, function_tool, Runner, RunConfig, RunContextWrapper
+
+from a2a.common.a2a.models import A2AAgent, AgentInvokeResult
+from a2a.common.openai.middleware import DurableModelCalls, restate_tool_error_function
 
 logger = logging.getLogger(__name__)
 
@@ -61,13 +64,10 @@ class FormData(BaseModel):
 
 # TOOLS
 
-# Keyed by customer ID
-reimbursement_service = restate.Service("ReimbursementService")
 
-
-@reimbursement_service.handler()
+@function_tool(failure_error_function=restate_tool_error_function)
 async def create_request_form(
-    ctx: restate.Context, req: ReimbursementRequest
+    wrapper: RunContextWrapper[restate.ObjectContext], req: ReimbursementRequest
 ) -> Reimbursement:
     """
     Create a request form for the employee to fill out.
@@ -78,9 +78,10 @@ async def create_request_form(
     Returns:
         dict[str, Any]: A dictionary containing the request form data.
     """
+    restate_context = wrapper.context
     date, amount, purpose = req.date, req.amount, req.purpose
 
-    request_id = await ctx.run(
+    request_id = await restate_context.run(
         "Assign ID", lambda: "request_id_" + str(random.randint(1000000, 9999999))
     )
     reimbursement = Reimbursement(
@@ -96,8 +97,8 @@ async def create_request_form(
     return reimbursement
 
 
-@reimbursement_service.handler()
-async def return_form(ctx: restate.Context, req: FormData) -> str:
+@function_tool(failure_error_function=restate_tool_error_function)
+async def return_form(req: FormData) -> str:
     """
     Returns a structured json object indicating a form to complete.
 
@@ -118,20 +119,22 @@ async def return_form(ctx: restate.Context, req: FormData) -> str:
     return json.dumps(form_dict)
 
 
-@reimbursement_service.handler()
-async def reimburse(ctx: restate.Context, req: Reimbursement) -> dict[str, str]:
+@function_tool(failure_error_function=restate_tool_error_function)
+async def reimburse(
+    wrapper: RunContextWrapper[restate.ObjectContext], req: Reimbursement
+) -> dict[str, str]:
     """
     Reimbursement workflow
 
     Args:
         req (Reimbursement): The reimbursement request object.
     """
-
+    restate_context = wrapper.context
     # 1. Wait for approval
     if req.amount > 100.0:
         # Human approval
-        callback_id, callback_promise = ctx.awakeable()
-        await ctx.run(
+        callback_id, callback_promise = restate_context.awakeable()
+        await restate_context.run(
             "Request approval", backoffice_submit_request, args=(req, callback_id)
         )
         approved = await callback_promise
@@ -140,19 +143,19 @@ async def reimburse(ctx: restate.Context, req: Reimbursement) -> dict[str, str]:
         approved = True
 
     # 2. Notify employee
-    await ctx.run("Notify", backoffice_email_employee, args=(req, approved))
+    await restate_context.run("Notify", backoffice_email_employee, args=(req, approved))
 
     if not approved:
         return {"status": "rejected"}
 
     # 3. Schedule task for later: reimburse at end of month
-    ctx.service_send(handle_payment, arg=req, send_delay=end_of_month())
+    restate_context.service_send(handle_payment, arg=req, send_delay=end_of_month())
     return {"status": "approved"}
 
 
 # AGENTS
 
-reimbursement_agent = Agent(
+reimbursement_agent = Agent[restate.Context](
     name="ReimbursementAgent",
     handoff_description=(
         "This agent handles the reimbursement process for the employees"
@@ -181,16 +184,59 @@ reimbursement_agent = Agent(
       * In your response, you should include the request_id and the status of the reimbursement request.
 
     """,
-    tools=[
-        restate_tool(create_request_form),
-        restate_tool(reimburse),
-        restate_tool(return_form),
-    ],
+    tools=[create_request_form, reimburse, return_form],
 )
-chat_agents = [reimbursement_agent]
+
+
+reimbursement_service = restate.VirtualObject("ReimbursementService")
+
+
+@reimbursement_service.handler()
+async def invoke(restate_context: restate.ObjectContext, query: str) -> AgentInvokeResult:
+    # Load the conversation history
+    memory = await restate_context.get("memory") or []
+    memory.append({"role": "user", "content": query})
+
+    result = await Runner.run(
+        reimbursement_agent,
+        input=memory,
+        # Pass the Restate context to tools to make tool execution steps durable
+        context=restate_context,
+        # Choose any model and let Restate persist your calls
+        run_config=RunConfig(
+            model="gpt-4o", model_provider=DurableModelCalls(restate_context)
+        ),
+    )
+    final_output = result.final_output
+
+    # Store the conversation history
+    memory.append({"role": "assistant", "content": final_output})
+    restate_context.set("memory", memory)
+
+    # Prepare the response
+    parts = [{"type": "text", "text": final_output}]
+    requires_input = "MISSING_INFO:" in final_output
+    completed = not requires_input
+    return AgentInvokeResult(
+        parts=parts,
+        require_user_input=requires_input,
+        is_task_complete=completed,
+    )
+
+
+class ReimbursementAgent(A2AAgent):
+    async def invoke(
+        self, restate_context: restate.ObjectContext, query: str, session_id: str
+    ) -> AgentInvokeResult:
+        return await restate_context.object_call(invoke, key=session_id, arg=query)
 
 
 # UTILS
+
+
+@reimbursement_service.handler()
+async def handle_payment(ctx: restate.ObjectContext, req: Reimbursement):
+    pass
 
 
 def backoffice_submit_request(req: Reimbursement, id: str):
@@ -205,11 +251,6 @@ def backoffice_submit_request(req: Reimbursement, id: str):
 
 def backoffice_email_employee(req: Reimbursement, approved: bool):
     logger.info("Notifying backoffice employee of reimbursement approval")
-
-
-@reimbursement_service.handler()
-async def handle_payment(ctx: restate.Context, req: Reimbursement):
-    pass
 
 
 def end_of_month():
