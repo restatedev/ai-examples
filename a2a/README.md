@@ -16,7 +16,6 @@ Restate acts as a scalable, resilient task orchestrator that speaks the A2A prot
 <img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/a2a/a2a.png" width="600px"/>
 
 ## Prerequisites
-
 - Python 3.12 or higher
 - [UV](https://docs.astral.sh/uv/)
 - An [OpenAI API Key](https://platform.openai.com/docs/api-reference/authentication)
