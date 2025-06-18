@@ -5,10 +5,9 @@ import restate
 
 from collections.abc import AsyncIterable, Iterable
 from datetime import datetime
-from pydantic import BaseModel, ValidationError
+from pydantic import ValidationError
 from restate.serde import PydanticJsonSerde
 
-from .a2a_agent import GenericRestateAgent
 from .models import (
     A2ARequest,
     AgentCard,
@@ -39,26 +38,10 @@ from .models import (
     TaskState,
     TaskStatus,
     TextPart,
+    A2AAgent,
 )
 
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="[%(asctime)s] [%(process)d] [%(levelname)s] - %(message)s",
-)
 logger = logging.getLogger(__name__)
-
-
-# MODELS
-
-
-class AgentInvokeResult(BaseModel):
-    """Result of the agent invocation."""
-
-    parts: list[Part]
-    require_user_input: bool
-    is_task_complete: bool
-
 
 # K/V stored in Restate
 TASK = "task"
@@ -68,7 +51,7 @@ INVOCATION_ID = "invocation-id"
 class AgentMiddleware(Iterable[restate.Service | restate.VirtualObject]):
     """Middleware for the agent to handle task processing and state management."""
 
-    def __init__(self, agent_card: AgentCard, agent):
+    def __init__(self, agent_card: AgentCard, agent: A2AAgent):
         self.agent_card = agent_card.model_copy()
         self.agent = agent
         self.a2a_server_name = f"{self.agent_card.name}A2AServer"
@@ -173,23 +156,11 @@ def _build_services(middleware: AgentMiddleware):
 
             try:
                 # Forward the request to the agent
-                if isinstance(agent, GenericRestateAgent):
-                    result = await agent.invoke_with_context(
-                        ctx,
-                        query=_get_user_query(task_send_params),
-                        session_id=task_send_params.sessionId,
-                    )
-                else:
-                    result = await ctx.run(
-                        "Agent invoke",
-                        agent.invoke,
-                        args=(
-                            _get_user_query(task_send_params),
-                            task_send_params.sessionId,
-                        ),
-                        type_hint=AgentInvokeResult,
-                    )
-
+                result = await agent.invoke(
+                    ctx,
+                    query=_get_user_query(task_send_params),
+                    session_id=task_send_params.sessionId,
+                )
                 if result.require_user_input:
                     updated_task = await TaskObject.update_store(
                         ctx,
@@ -215,7 +186,10 @@ def _build_services(middleware: AgentMiddleware):
                     return SendTaskResponse(id=request.id, result=cancelled_task)
 
                 logger.error(
-                    "Error while processing task %s: %s", task_send_params.id, e
+                    "Error while processing task %s: %s - %s",
+                    task_send_params.id,
+                    e.status_code,
+                    e.message,
                 )
                 failed_task = await TaskObject.update_store(ctx, state=TaskState.FAILED)
                 ctx.clear(INVOCATION_ID)

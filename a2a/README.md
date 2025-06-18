@@ -19,14 +19,9 @@ Restate acts as a scalable, resilient task orchestrator that speaks the A2A prot
 
 - Python 3.12 or higher
 - [UV](https://docs.astral.sh/uv/)
-- Access to an LLM and API Key
-  - Restate Reimbursement Agent: [OpenAI API Key](https://platform.openai.com/docs/api-reference/authentication)
+- An [OpenAI API Key](https://platform.openai.com/docs/api-reference/authentication)
     ```shell
     echo "OPENAI_API_KEY=your_api_key_here" >> .env
-    ```
-  - Other agents: [Google API Key](https://ai.google.dev/gemini-api/docs/api-key)
-    ```shell
-    echo "GOOGLE_API_KEY=your_api_key_here" >> .env
     ```
 
 ## Running the example: multi-agent 
@@ -53,111 +48,27 @@ To send messages to the host agent, click on it and then click on the "Playgroun
 
 The host agent will forward messages to the registered agents that it knows of, and it will use the A2A protocol to communicate with them.
 
-You can see in the Restate UI to which agents your host agent has access. For `my-user`, we have access to the following:
-
-<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/a2a/multi_agent_list.png" alt="Restate UI" width="1000"/>
-
 You can also send messages with the A2A protocol directly to the agents, without going through the host agent:
 
-### LangGraph Currency Agent
 
-To start a task:
+### Weather Agent: Restate + OpenAI Agent SDK
+
+You can either send a message to the weather agent using the A2A protocol:
 
 ```shell
-curl localhost:8080/CurrencyAgentA2AServer/process_request \
-  --json '{
-    "jsonrpc": "2.0",
-    "id": 67892345,
-    "method":"tasks/send",
-    "params": {
-        "id": "unique-task-id-79051",
-        "sessionId": "session-id-0135",
-        "message": {
-          "role":"user",
-          "parts": [{
-          "type":"text",
-          "text": "What is the exchange rate from USD to euro?"
-          }]
-    },
-    "metadata": {}
-    }
-  }' | jq .
-```
-
-<details>
-<summary>View output</summary>
-
-```json
-{
-  "jsonrpc": "2.0",
-  "id": 67892345,
-  "result": {
-    "id": "unique-task-id-79051",
-    "sessionId": "session-id-0135",
-    "status": {
-      "state": "completed",
-      "message": null,
-      "timestamp": "2025-05-21T09:38:05.097677"
-    },
-    "artifacts": [
-      {
-        "name": null,
-        "description": null,
-        "parts": [
-          {
-            "type": "text",
-            "text": "The exchange rate from USD to EUR is 0.8896. That means 1 USD is equivalent to 0.8896 EUR.",
-            "metadata": null
-          }
-        ],
-        "metadata": null,
-        "index": 0,
-        "append": null,
-        "lastChunk": null
-      }
-    ],
-    "history": [
-      {
-        "role": "user",
-        "parts": [
-          {
-            "type": "text",
-            "text": "What is the exchange rate from USD to euro?",
-            "metadata": null
-          }
-        ],
-        "metadata": null
-      }
-    ],
-    "metadata": null
-  },
-  "error": null
-}
-```
-
-</details>
-
-If you send the same task twice, the second attempt will get resolved immediately with the response of the first attempt.
-The Restate A2A server automatically takes care of the deduplication.
-
-### Google ADK Reimbursement Agent
-
-To start a task:
-     
-```shell
-curl localhost:8080/GoogleReimbursementAgentA2AServer/process_request \
+curl localhost:8080/WeatherAgentA2AServer/process_request \
     --json '{
       "jsonrpc": "2.0",
-      "id": 2223,
+      "id": 923043,
       "method":"tasks/send",
       "params": {
-        "id": "lwp13w5e3sdf258t3wesf13234",
+        "id": "3954039823504",
         "sessionId": "lw33sl5e-8966-6g6k-26ee-2d5e6w29ya3423",
         "message": {
           "role":"user",
           "parts": [{
             "type":"text",
-            "text": "Reimburse my hotel for my business trip of 5 nights for 1200USD of 05/04/2025"
+            "text": "What is the weather in Detroit?"
           }]
         },
         "metadata": {}
@@ -165,78 +76,29 @@ curl localhost:8080/GoogleReimbursementAgentA2AServer/process_request \
     }' | jq . 
 ```
 
-<details>
-<summary>View output</summary>
+### Reimbursement Agent: Restate + OpenAI Agent SDK
 
-```json
-{
-  "jsonrpc": "2.0",
-  "id": 2223,
-  "result": {
-    "id": "lwp13w5e3sdf258t3wesf13234",
-    "sessionId": "lw33sl5e-8966-6g6k-26ee-2d5e6w29ya3423",
-    "status": {
-      "state": "completed",
-      "message": null,
-      "timestamp": "2025-05-21T09:38:54.553926"
-    },
-    "artifacts": [
-      {
-        "name": null,
-        "description": null,
-        "parts": [
-          {
-            "type": "text",
-            "text": "Your reimbursement request with request ID `request_id_9559913` has been approved.\n",
-            "metadata": null
-          }
-        ],
-        "metadata": null,
-        "index": 0,
-        "append": null,
-        "lastChunk": null
-      }
-    ],
-    "history": [
-      {
-        "role": "user",
-        "parts": [
-          {
-            "type": "text",
-            "text": "Reimburse my hotel for my business trip of 5 nights for 1200USD of 05/04/2025",
-            "metadata": null
-          }
-        ],
-        "metadata": null
-      }
-    ],
-    "metadata": null
-  },
-  "error": null
-}
-```
+This is a stateful agent which runs long-running tasks and blocks on human approval if the amount is greater than 100 USD.
 
-</details>
+You talk to a dedicated reimbursement agent based on the session ID. 
+If you provide the session ID, the agent will remember the conversation and the tasks you have sent to it.
 
-### Restate Reimbursement Agent
-
-
-To start a task that **will block on human approval if the amount is greater than 100 USD**, run the following command:
+To start a task that **will block on human approval**, run the following command:
 
 ```shell
 curl localhost:8080/ReimbursementAgentA2AServer/process_request \
     --json '{
       "jsonrpc": "2.0",
-      "id": 2223,
+      "id": 22323,
       "method":"tasks/send",
       "params": {
-        "id": "lwp13w5e3sdf258t3wesf13234",
-        "sessionId": "lw33sl5e-8966-6g6k-26ee-2d5e6w29ya3423",
+        "id": "lwp13w5e3sdf258t3wedsf13234",
+        "sessionId": "lw33sl5e-8966-6g6k-26ee-2d5e6w29y3a3423",
         "message": {
           "role":"user",
           "parts": [{
             "type":"text",
-            "text": "Reimburse my hotel for my business trip of 5 nights for 1200USD of 05/04/2025"
+            "text": "Reimburse my hotel for my business trip of 5 nights for 1200USD"
           }]
         },
         "metadata": {}
@@ -244,6 +106,100 @@ curl localhost:8080/ReimbursementAgentA2AServer/process_request \
     }' | jq . 
 ```
 
+It will then return a response mentioning you need to provide a date. 
+
+<details><summary>View output</summary>
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 22323,
+  "result": {
+    "id": "lwp13w5e3sdf258t3wedsf13234",
+    "sessionId": "lw33sl5e-8966-6g6k-26ee-2d5e6w29y3a3423",
+    "status": {
+      "state": "input-required",
+      "message": {
+        "role": "agent",
+        "parts": [
+          {
+            "type": "text",
+            "text": "MISSING_INFO: Could you please provide the date of the transaction for the hotel reimbursement?",
+            "metadata": null
+          }
+        ],
+        "metadata": null
+      },
+      "timestamp": "2025-06-18T08:56:41.037053"
+    },
+    "artifacts": null,
+    "history": [
+      {
+        "role": "user",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Reimburse my hotel for my business trip of 5 nights for 1200USD",
+            "metadata": null
+          }
+        ],
+        "metadata": null
+      }
+    ],
+    "metadata": null
+  },
+  "error": null
+}
+```
+
+</details>
+
+You can then provide the date of the transaction by sending another request to the same stateful session (same task and session ID):
+
+```shell
+curl localhost:8080/ReimbursementAgentA2AServer/process_request \
+    --json '{
+      "jsonrpc": "2.0",
+      "id": 22324,
+      "method":"tasks/send",
+      "params": {
+        "id": "lwp13w5e3sdf258t3wedsf13234",
+        "sessionId": "lw33sl5e-8966-6g6k-26ee-2d5e6w29y3a3423",
+        "message": {
+          "role":"user",
+          "parts": [{
+            "type":"text",
+            "text": "The date of the transaction is 05/04/2025"
+          }]
+        },
+        "metadata": {}
+      }
+    }' | jq . 
+```
+
+Possibly, the agent will ask for a final approval before it can proceed with the reimbursement. 
+```shell
+curl localhost:8080/ReimbursementAgentA2AServer/process_request \
+    --json '{
+      "jsonrpc": "2.0",
+      "id": 22325,
+      "method":"tasks/send",
+      "params": {
+        "id": "lwp13w5e3sdf258t3wedsf13234",
+        "sessionId": "lw33sl5e-8966-6g6k-26ee-2d5e6w29y3a3423",
+        "message": {
+          "role":"user",
+          "parts": [{
+            "type":"text",
+            "text": "The info looks good"
+          }]
+        },
+        "metadata": {}
+      }
+    }' | jq . 
+```
+
+Once the agent has all the information, it will ask start the reimbursement process and will block until a human approves the request.
 
 The logs of the agent service will print the curl command to approve the reimbursement and unblock the task.
 Or you can leave the task blocked if you want to try out the get and cancel task commands below.
@@ -261,10 +217,16 @@ curl localhost:8080/restate/awakeables/sign_1oqmHpDF_RJQBltjnf48zszmfmRr4w9izAAA
  ==================================================
 ```
 
-While the task is waiting on human approval, you can have a look at the Restate UI at http://localhost:9070/ui/invocations to see the task progress:
+Approve the reimbursement. 
 
-<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/a2a/restate_ui_journal.png" alt="Restate UI" width="1000"/>
+You can have a look at the Restate UI at http://localhost:9070/ui/invocations to see the end-to-end flow:
 
+<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/a2a/long-running-task.png" alt="Restate UI" width="1200"/>
+
+We see how the A2A server called the task object. The task object then called the `invoke` method of the reimbursement agent, which then called the LLM to process the request.
+We see how it waited for the human approval and then continued with the reimbursement process. 
+
+Finally, it scheduled the payment task to execute at the end of the month.
 
 **You can now also use the A2A protocol to query the task status and history, or cancel the task:**
 
@@ -328,6 +290,29 @@ We can query the K/V store via the UI. Have a look at the task progress in the R
 
 #### Cancel a Task
 
+For example, start a new reimbursement task and then cancel it:
+
+```shell
+curl localhost:8080/ReimbursementAgentA2AServer/process_request \
+    --json '{
+      "jsonrpc": "2.0",
+      "id": 223235,
+      "method":"tasks/send",
+      "params": {
+        "id": "lwp13w5e3sdf258t3wedsf13234",
+        "sessionId": "lw33sl5e-8966-6g6k-26ee-2d5e6w29y3a34235",
+        "message": {
+          "role":"user",
+          "parts": [{
+            "type":"text",
+            "text": "Reimburse my hotel for my business trip of 5 nights for 1200USD of 05/04/2025"
+          }]
+        },
+        "metadata": {}
+      }
+    }' | jq . 
+```
+
 ```shell
 curl localhost:8080/ReimbursementAgentA2AServer/process_request \
     --json '{
@@ -335,7 +320,7 @@ curl localhost:8080/ReimbursementAgentA2AServer/process_request \
       "id": 3,
       "method":"tasks/cancel",
       "params": {
-        "id": "lwp13w5e3sdf258t3wesf13234",
+        "id": "lwp13w5e3sdf258t3wedsf13234",
         "metadata": {}
       }
     }' | jq . 
@@ -378,6 +363,10 @@ curl localhost:8080/ReimbursementAgentA2AServer/process_request \
 
 </details>
 
+The UI also shows the task as canceled in the state tab and in the journal overview of the long-running task:
+
+<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/a2a/cancel_journal.png" alt="Restate UI" width="1200"/>
+
 This is implemented via Restate's [cancel task API](https://docs.restate.dev/develop/python/service-communication#cancel-an-invocation).
 
 ### Stopping the example
@@ -395,21 +384,21 @@ docker compose rm
 You can also start a single agent together with Restate. 
 
 
-For example, to run an agent that uses the LangGraph SDK ([`a2a/langgraph`](a2a/langgraph/__main__.py)):
+For example, to run the weather agent:
 
 ```shell
-uv run a2a/langgraph
+uv run a2a/weather
 ```
 
 [Start the Restate Server](https://docs.restate.dev/develop/local_dev) in a separate shell:
-    ```shell
-    restate-server
-    ```
+```shell
+restate-server
+```
 
 Then register the service:
 
 ```shell
-restate -y deployments register http://localhost:9082/restate/v1
+restate -y deployments register http://localhost:9081/restate/v1
 ```
 
 Then send requests to the agent.
