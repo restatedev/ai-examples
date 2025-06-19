@@ -1,4 +1,4 @@
-# DIY patterns for building resilient LLM-based apps and agents with Restate
+# Patterns for building resilient LLM-based apps and agents with Restate
 
 These patterns show how you can use Restate to harden LLM-based routing decisions and tool executions.
 

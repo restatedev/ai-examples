@@ -59,12 +59,12 @@ This repository contains examples of how to use Restate for AI / Agent use cases
 
 ## Full Example Catalog
 
-1. [**Vercel AI**](vercel-ai): 
-   - [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24"> Restate + Vercel AI SDK](vercel-ai/template): A minimal example of how to use Restate with the Vercel AI SDK.
-   - [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24"> Restate + Vercel AI SDK](vercel-ai/examples): A more advanced example of how to use Restate with the Vercel AI SDK that can be deployed as a Next.js app on Vercel.
-2. [**OpenAI Agents Python SDK**](openai-agents): 
-   - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Restate + OpenAI Agents SDK](openai-agents/template): A minimal example of how to use Restate with the OpenAI Agents SDK.
-   - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Restate + OpenAI Agents SDK](openai-agents/examples): A more advanced example of how to use Restate with the OpenAI Agents SDK.
+1. [**Restate + Vercel AI**](vercel-ai): 
+   - [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24"> Template](vercel-ai/template): A minimal example of how to use Restate with the Vercel AI SDK.
+   - [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24"> Examples](vercel-ai/examples): A more advanced example of how to use Restate with the Vercel AI SDK that can be deployed as a Next.js app on Vercel.
+2. [**Restate + OpenAI Agents Python SDK**](openai-agents): 
+   - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Template](openai-agents/template): A minimal example of how to use Restate with the OpenAI Agents SDK.
+   - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Examples](openai-agents/examples): A more advanced example of how to use Restate with the OpenAI Agents SDK.
 2. [**Patterns**](patterns) for hardening custom LLM orchestration logic.
    - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Chaining LLM calls](patterns#chaining-llm-calls)
    - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Parallelizing tool calls](patterns#parallelizing-tool-calls)
