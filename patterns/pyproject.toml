@@ -1,5 +1,5 @@
 [project]
-name = "diy-patterns"
+name = "patterns"
 version = "0.1.0"
 description = "Python DIY patterns using Restate for agents"
 readme = "README.md"

@@ -7,7 +7,7 @@ The example is an agent that can search for the weather in certain city.
 
 <img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/get-started-vercel/invocations_ui_vercel.png" alt="Using Agent SDK - journal" width="1200px"/>
 
-> Also check out the advanced example in the [agents/vercel-ai](../../agents/vercel-ai/README.md) 
+> Also check out the other examples with [the Vercel AI SDK and Restate](../../vercel-ai/examples) 
 
 ## Running the example
 

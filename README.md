@@ -17,14 +17,14 @@ Restate has got your back: whether you start by adding resiliency to an existing
 ## Restate + Vercel AI SDK
 
 Use Restate in combination with the [Vercel AI SDK](https://ai-sdk.dev/docs/introduction) to turn your Vercel AI SDK-based agents into resilient agents:
-- **[<img src="https://skillicons.dev/icons?i=ts" width="24" height="24"> Restate + Vercel AI SDK template](get-started/vercel-ai/README.md)**
-- For a more advanced example that can be deployed as a Next.js app on Vercel: [Vercel AI SDK example](agents/vercel-ai-sdk/README.md).
+- **[<img src="https://skillicons.dev/icons?i=ts" width="24" height="24"> Restate + Vercel AI SDK template](vercel-ai/template)**
+- For more examples that can be deployed as a Next.js app on Vercel: [Vercel AI SDK example](vercel-ai/examples).
 
 ## Restate + OpenAI Agent SDK
 
 Use Restate in combination with the [OpenAI Agent SDK](https://openai.github.io/openai-agents-python/) to turn your OpenAI Agent SDK-based agents into resilient agents:
-- **[<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Restate + OpenAI Agent SDK template](get-started/openai-agents-python/README.md)**
-- For a more advanced example (including memory, handoffs etc.), check out this [OpenAI Agent SDK example](agents/openai-agents-python/README.md).
+- **[<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Restate + OpenAI Agent SDK template](openai-agents/template)**
+- For a more examples (including memory, handoffs etc.), check out this [OpenAI Agent SDK example](openai-agents/examples).
 
 ## Why Restate?
 [Restate](https://ai.restate.dev/) lets you easily build **reliable applications** that work consistently in production. 
@@ -59,21 +59,21 @@ This repository contains examples of how to use Restate for AI / Agent use cases
 
 ## Full Example Catalog
 
-1. [**Get started**](get-started): 
-   - [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24"> Restate + Vercel AI SDK](get-started/vercel-ai/README.md): A minimal example of how to use Restate with the Vercel AI SDK.
-   - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Restate + OpenAI Agents SDK](get-started/openai-agents-python/README.md): A minimal example of how to use Restate with the OpenAI Agents SDK.
-2. [**Agents**](agents): 
-   - [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24"> Restate + Vercel AI SDK](agents/vercel-ai/README.md): A more advanced example of how to use Restate with the Vercel AI SDK that can be deployed as a Next.js app on Vercel.
-   - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Restate + OpenAI Agents SDK](agents/openai-agents-python/README.md): A more advanced example of how to use Restate with the OpenAI Agents SDK.
-2. [**DIY patterns**](diy-patterns): Patterns for hardening custom LLM orchestration logic.
-   - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Chaining LLM calls](diy-patterns#chaining-llm-calls)
-   - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Parallelizing tool calls](diy-patterns#parallelizing-tool-calls)
-   - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Dynamic routing based on LLM output](diy-patterns#dynamic-routing-based-on-llm-output)
-   - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Orchestrator-worker](diy-patterns#orchestrator-worker-pattern)
-   - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Evaluator-optimizer](diy-patterns#evaluator-optimizer-pattern)
-   - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Human-in-the-loop](diy-patterns#human-in-the-loop-pattern)
-3. [**MCP** <img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](mcp/README.md): Using Restate for exposing tools and resilient orchestration of tool calls.
-4. [**A2A** <img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> ](a2a/README.md): Implement Google's Agent-to-Agent protocol with Restate as resilient, scalable task orchestrator.
+1. [**Vercel AI**](vercel-ai): 
+   - [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24"> Restate + Vercel AI SDK](vercel-ai/template): A minimal example of how to use Restate with the Vercel AI SDK.
+   - [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24"> Restate + Vercel AI SDK](vercel-ai/examples): A more advanced example of how to use Restate with the Vercel AI SDK that can be deployed as a Next.js app on Vercel.
+2. [**OpenAI Agents Python SDK**](openai-agents): 
+   - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Restate + OpenAI Agents SDK](openai-agents/template): A minimal example of how to use Restate with the OpenAI Agents SDK.
+   - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Restate + OpenAI Agents SDK](openai-agents/examples): A more advanced example of how to use Restate with the OpenAI Agents SDK.
+2. [**Patterns**](patterns) for hardening custom LLM orchestration logic.
+   - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Chaining LLM calls](patterns#chaining-llm-calls)
+   - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Parallelizing tool calls](patterns#parallelizing-tool-calls)
+   - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Dynamic routing based on LLM output](patterns#dynamic-routing-based-on-llm-output)
+   - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Orchestrator-worker](patterns#orchestrator-worker-pattern)
+   - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Evaluator-optimizer](patterns#evaluator-optimizer-pattern)
+   - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Human-in-the-loop](patterns#human-in-the-loop-pattern)
+3. [**MCP** <img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](mcp): Using Restate for exposing tools and resilient orchestration of tool calls.
+4. [**A2A** <img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> ](a2a): Implement Google's Agent-to-Agent protocol with Restate as resilient, scalable task orchestrator.
 5. [**Advanced examples**](end-to-end-applications): 
    - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Restate-native agent](advanced/restate-native-agent/README.md): A fully customizable agent implemented with Restate without an Agent SDK. 
    - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Interruptible agents](advanced/interruptible-agent/README.md): A customized agent with different operational modes to process new inputs: interrupting, incorporating, queueing.
@@ -82,12 +82,12 @@ This repository contains examples of how to use Restate for AI / Agent use cases
 
 Restate supports 6 languages:
 
-[![TypeScript](https://skillicons.dev/icons?i=ts)](typescript)
-[![Python](https://skillicons.dev/icons?i=python&theme=light)](python)
-[![Java](https://skillicons.dev/icons?i=java&theme=light)](java)
-[![Kotlin](https://skillicons.dev/icons?i=kotlin&theme=light)](kotlin)
-[![Go](https://skillicons.dev/icons?i=go)](go)
-[![Rust](https://skillicons.dev/icons?i=rust&theme=light)](rust)
+[![TypeScript](https://skillicons.dev/icons?i=ts)](https://docs.restate.dev/develop/ts/overview)
+[![Python](https://skillicons.dev/icons?i=python&theme=light)](https://docs.restate.dev/develop/python/overview)
+[![Java](https://skillicons.dev/icons?i=java&theme=light)](https://docs.restate.dev/develop/java/overview)
+[![Kotlin](https://skillicons.dev/icons?i=kotlin&theme=light)](https://docs.restate.dev/develop/java/overview)
+[![Go](https://skillicons.dev/icons?i=go)](https://docs.restate.dev/develop/go/overview)
+[![Rust](https://skillicons.dev/icons?i=rust&theme=light)](https://docs.rs/restate-sdk/latest/restate_sdk/)
 
 The examples can be translated to any of the supported languages. 
 Join our [Discord](https://discord.gg/skW3AZ6uGd)/[Slack](https://join.slack.com/t/restatecommunity/shared_invite/zt-2v9gl005c-WBpr167o5XJZI1l7HWKImA) to get help with translating an examples to your language of choice.
@@ -97,7 +97,7 @@ Join our [Discord](https://discord.gg/skW3AZ6uGd)/[Slack](https://join.slack.com
 Clone the repository and consult the README of the example you want to run for further instructions.
 
 ```bash
-git clone git@github.com:restatedev/restate-ai-examples.git
+git clone git@github.com:restatedev/ai-examples.git
 ```
 
 ## How Restate Compares (vs. Alternatives for Agents):

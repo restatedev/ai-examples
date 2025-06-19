@@ -16,7 +16,7 @@ Restate powers your agents with the following features:
 - 🙂 **Resilient human-in-the-loop**: Both approaches support human intervention in workflows
 - 👬 **Idempotency/deduplication**: Prevents duplicate agent requests
 
-As opposed to the [OpenAI Agents + Restate template](../../get-started/openai-agents-python/README.md), this example shows how to do handoffs and stateful sessions.
+As opposed to the [OpenAI Agents + Restate template](../../openai-agents/template), this example shows how to do handoffs and stateful sessions.
 
 ## Plugging Restate into the OpenAI Agents Python SDK
 
