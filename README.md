@@ -17,14 +17,14 @@ Restate has got your back: whether you start by adding resiliency to an existing
 ## Restate + Vercel AI SDK
 
 Use Restate in combination with the [Vercel AI SDK](https://ai-sdk.dev/docs/introduction) to turn your Vercel AI SDK-based agents into resilient agents:
-- **[<img src="https://skillicons.dev/icons?i=ts" width="24" height="24"> Restate + Vercel AI SDK template](vercel-ai/template)**
-- For more examples that can be deployed as a Next.js app on Vercel: [Vercel AI SDK example](vercel-ai/examples).
+- **[<img src="https://skillicons.dev/icons?i=ts" width="24" height="24"> Template](vercel-ai/template)**
+- [More examples (including Next.js, multi-agent, etc.)](vercel-ai/examples).
 
 ## Restate + OpenAI Agent SDK
 
 Use Restate in combination with the [OpenAI Agent SDK](https://openai.github.io/openai-agents-python/) to turn your OpenAI Agent SDK-based agents into resilient agents:
-- **[<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Restate + OpenAI Agent SDK template](openai-agents/template)**
-- For a more examples (including memory, handoffs etc.), check out this [OpenAI Agent SDK example](openai-agents/examples).
+- **[<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Template](openai-agents/template)**
+- [More examples (including handoffs, memory, etc.)](openai-agents/examples).
 
 ## Why Restate?
 [Restate](https://ai.restate.dev/) lets you easily build **reliable applications** that work consistently in production. 
