@@ -1,0 +1,29 @@
+{
+  "name": "restate-vercel-ai-nextjs-template",
+  "version": "0.0.1",
+  "description": "NextJS template for an AI app with Restate and Vercel AI SDK",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build --experimental-build-mode=compile",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@restatedev/restate-sdk": "^1.6.0",
+    "@restatedev/restate-sdk-clients": "^1.6.0",
+    "@restatedev/restate-sdk-zod": "^1.6.0",
+    "@restatedev/vercel-ai-middleware": "^0.0.2",
+    "ai": "^4.3.16",
+    "@ai-sdk/openai": "^1.3.22",
+    "@ai-sdk/google": "^1.2.19",
+    "next": "15.2.4"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@types/node": "^20",
+    "@types/react": "19.1.6",
+    "eslint": "^9",
+    "eslint-config-next": "15.2.4",
+    "typescript": "^5"
+  }
+}
