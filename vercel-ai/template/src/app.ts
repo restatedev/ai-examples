@@ -1,51 +1,62 @@
 import * as restate from "@restatedev/restate-sdk";
-import { serde } from "@restatedev/restate-sdk-zod";
-
+import { durableCalls } from "@restatedev/vercel-ai-middleware"
 import { openai } from "@ai-sdk/openai";
 import { generateText, tool, wrapLanguageModel } from "ai";
 import { z } from "zod";
-import { durableCalls } from "./utils/ai_infra";
-import { fetchWeather, parseWeatherResponse } from "./utils/utils";
+import { fetchWeather } from "./utils/weather";
 
-// Durable tool workflow
-const getWeatherTool = (restate_context: restate.Context) =>
-  tool({
-    description: "Get the current weather for a given city.",
-    parameters: z.object({ city: z.string() }),
-    execute: async ({ city }) => {
-      // implement durable tool steps using the Restate context
-      const result = await restate_context.run("get weather", async () =>
-        fetchWeather(city),
-      );
-      return await parseWeatherResponse(result);
-    },
+
+// --------------------------------------------------------
+//  A simple agent, following the template of the AI SDK
+//  tool calling examples
+// --------------------------------------------------------
+
+async function simpleAgent(restate: restate.Context, prompt: string) {
+
+  // we wrap the model with the 'durableCalls' middleware, which
+  // stores each response in Restate's journal, to be restored on retries
+  const model = wrapLanguageModel({
+    model: openai("gpt-4o-2024-08-06", { structuredOutputs: true }),
+    middleware: durableCalls(restate, { maxRetryAttempts: 3 }),
   });
 
+  const result = await generateText({
+    model,
+    tools: {
+      getWeather: tool({
+        description: "Get the current weather for a given city.",
+        parameters: z.object({ city: z.string() }),
+        execute: async ({ city }) => {
+          // call tool wrapped as Restate durable step
+          return await restate.run("get weather", () => fetchWeather(city));
+        }
+      })
+    },
+    maxSteps: 5,
+    // these are local retries by the AI SDK
+    // Restate will retry the invocation once those local retries are exhaused to
+    // handle longer downtimes, faulty processes, or network communication issues
+    maxRetries: 3,
+    system: "You are a helpful agent.",
+    messages: [{ role: "user", content: prompt }]
+  });
+
+  return result.text;
+
+}
+
+// create a simple Restate service as the callable entrypoint
+// for our durable agent function
 const agent = restate.service({
-  name: "Agent",
+  name: "agent",
   handlers: {
-    run: restate.handlers.handler(
-      { input: serde.zod(z.string()) },
-      async (ctx: restate.Context, prompt) => {
-        // Persist the results of LLM calls via the durableCalls middleware
-        const model = wrapLanguageModel({
-          model: openai("gpt-4o-2024-08-06", { structuredOutputs: true }),
-          middleware: durableCalls(ctx, { maxRetryAttempts: 3 }),
-        });
-
-        const result = await generateText({
-          model,
-          system: "You are a helpful agent.",
-          messages: [{ role: "user", content: prompt }],
-          tools: { getWeather: getWeatherTool(ctx) },
-          maxRetries: 0,
-          maxSteps: 10,
-        });
-
-        return result.text;
-      },
-    ),
-  },
+    run: async (ctx: restate.Context, prompt: string) => {
+      return simpleAgent(ctx, prompt);
+    }
+  }
 });
 
-restate.endpoint().bind(agent).listen(9080);
+// we serve the entry-point via an HTTP/2 server
+restate.endpoint()
+  .bind(agent)
+  .listen(9080);

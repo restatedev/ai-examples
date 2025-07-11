@@ -1,35 +1,33 @@
-# Resilient agents with Restate + Vercel AI SDK
-[<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](src/app.ts)
+# Restate + Vercel AI Example (non-NextJS)
 
-Use the Vercel AI SDK to implement your agent, and let Restate handle the persistence and resiliency of the agent's decisions and tool executions.
+This is template of a simple agent written with the Vercel AI SDK and using Restate for resilience and observability.
 
-The example is an agent that can search for the weather in certain city.
+This example is for deployments where the agent is served directly, and not as part of a NextJS app.
+Use this template when deploying the agent on generic containers, FaaS (Lambda, Fly.io, etc.) or for simply experimenting locally.
 
-<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/get-started-vercel/invocations_ui_vercel.png" alt="Using Agent SDK - journal" width="1200px"/>
+## Running the template example
 
-> Also check out the other examples with [the Vercel AI SDK and Restate](../../vercel-ai/examples) 
-
-## Running the example
-
-1. Export your OpenAI or Anthrophic API key as an environment variable:
+1. Export your OpenAI key as an environment variable. If you want to use another model (e.g., Anthrophic Claude, Google Gemini) you need to change the dependencies in `package.json` and the model in `src/app.ts` accordingly:
     ```shell
     export OPENAI_API_KEY=your_openai_api_key
     ```
-2. [Start the Restate Server](https://docs.restate.dev/develop/local_dev) in a separate shell:
+2. [Start the Restate Server](https://docs.restate.dev/develop/local_dev) in a separate shell. The server is the durable orchstrator. It is queue, workflow engine, k/V store in one.
     ```shell
     npx @restatedev/restate-server@latest
     ```
-3. Start the services:
+3. Start the services. This is the agent code.
     ```shell
     npm install
-    npm run app-dev
+    npm run dev
     ```
-4. Register the services:
+4. Register the services, to let Restate Server know about the agent. The Server can now proxy invocations to the agent, adding durable execution that way.
     ```shell
     restate -y deployments register localhost:9080
+    # or, if you don't have the CLI
+    curl localhost:9070/deployments --json '{"uri": "http://localhost:9080"}'
     ```
 
-5. Send requests to your agent:
+5. All should be ready. Now send a request to your agent. Note that we target Restate Server's endpoint (8080) because the server proxies requests to the service, to make them durable.
 
     ```shell
     curl localhost:8080/Agent/run --json '"What is the weather in Detroit?"'
@@ -37,21 +35,8 @@ The example is an agent that can search for the weather in certain city.
 
    Returns: `The weather in Detroit is currently 22°C and sunny.`
 
-
-Check the Restate UI (`http://localhost:9080`) to see the journals of your invocations (remove the filters).
-
-<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/get-started-vercel/journal_vercel.png" alt="Using Agent SDK - journal" width="1200px"/>
-
-
-## Integrating Restate with the Vercel AI SDK
-
-To make the agent resilient, we need to:
-- Persist the results of LLM calls in Restate's journal by wrapping them in `ctx.run()`. This is handled by the `durableCalls` middleware for the model.
-- To persist the intermediate tool execution steps, we use the Restate context.
+Check the Restate UI (`localhost:9080`) to see the journals of your invocations (you may need to remove the filters that filter out completed invocations).
 
 ## Limitations
-1. You cannot do parallel tool calls or any type of parallel execution if you integrate Restate with an Agent SDK.
-If you execute actions on the context in different tools in parallel, Restate will not be able to deterministically replay them because the order might be different during recovery and will crash.
-We are working on a solution to this, but for now, you can only use Restate with Agent SDKs for sequential tool calls.
 
-2. Restate does not yet support streaming responses from the Vercel AI SDK.
+- The Vercel SDK wraps all errors that come out of tool calls. That means `TerminalErrors` from tools currently turn into transient errors.
