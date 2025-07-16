@@ -1,6 +1,5 @@
 import * as restate from "@restatedev/restate-sdk";
 import { serde } from "@restatedev/restate-sdk-zod";
-import { durableCalls, superJson } from "../ai_infra";
 
 import { z } from "zod";
 
@@ -9,6 +8,7 @@ import { generateText, tool, wrapLanguageModel } from "ai";
 import { publishMessage } from "./pubsub";
 
 import * as mathjs from "mathjs";
+import { durableCalls, superJson } from "@restatedev/vercel-ai-middleware";
 
 // the Restate service that is the durable entry point for the
 // agent workflow

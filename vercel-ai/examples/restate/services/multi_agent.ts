@@ -1,11 +1,11 @@
 import * as restate from "@restatedev/restate-sdk";
 import { serde } from "@restatedev/restate-sdk-zod";
-import { durableCalls  } from "../ai_infra";
 
 import { z } from "zod";
 
 import { openai } from "@ai-sdk/openai";
 import {  generateText, tool, wrapLanguageModel } from "ai";
+import { durableCalls } from "@restatedev/vercel-ai-middleware";
 
 const wf = restate.handlers.workflow
 
