@@ -5,7 +5,7 @@ import { z } from "zod";
 
 import { openai } from "@ai-sdk/openai";
 import {  generateText, tool, wrapLanguageModel } from "ai";
-import { durableCalls } from "@restatedev/vercel-ai-middleware";
+import { durableCalls, toolErrorAsTerminalError } from "@restatedev/vercel-ai-middleware";
 
 const wf = restate.handlers.workflow
 
@@ -54,6 +54,10 @@ export const multiAgentLoanWorkflow = restate.workflow({
         ctx.promise("approval").resolve(approval);
       }
     ),
+  },
+  options: {
+    journalRetention: { days: 1 },
+    ...toolErrorAsTerminalError,
   },
 });
 

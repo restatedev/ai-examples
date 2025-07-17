@@ -5,7 +5,7 @@ import { z } from "zod";
 
 import { openai } from "@ai-sdk/openai";
 import { generateObject, generateText, LanguageModelV1, LanguageModelV1CallOptions, LanguageModelV1Middleware, wrapLanguageModel } from "ai";
-import { superJson } from "@restatedev/vercel-ai-middleware";
+import { superJson, toolErrorAsTerminalError } from "@restatedev/vercel-ai-middleware";
 
 export const translation = restate.service({
   name: "translation",
@@ -29,6 +29,10 @@ export const translation = restate.service({
         return finalTranslation;
       }
     ),
+  },
+  options: {
+    journalRetention: { days: 1 },
+    ...toolErrorAsTerminalError,
   },
 });
 

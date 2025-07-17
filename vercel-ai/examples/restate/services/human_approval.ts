@@ -1,6 +1,6 @@
 import * as restate from "@restatedev/restate-sdk";
 import { serde } from "@restatedev/restate-sdk-zod";
-import { durableCalls } from "@restatedev/vercel-ai-middleware";
+import { durableCalls , toolErrorAsTerminalError } from "@restatedev/vercel-ai-middleware";
 
 import { z } from "zod";
 
@@ -51,6 +51,10 @@ export default restate.workflow({
         ctx.promise("approval").resolve(approval);
       }
     ),
+  },
+  options: {
+    journalRetention: { days: 1 },
+    ...toolErrorAsTerminalError,
   },
 });
 

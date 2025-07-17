@@ -8,7 +8,7 @@ import { generateText, tool, wrapLanguageModel } from "ai";
 import { publishMessage } from "./pubsub";
 
 import * as mathjs from "mathjs";
-import { durableCalls, superJson } from "@restatedev/vercel-ai-middleware";
+import { durableCalls, superJson, toolErrorAsTerminalError } from "@restatedev/vercel-ai-middleware";
 
 // the Restate service that is the durable entry point for the
 // agent workflow
@@ -34,6 +34,10 @@ const tools = restate.service({
         return await toolsExample(ctx, prompt, topic);
       }
     ),
+  },
+  options: {
+    journalRetention: { days: 1 },
+    ...toolErrorAsTerminalError,
   },
 });
 
