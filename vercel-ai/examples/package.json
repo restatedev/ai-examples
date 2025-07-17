@@ -14,7 +14,7 @@
     "@restatedev/restate-sdk": "^1.7.0",
     "@restatedev/restate-sdk-clients": "^1.7.0",
     "@restatedev/restate-sdk-zod": "^1.7.0",
-    "@restatedev/vercel-ai-middleware": "^0.0.2",
+    "@restatedev/vercel-ai-middleware": "^0.1.1",
     "ai": "^4.3.16",
     "mathjs": "^14.5.0",
     "next": "15.2.4",
