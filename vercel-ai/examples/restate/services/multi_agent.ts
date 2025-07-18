@@ -1,11 +1,11 @@
 import * as restate from "@restatedev/restate-sdk";
 import { serde } from "@restatedev/restate-sdk-zod";
-import { durableCalls  } from "../ai_infra";
 
 import { z } from "zod";
 
 import { openai } from "@ai-sdk/openai";
 import {  generateText, tool, wrapLanguageModel } from "ai";
+import { durableCalls, toolErrorAsTerminalError } from "@restatedev/vercel-ai-middleware";
 
 const wf = restate.handlers.workflow
 
@@ -54,6 +54,10 @@ export const multiAgentLoanWorkflow = restate.workflow({
         ctx.promise("approval").resolve(approval);
       }
     ),
+  },
+  options: {
+    journalRetention: { days: 1 },
+    ...toolErrorAsTerminalError,
   },
 });
 
@@ -136,20 +140,21 @@ async function evaluateLoan(ctx: restate.WorkflowContext, amount: number, reason
 export const riskAssementAgent = restate.workflow({
   name: "risk_assess",
   handlers: {
-
     run: wf.workflow(
       {
         input: serde.zod(LoanRequest),
-        output: serde.zod(z.object({
-          risk: z.union([z.literal("high"), z.literal("low")])
-        })),
+        output: serde.zod(
+          z.object({
+            risk: z.union([z.literal("high"), z.literal("low")]),
+          })
+        ),
       },
       async (ctx: restate.WorkflowContext, { amount, reason }) => {
         const model = wrapLanguageModel({
           model: openai("gpt-4o", { structuredOutputs: true }),
           middleware: durableCalls(ctx, { maxRetryAttempts: 3 }),
         });
-      
+
         const { text: answer } = await generateText({
           model,
           tools: {
@@ -160,10 +165,10 @@ export const riskAssementAgent = restate.workflow({
                 "It makes you look thoughtful and smart. It always returns 'done thinking' when the pause is over.",
               parameters: z.object({}),
               execute: async () => {
-                await ctx.sleep(60_000)
-                return "done thinking"
+                await ctx.sleep(60_000);
+                return "done thinking";
               },
-            })
+            }),
           },
           maxSteps: 10,
           maxRetries: 0,
@@ -175,11 +180,16 @@ export const riskAssementAgent = restate.workflow({
             "Before responding, always use the pretendToThink tool, so it looks like you did some thorough research.",
           prompt: `Please evaluate the risk for a loan of USD ${amount} for the reason: ${reason}.`,
         });
-        
-        return { risk : answer };
+
+        return { risk: answer };
       }
-    )
-  }
+    ),
+  },
+  options: {
+    journalRetention: { days: 1 },
+    ...toolErrorAsTerminalError,
+  },
 });
+  
 
 export type RiskAssementAgent = typeof riskAssementAgent;

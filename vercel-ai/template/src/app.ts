@@ -1,5 +1,5 @@
 import * as restate from "@restatedev/restate-sdk";
-import { durableCalls } from "@restatedev/vercel-ai-middleware"
+import { durableCalls, toolErrorAsTerminalError } from "@restatedev/vercel-ai-middleware"
 import { openai } from "@ai-sdk/openai";
 import { generateText, tool, wrapLanguageModel } from "ai";
 import { z } from "zod";
@@ -52,8 +52,12 @@ const agent = restate.service({
   handlers: {
     run: async (ctx: restate.Context, prompt: string) => {
       return simpleAgent(ctx, prompt);
-    }
-  }
+    },
+  },
+  options: {
+    journalRetention: { days: 1 }, // keep the journal for 1 day, so that you can inspect what your agent did
+    ...toolErrorAsTerminalError, // The ai sdk wraps tool errors with an ToolExecutionError, this will unwrap any TerminalError's wrapped in a ToolExecutionError
+  },
 });
 
 // we serve the entry-point via an HTTP/2 server

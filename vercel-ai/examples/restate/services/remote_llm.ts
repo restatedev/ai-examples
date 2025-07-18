@@ -1,13 +1,13 @@
 import * as restate from "@restatedev/restate-sdk";
 import { serde } from "@restatedev/restate-sdk-zod";
-import { remoteCalls } from "../ai_infra";
 
 import { z } from "zod";
 
 import { openai } from "@ai-sdk/openai";
-import { generateObject, generateText, wrapLanguageModel } from "ai";
+import { generateObject, generateText, LanguageModelV1, LanguageModelV1CallOptions, LanguageModelV1Middleware, wrapLanguageModel } from "ai";
+import { superJson, toolErrorAsTerminalError } from "@restatedev/vercel-ai-middleware";
 
-export default restate.service({
+export const translation = restate.service({
   name: "translation",
   handlers: {
     message: restate.handlers.handler(
@@ -30,6 +30,10 @@ export default restate.service({
       }
     ),
   },
+  options: {
+    journalRetention: { days: 1 },
+    ...toolErrorAsTerminalError,
+  },
 });
 
 // https://ai-sdk.dev/docs/foundations/agents#evaluator-optimizer
@@ -40,12 +44,12 @@ async function translateWithFeedback(ctx: restate.Context, text: string, targetL
   
    const gpt4oMini = wrapLanguageModel({
      model: openai("gpt-4o-mini", { structuredOutputs: true }),
-     middleware: remoteCalls(ctx, { maxRetryAttempts: 3, maxConcurrency: 10 }),
+     middleware: remote.remoteCalls(ctx, { maxRetryAttempts: 3, maxConcurrency: 10 }),
    });
    
    const gpt4o = wrapLanguageModel({
      model: openai("gpt-4o", { structuredOutputs: true }),
-     middleware: remoteCalls(ctx, { maxRetryAttempts: 3, maxConcurrency: 10 }),
+     middleware: remote.remoteCalls(ctx, { maxRetryAttempts: 3, maxConcurrency: 10 }),
    });
 
   // Initial translation
@@ -116,3 +120,109 @@ async function translateWithFeedback(ctx: restate.Context, text: string, targetL
   };
 }
 
+export namespace remote {
+
+  export type DoGenerateResponseType = Awaited<
+    ReturnType<LanguageModelV1["doGenerate"]>
+  >;
+
+  export type RemoteModelCallOptions = {
+    /**
+     * The maximum number of concurrent requests to the model service.
+     * If not specified, there is no limit on the number of concurrent requests.
+     */
+    maxConcurrency?: number;
+  } & Omit<restate.RunOptions<DoGenerateResponseType>, "serde">;
+
+  export type RemoteModelRequest = {
+    params: LanguageModelV1CallOptions;
+    modelProvider: string;
+    modelId: string;
+    runOpts?: Omit<restate.RunOptions<DoGenerateResponseType>, "serde">;
+  };
+
+  export type ModelService = typeof models;
+
+  /**
+   * Creates a middleware that allows for remote calls to a model service.
+   * This middleware will use the `models` service to call the model provider and model ID specified in the request.
+   * In addition, it will use the `maxConcurrency` option to limit the number of concurrent requests to the model service.
+   *
+   * @param ctx
+   * @param opts
+   * @returns
+   */
+  export const remoteCalls = (
+    ctx: restate.Context,
+    opts: RemoteModelCallOptions
+  ): LanguageModelV1Middleware => {
+    return {
+      wrapGenerate({ model, params }) {
+        const request = {
+          modelProvider: model.provider,
+          modelId: model.modelId,
+          params,
+          runOpts: {
+            ...opts,
+          },
+        };
+
+        let concurrencyKey;
+        if (opts.maxConcurrency) {
+          // generate a random key from the range [0, opts.maxConcurrency)
+          const randomIndex = Math.floor(
+            ctx.rand.random() * opts.maxConcurrency
+          );
+          concurrencyKey = `${model.provider}:${model.modelId}:${randomIndex}`;
+        } else {
+          concurrencyKey = ctx.rand.uuidv4();
+        }
+
+        return ctx
+          .objectClient<ModelService>({ name: "models" }, concurrencyKey)
+          .doGenerate(
+            request,
+            restate.rpc.opts({ input: superJson, output: superJson })
+          );
+      },
+    };
+  };
+
+  /**
+   * The `models` service provides a durable way to call LLM models.
+   * Use this in conjunction with the `remoteCalls` middleware.
+   */
+  export const models = restate.object({
+    name: "models",
+    handlers: {
+      doGenerate: restate.handlers.object.exclusive(
+        {
+          input: superJson,
+          output: superJson,
+          description: "A service to durably call LLM models",
+        },
+        async (
+          ctx: restate.Context,
+          { params, modelProvider, modelId, runOpts }: RemoteModelRequest
+        ): Promise<DoGenerateResponseType> => {
+          let model;
+          if (modelProvider === "openai.chat") {
+            model = openai(modelId, { structuredOutputs: true });
+          } else {
+            throw new restate.TerminalError(
+              `Model provider ${modelProvider} is not supported.`
+            );
+          }
+
+          return await ctx.run(
+            `calling ${modelProvider}`,
+            async () => {
+              return model.doGenerate(params);
+            },
+            { maxRetryAttempts: 3, ...runOpts, serde: superJson }
+          );
+        }
+      ),
+    },
+  });
+}

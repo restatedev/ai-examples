@@ -1,5 +1,5 @@
 import * as restate from "@restatedev/restate-sdk";
-import { durableCalls } from "@restatedev/vercel-ai-middleware"
+import { durableCalls, toolErrorAsTerminalError } from "@restatedev/vercel-ai-middleware"
 import { openai } from "@ai-sdk/openai";
 import { generateText, tool, wrapLanguageModel } from "ai";
 import { z } from "zod";
@@ -34,7 +34,7 @@ async function simpleAgent(restate: restate.Context, prompt: string) {
     },
     maxSteps: 5,
     // these are local retries by the AI SDK
-    // Restate will retry the invocation once those local retries are exhaused to
+    // Restate will retry the invocation once those local retries are exhausted to
     // handle longer downtimes, faulty processes, or network communication issues
     maxRetries: 3,
     system: "You are a helpful agent.",
@@ -52,8 +52,12 @@ export const agent = restate.service({
   handlers: {
     run: async (ctx: restate.Context, prompt: string) => {
       return simpleAgent(ctx, prompt);
-    }
-  }
+    },
+  },
+  options: {
+    journalRetention: { days: 1 },
+    ...toolErrorAsTerminalError,
+  },
 });
 
 export type Agent = typeof agent;
