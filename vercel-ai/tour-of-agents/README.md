@@ -1,5 +1,12 @@
-# Hello world - TypeScript example
+# Tour of AI Agents with Restate - Vercel AI SDK
 
-Sample project configuration of a Restate service using the TypeScript SDK.
+Learn how to implement resilient agents with durable execution, human-in-the-loop, multi-agent communication, and parallel execution.
 
-Have a look at the [TypeScript Quickstart guide](https://docs.restate.dev/get_started/quickstart?sdk=ts) for more information on how to use this template.
+[Learn more](https://docs.restate.dev/tour/ai-agents)
+
+To run:
+
+```shell
+npm install
+npm run dev
+```

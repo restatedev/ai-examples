@@ -28,7 +28,8 @@ export default restate.service({
       const { text } = await generateText({
         model,
         system: "You are a claim decision engine.",
-        prompt: `Decide based on: 
+        prompt: `Decide about claim ${JSON.stringify(claim)}. 
+        Base your decision on the following analyses:
         Eligibility: ${eligibility}, Cost: ${rateComparison} Fraud: ${fraudCheck}`,
       });
       return text;
