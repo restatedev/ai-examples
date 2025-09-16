@@ -20,30 +20,31 @@ import {
   rateComparisonAgent,
 } from "./utils";
 
-restate
-  .endpoint()
-  // Durable execution examples
-  .bind(weatherAgent)
-  // Human-in-the-loop examples
-  .bind(humanClaimApprovalAgent)
-  .bind(humanClaimApprovalWithTimeoutsAgent)
-  // Chat example
-  .bind(chatAgent)
-  // Orchestration examples
-  .bind(subWorkflowClaimApprovalAgent)
-  .bind(humanApprovalWorfklow)
-  .bind(multiAgentClaimApproval)
-  // Parallel execution examples
-  .bind(parallelToolClaimAgent)
-  .bind(parallelAgentClaimApproval)
-  // Error handling examples
-  .bind(stopOnTerminalErrorAgent)
-  .bind(failOnTerminalErrorAgent)
-  // Advanced examples
-  .bind(bookingWithRollbackAgent)
-  .bind(manualLoopAgent)
-  // Utils and sub-agents
-  .bind(eligibilityAgent)
-  .bind(fraudCheckAgent)
-  .bind(rateComparisonAgent)
-  .listen(9080);
+restate.serve({
+    services: [
+        // Durable execution examples
+        weatherAgent,
+        // Human-in-the-loop examples
+        humanClaimApprovalAgent,
+        humanClaimApprovalWithTimeoutsAgent,
+        // Chat example
+        chatAgent,
+        // Orchestration examples
+        subWorkflowClaimApprovalAgent,
+        humanApprovalWorfklow,
+        multiAgentClaimApproval,
+        // Parallel execution examples
+        parallelToolClaimAgent,
+        parallelAgentClaimApproval,
+        // Error handling examples
+        stopOnTerminalErrorAgent,
+        failOnTerminalErrorAgent,
+        // Advanced examples
+        bookingWithRollbackAgent,
+        manualLoopAgent,
+        // Utils and sub-agents
+        eligibilityAgent,
+        fraudCheckAgent,
+        rateComparisonAgent,
+    ]
+});
