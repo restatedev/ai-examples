@@ -7,8 +7,8 @@ import {
   fraudCheckAgent,
   rateComparisonAgent,
 } from "../utils";
-import { durableCalls } from "../middleware";
 import {RestatePromise} from "@restatedev/restate-sdk";
+import {durableCalls} from "@restatedev/vercel-ai-middleware";
 
 export default restate.service({
   name: "ParallelAgentClaimApproval",

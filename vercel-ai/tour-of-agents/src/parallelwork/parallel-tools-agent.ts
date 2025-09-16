@@ -9,7 +9,7 @@ import {
   InsuranceClaim,
   InsuranceClaimSchema,
 } from "../utils";
-import { durableCalls } from "../middleware";
+import { durableCalls } from "@restatedev/vercel-ai-middleware";
 
 export default restate.service({
   name: "ParallelToolClaimAgent",

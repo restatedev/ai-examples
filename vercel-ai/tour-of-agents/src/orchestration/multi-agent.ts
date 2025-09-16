@@ -7,7 +7,7 @@ import {
   eligibilityAgent,
   fraudCheckAgent,
 } from "../utils";
-import { durableCalls } from "../middleware";
+import { durableCalls } from "@restatedev/vercel-ai-middleware";
 
 export default restate.service({
   name: "MultiAgentClaimApproval",

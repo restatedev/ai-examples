@@ -6,7 +6,7 @@ import {
   InsuranceClaimSchema,
   requestHumanReview,
 } from "../utils";
-import { durableCalls } from "../middleware";
+import { durableCalls } from "@restatedev/vercel-ai-middleware";
 import { TimeoutError } from "@restatedev/restate-sdk";
 
 export default restate.service({

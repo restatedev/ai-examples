@@ -2,7 +2,7 @@ import * as restate from "@restatedev/restate-sdk";
 import { openai } from '@ai-sdk/openai';
 import {generateText, ModelMessage, tool, wrapLanguageModel} from 'ai';
 import z from 'zod';
-import {durableCalls} from "../middleware";
+import {durableCalls} from "@restatedev/vercel-ai-middleware";
 import {fetchWeather} from "../utils";
 
 async function getWeather(ctx: restate.Context, {city}: { city: string }) {

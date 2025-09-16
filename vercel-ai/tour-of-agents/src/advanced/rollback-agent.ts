@@ -1,7 +1,7 @@
 import * as restate from "@restatedev/restate-sdk";
 import { generateText, stepCountIs, tool, wrapLanguageModel } from "ai";
 import { openai } from "@ai-sdk/openai";
-import { durableCalls, rethrowTerminalToolError } from "../middleware";
+import { durableCalls, rethrowTerminalToolError } from "@restatedev/vercel-ai-middleware";
 import {
   reserveHotel,
   reserveCar,

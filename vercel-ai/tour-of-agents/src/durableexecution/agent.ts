@@ -3,7 +3,7 @@ import { openai } from "@ai-sdk/openai";
 import { generateText, stepCountIs, tool, wrapLanguageModel } from "ai";
 import { z } from "zod";
 import { fetchWeather } from "../utils";
-import { durableCalls } from "../middleware";
+import { durableCalls } from "@restatedev/vercel-ai-middleware";
 
 export default restate.service({
   name: "WeatherAgent",

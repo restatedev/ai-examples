@@ -6,7 +6,7 @@ import {
   InsuranceClaimSchema,
   requestHumanReview,
 } from "../utils";
-import { durableCalls } from "../middleware";
+import { durableCalls } from "@restatedev/vercel-ai-middleware";
 
 export default restate.service({
   name: "HumanClaimApprovalAgent",

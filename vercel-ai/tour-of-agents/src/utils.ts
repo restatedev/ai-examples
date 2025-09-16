@@ -3,7 +3,7 @@ import { TerminalError } from "@restatedev/restate-sdk";
 import { z } from "zod";
 import * as crypto from "node:crypto";
 import { generateText, wrapLanguageModel } from "ai";
-import { durableCalls } from "./middleware";
+import { durableCalls } from "@restatedev/vercel-ai-middleware";
 import { openai } from "@ai-sdk/openai";
 
 // <start_weather>

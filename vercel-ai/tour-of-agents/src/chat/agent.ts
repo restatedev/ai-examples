@@ -1,5 +1,5 @@
 import * as restate from "@restatedev/restate-sdk";
-import { durableCalls, superJson } from "../middleware";
+import { durableCalls, superJson } from "@restatedev/vercel-ai-middleware";
 
 import { openai } from "@ai-sdk/openai";
 import { generateText, ModelMessage, wrapLanguageModel } from "ai";

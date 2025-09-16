@@ -5,10 +5,8 @@ import { z } from "zod";
 import { fetchWeather } from "../utils";
 import {
   durableCalls,
-  getTerminalToolSteps,
-  hasTerminalToolError,
   rethrowTerminalToolError,
-} from "../middleware";
+} from "@restatedev/vercel-ai-middleware";
 
 export default restate.service({
   name: "FailOnTerminalErrorAgent",

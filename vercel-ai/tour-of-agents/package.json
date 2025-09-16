@@ -15,12 +15,11 @@
     "app-dev": "npm run dev"
   },
   "dependencies": {
-    "@ai-sdk/openai": "^2.0.23",
     "@restatedev/restate-sdk": "^1.8.3",
     "@restatedev/restate-sdk-zod": "^1.8.3",
-    "ai": "5.0.29",
-    "superjson": "^2.2.2",
-    "zod": "^3.25.0"
+    "@restatedev/vercel-ai-middleware": "^0.2.0",
+    "ai": "^5.0.30",
+    "@ai-sdk/openai": "^2.0.23"
   },
   "devDependencies": {
     "@types/node": "^20.14.2",
