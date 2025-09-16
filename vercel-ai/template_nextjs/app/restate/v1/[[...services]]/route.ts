@@ -1,15 +1,4 @@
-import * as restate from "@restatedev/restate-sdk/fetch";
-import { agent } from "@/restate/services/agent";
+import { endpoint } from "@/restate/endpoint";
+import { serveRestate } from "@/restate/serve";
 
-const services = restate
-  .endpoint()
-  .bind(agent)
-  .handler();
-
-export function GET(request: Request) {
-  return services.fetch(request);
-}
-
-export function POST(request: Request) {
-  return services.fetch(request);
-}
+export const { GET, POST } = serveRestate(endpoint);

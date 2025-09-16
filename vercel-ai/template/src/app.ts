@@ -37,6 +37,7 @@ async function simpleAgent(restate: restate.Context, prompt: string) {
     // handle longer downtimes, faulty processes, or network communication issues
     maxRetries: 3,
     system: "You are a helpful agent.",
+    providerOptions: { openai: { parallelToolCalls: false } },
   });
 
   return text;
