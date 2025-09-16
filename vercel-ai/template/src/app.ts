@@ -1,10 +1,9 @@
 import * as restate from "@restatedev/restate-sdk";
-import { durableCalls } from "@restatedev/vercel-ai-middleware"
+import { durableCalls } from "@restatedev/vercel-ai-middleware";
 import { openai } from "@ai-sdk/openai";
 import { generateText, tool, wrapLanguageModel, stepCountIs } from "ai";
 import { z } from "zod";
 import { fetchWeather } from "./utils/weather";
-
 
 // --------------------------------------------------------
 //  A simple agent, following the template of the AI SDK
@@ -12,7 +11,6 @@ import { fetchWeather } from "./utils/weather";
 // --------------------------------------------------------
 
 async function simpleAgent(restate: restate.Context, prompt: string) {
-
   // we wrap the model with the 'durableCalls' middleware, which
   // stores each response in Restate's journal, to be restored on retries
   const model = wrapLanguageModel({
@@ -20,7 +18,7 @@ async function simpleAgent(restate: restate.Context, prompt: string) {
     middleware: durableCalls(restate, { maxRetryAttempts: 3 }),
   });
 
-  const result = await generateText({
+  const { text } = await generateText({
     model,
     prompt,
     tools: {
@@ -30,8 +28,8 @@ async function simpleAgent(restate: restate.Context, prompt: string) {
         execute: async ({ city }) => {
           // call tool wrapped as Restate durable step
           return await restate.run("get weather", () => fetchWeather(city));
-        }
-      })
+        },
+      }),
     },
     stopWhen: [stepCountIs(5)],
     // these are local retries by the AI SDK
@@ -41,8 +39,7 @@ async function simpleAgent(restate: restate.Context, prompt: string) {
     system: "You are a helpful agent.",
   });
 
-  return result.text;
-
+  return text;
 }
 
 // create a simple Restate service as the callable entrypoint
@@ -53,12 +50,10 @@ const agent = restate.service({
     run: async (ctx: restate.Context, prompt: string) => {
       return simpleAgent(ctx, prompt);
     },
-  }
+  },
 });
 
 // we serve the entry-point via an HTTP/2 server
 restate.serve({
-  services: [
-    agent
-  ]
-})
+  services: [agent],
+});

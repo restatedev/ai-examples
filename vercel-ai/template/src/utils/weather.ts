@@ -7,7 +7,7 @@ export async function fetchWeather(city: string) {
   const url = `https://wttr.in/${encodeURIComponent(city)}?format=j1`;
   const res = await fetch(url);
 
-  if (!res.ok){
+  if (!res.ok) {
     throw new Error(`Failed calling weather API: ${res.status}`);
   }
   const output = await res.text();
@@ -23,9 +23,11 @@ export async function fetchWeather(city: string) {
 
     return {
       temperature: current["temp_C"],
-      description: current["weatherDesc"][0]["value"]
+      description: current["weatherDesc"][0]["value"],
     };
   } catch (e) {
-    throw new TerminalError("Could not parse weather API response", { cause: e })
+    throw new TerminalError("Could not parse weather API response", {
+      cause: e,
+    });
   }
 }
