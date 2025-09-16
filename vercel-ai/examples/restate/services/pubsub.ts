@@ -33,7 +33,7 @@ export const pubsub = restate.object({
         ),
         output: serde.zod(
           z.object({
-            messages: z.any({}).array(),
+            messages: z.any().array(),
             nextOffset: z.number(),
           })
         ),

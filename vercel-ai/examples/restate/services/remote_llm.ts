@@ -4,8 +4,9 @@ import { serde } from "@restatedev/restate-sdk-zod";
 import { z } from "zod";
 
 import { openai } from "@ai-sdk/openai";
-import { generateObject, generateText, LanguageModelV1, LanguageModelV1CallOptions, LanguageModelV1Middleware, wrapLanguageModel } from "ai";
-import { superJson, toolErrorAsTerminalError } from "@restatedev/vercel-ai-middleware";
+import { generateObject, generateText, wrapLanguageModel } from "ai";
+import { superJson } from "@restatedev/vercel-ai-middleware";
+import {LanguageModelV2, LanguageModelV2CallOptions, LanguageModelV2Middleware} from "@ai-sdk/provider";
 
 export const translation = restate.service({
   name: "translation",
@@ -30,10 +31,6 @@ export const translation = restate.service({
       }
     ),
   },
-  options: {
-    journalRetention: { days: 1 },
-    ...toolErrorAsTerminalError,
-  },
 });
 
 // https://ai-sdk.dev/docs/foundations/agents#evaluator-optimizer
@@ -43,12 +40,12 @@ async function translateWithFeedback(ctx: restate.Context, text: string, targetL
   const MAX_ITERATIONS = 3;
   
    const gpt4oMini = wrapLanguageModel({
-     model: openai("gpt-4o-mini", { structuredOutputs: true }),
+     model: openai("gpt-4o-mini"),
      middleware: remote.remoteCalls(ctx, { maxRetryAttempts: 3, maxConcurrency: 10 }),
    });
    
    const gpt4o = wrapLanguageModel({
-     model: openai("gpt-4o", { structuredOutputs: true }),
+     model: openai("gpt-4o"),
      middleware: remote.remoteCalls(ctx, { maxRetryAttempts: 3, maxConcurrency: 10 }),
    });
 
@@ -123,7 +120,7 @@ async function translateWithFeedback(ctx: restate.Context, text: string, targetL
 export namespace remote {
 
   export type DoGenerateResponseType = Awaited<
-    ReturnType<LanguageModelV1["doGenerate"]>
+    ReturnType<LanguageModelV2["doGenerate"]>
   >;
 
   export type RemoteModelCallOptions = {
@@ -135,7 +132,7 @@ export namespace remote {
   } & Omit<restate.RunOptions<DoGenerateResponseType>, "serde">;
 
   export type RemoteModelRequest = {
-    params: LanguageModelV1CallOptions;
+    params: LanguageModelV2CallOptions;
     modelProvider: string;
     modelId: string;
     runOpts?: Omit<restate.RunOptions<DoGenerateResponseType>, "serde">;
@@ -155,7 +152,7 @@ export namespace remote {
   export const remoteCalls = (
     ctx: restate.Context,
     opts: RemoteModelCallOptions
-  ): LanguageModelV1Middleware => {
+  ): LanguageModelV2Middleware => {
     return {
       wrapGenerate({ model, params }) {
         const request = {
@@ -207,7 +204,7 @@ export namespace remote {
         ): Promise<DoGenerateResponseType> => {
           let model;
           if (modelProvider === "openai.chat") {
-            model = openai(modelId, { structuredOutputs: true });
+            model = openai(modelId);
           } else {
             throw new restate.TerminalError(
               `Model provider ${modelProvider} is not supported.`

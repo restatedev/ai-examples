@@ -2,24 +2,13 @@
 
 A set of examples illustrating how to use [Restate](https://restate.dev/) ([Github](https://github.com/restatedev/)) to add durable execution, state, and communication to agents built with the [Vercel AI SDK](https://ai-sdk.dev)
 
-
 ## Setting up an Environment
 
 ### Starting Restate Server
 
-For access to the latest nightly version, run Restate via Docker:
-
 ```shell
-docker run --name restate_dev -it --rm --net=host \
-  -e 'RESTATE_WORKER__INVOKER__INACTIVITY_TIMEOUT=5min' \
-  -e 'RESTATE_WORKER__INVOKER__ABORT_TIMEOUT=15min' \
-  -e 'RESTATE_ADMIN__experimental_feature_force_journal_retention=30d' \
-  ghcr.io/restatedev/restate:main
+npx @restatedev/restate-server@latest
 ```
-*(Note, if '--net=host' is not available in your docker distribution, you need to expose ports 9070 and 8080, and be aware that services are not registered on 'localhost' but on 'host.docker.internal' instead.)*
-
-Alternatively, download the server single binary and run it via `restate-server`, but this will miss some of the WIP UI features.
-
 
 ### Starting the Agents NextJS app
 
@@ -33,18 +22,11 @@ The entry point is in the [restate/v1](app/restate/v1/[[...services]]/route.ts) 
 
 ### Register the AI SDK agents at Restate
 
-The simplest way to register new services is the UI, which is at [http://localhost:9070](http://localhost:9070).
-See the screenshots below for a walkthrough.
+```bash
+npx @restatedev/restate deployments register http://localhost:3000/restate/v1 --use-http1.1
+```
 
-If you have the [CLI installed](https://restate.dev/get-restate/),
-you can also simply call `restate deployments register http://localhost:3000/restate/v1 --use-http1.1`
-
-**Bear in mind that you need to replace *localhost* with *host.docker.internal*, if your docker distribution requires that**.
-
-![Screenshot of Restate service registration UI](doc/img/registration.png)
-
-----
-----
+Or use the UI on [localhost:9070](http://localhost:9070) to register the services.
 
 ## An Example Walkthrough
 
@@ -69,7 +51,7 @@ The example is almost vanilla Vercel AI SDK code, with three small additions:
    });
    ```
 
-2. We wrap the LLM model to make sure all inference steps are durable journalled:
+2. We wrap the LLM model to make sure all inference steps are durable journaled:
    ```typescript
    const model = wrapLanguageModel({
      model: openai("gpt-4o-2024-08-06", { structuredOutputs: true }),
