@@ -4,7 +4,7 @@ import { serde } from "@restatedev/restate-sdk-zod";
 import { z } from "zod";
 
 import { openai } from "@ai-sdk/openai";
-import {generateText, stepCountIs, tool, wrapLanguageModel} from "ai";
+import { generateText, stepCountIs, tool, wrapLanguageModel } from "ai";
 import { publishMessage } from "./pubsub";
 
 import * as mathjs from "mathjs";
@@ -25,14 +25,14 @@ const tools = restate.service({
               .string()
               .default("channel")
               .describe("The topic to publish intermediate steps to"),
-          })
+          }),
         ),
         output: serde.zod(z.string()),
         description: "Use tools to solve math problems",
       },
       async (ctx: restate.Context, { prompt, topic }) => {
         return await toolsExample(ctx, prompt, topic);
-      }
+      },
     ),
   },
 });
@@ -41,7 +41,7 @@ const tools = restate.service({
 async function toolsExample(
   ctx: restate.Context,
   prompt: string,
-  topic: string
+  topic: string,
 ) {
   publishMessage(ctx, topic, {
     role: "user",
@@ -71,7 +71,7 @@ async function toolsExample(
           return await ctx.run(
             `evaluating ${expression}`,
             async () => mathjs.evaluate(expression),
-            { serde: superJson }
+            { serde: superJson },
           );
         },
       }),
@@ -83,7 +83,7 @@ async function toolsExample(
         publishMessage(ctx, topic, {
           role: "assistant",
           content: `Tool call: ${toolCall.toolName}(${JSON.stringify(
-            toolCall.input
+            toolCall.input,
           )})`,
         });
       });

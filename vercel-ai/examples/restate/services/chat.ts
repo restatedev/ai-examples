@@ -5,7 +5,7 @@ import { durableCalls, superJson } from "@restatedev/vercel-ai-middleware";
 import { z } from "zod";
 
 import { openai } from "@ai-sdk/openai";
-import {generateText, ModelMessage, wrapLanguageModel} from "ai";
+import { generateText, ModelMessage, wrapLanguageModel } from "ai";
 
 interface ChatState {
   messages: ModelMessage[];
@@ -21,12 +21,12 @@ export default restate.object({
         input: serde.zod(
           z.object({
             message: z.string(),
-          })
+          }),
         ),
         output: serde.zod(
           z.object({
             answer: z.string(),
-          })
+          }),
         ),
       },
       async (ctx: restate.ObjectContext<ChatState>, { message }) => {
@@ -46,9 +46,13 @@ export default restate.object({
           messages,
         });
 
-        ctx.set("messages", [...messages, ...response.response.messages], superJson);
+        ctx.set(
+          "messages",
+          [...messages, ...response.response.messages],
+          superJson,
+        );
         return { answer: response.text };
-      }
+      },
     ),
   },
 });

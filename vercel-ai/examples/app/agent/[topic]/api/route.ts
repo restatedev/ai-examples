@@ -4,7 +4,7 @@ import { Tool } from "@/restate/services/multi_tool";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ topic: string }> }
+  { params }: { params: Promise<{ topic: string }> },
 ) {
   const { topic } = await params;
   const { message } = await request.json();

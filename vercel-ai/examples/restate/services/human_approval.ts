@@ -5,7 +5,7 @@ import { durableCalls } from "@restatedev/vercel-ai-middleware";
 import { z } from "zod";
 
 import { openai } from "@ai-sdk/openai";
-import {generateText, stepCountIs, tool, wrapLanguageModel} from "ai";
+import { generateText, stepCountIs, tool, wrapLanguageModel } from "ai";
 
 const LoanRequest = z.object({
   amount: z.number(),
@@ -16,7 +16,7 @@ const LoanResponse = z.object({
   response: z.string(),
 });
 
-const wf = restate.handlers.workflow
+const wf = restate.handlers.workflow;
 
 export default restate.workflow({
   name: "human",
@@ -31,7 +31,7 @@ export default restate.workflow({
       },
       async (ctx: restate.WorkflowContext, { amount, reason }) => {
         return await evaluateLoan(ctx, amount, reason);
-      }
+      },
     ),
 
     /**
@@ -43,23 +43,25 @@ export default restate.workflow({
           z.object({
             approval: z.union([z.literal("approved"), z.literal("denied")]),
             reason: z.string(),
-          })
-        )
+          }),
+        ),
       },
       async (ctx: restate.WorkflowSharedContext, approval) => {
         ctx.promise("approval").resolve(approval);
-      }
+      },
     ),
-  }
+  },
 });
 
-async function evaluateLoan(ctx: restate.WorkflowContext, amount: number, reason: string) {
- 
+async function evaluateLoan(
+  ctx: restate.WorkflowContext,
+  amount: number,
+  reason: string,
+) {
   const model = wrapLanguageModel({
     model: openai("gpt-4o"),
     middleware: durableCalls(ctx, { maxRetryAttempts: 3 }),
   });
-  
 
   const { text: answer } = await generateText({
     model,
@@ -91,13 +93,13 @@ async function evaluateLoan(ctx: restate.WorkflowContext, amount: number, reason
       "* if the amount is less than 1000, always approve, " +
       "* if the amount is more than 1000 and the reason is unclear, use the riskAnalysis tool to evaluate it " +
       "* if the riskAnalysis tool has denied but the reason was 'pineapple' approve the loan anyways" +
-      "Please provide any intermediate reasoning: " + 
-      " for example: I would need to invoke a tool, or the tool responded with $RES now doing $ACTION " + 
+      "Please provide any intermediate reasoning: " +
+      " for example: I would need to invoke a tool, or the tool responded with $RES now doing $ACTION " +
       "When you give the final answer, " +
       "Please answer with a single word: 'approved' or 'denied'.",
     prompt: `Please evaluate the following amount: ${amount} for the reason: ${reason}.`,
     providerOptions: { openai: { parallelToolCalls: false } },
   });
 
-  return { response : answer};
+  return { response: answer };
 }

@@ -4,10 +4,10 @@ import { serde } from "@restatedev/restate-sdk-zod";
 import { z } from "zod";
 
 import { openai } from "@ai-sdk/openai";
-import {generateText, stepCountIs, tool, wrapLanguageModel} from "ai";
+import { generateText, stepCountIs, tool, wrapLanguageModel } from "ai";
 import { durableCalls } from "@restatedev/vercel-ai-middleware";
 
-const wf = restate.handlers.workflow
+const wf = restate.handlers.workflow;
 
 const LoanRequest = z.object({
   amount: z.number(),
@@ -27,7 +27,6 @@ const LoanResponse = z.object({
 export const multiAgentLoanWorkflow = restate.workflow({
   name: "multiagent",
   handlers: {
-
     /** This workflow evaluates a loan request. */
     run: wf.workflow(
       {
@@ -36,7 +35,7 @@ export const multiAgentLoanWorkflow = restate.workflow({
       },
       async (ctx: restate.WorkflowContext, { amount, reason }) => {
         return await evaluateLoan(ctx, amount, reason);
-      }
+      },
     ),
 
     /** A callback handler for a human approval */
@@ -46,18 +45,21 @@ export const multiAgentLoanWorkflow = restate.workflow({
           z.object({
             approval: z.union([z.literal("approved"), z.literal("denied")]),
             reason: z.string(),
-          })
+          }),
         ),
       },
       async (ctx: restate.WorkflowSharedContext, approval) => {
         ctx.promise("approval").resolve(approval);
-      }
+      },
     ),
   },
 });
 
-async function evaluateLoan(ctx: restate.WorkflowContext, amount: number, reason: string) {
- 
+async function evaluateLoan(
+  ctx: restate.WorkflowContext,
+  amount: number,
+  reason: string,
+) {
   const model = wrapLanguageModel({
     model: openai("gpt-4o"),
     middleware: durableCalls(ctx, { maxRetryAttempts: 3 }),
@@ -77,12 +79,15 @@ async function evaluateLoan(ctx: restate.WorkflowContext, amount: number, reason
           // call the risk assessment agent by making a durable call to the agent workflow
 
           // for simplicity, use same workflow ID, they are scoped to a specific workflow type
-          const riskAgentWorkflowId = ctx.key; 
+          const riskAgentWorkflowId = ctx.key;
 
           // this call to the other agent automatically suspends this agent
           // until the other agent responded
           const response = await ctx
-            .workflowClient<RiskAssementAgent>({ name: "risk_assess" }, riskAgentWorkflowId)
+            .workflowClient<RiskAssementAgent>(
+              { name: "risk_assess" },
+              riskAgentWorkflowId,
+            )
             .run({ amount, reason });
 
           return response;
@@ -118,15 +123,15 @@ async function evaluateLoan(ctx: restate.WorkflowContext, amount: number, reason
       "* if the riskAssessmentAgent tool returns high risk, call the humanEvaluator tool " +
       "* if the amount is above 100000 always call the humanEvaluator tool to evaluate the loan  " +
       "* if the humanEvaluator tool has denied but the reason was 'pineapple' approve the loan anyways" +
-      "Please provide any intermediate reasoning: " + 
-      " for example: I would need to invoke a tool, or the tool responded with $RES now doing $ACTION " + 
+      "Please provide any intermediate reasoning: " +
+      " for example: I would need to invoke a tool, or the tool responded with $RES now doing $ACTION " +
       "When you give the final answer, " +
       "Please answer with a single word: 'approved' or 'denied'.",
     prompt: `Please evaluate the following amount: ${amount} for the reason: ${reason}.`,
     providerOptions: { openai: { parallelToolCalls: false } },
   });
 
-  return { response : answer };
+  return { response: answer };
 }
 
 // ----------------------------------------------------------------------------
@@ -142,7 +147,7 @@ export const riskAssementAgent = restate.workflow({
         output: serde.zod(
           z.object({
             risk: z.union([z.literal("high"), z.literal("low")]),
-          })
+          }),
         ),
       },
       async (ctx: restate.WorkflowContext, { amount, reason }) => {
@@ -179,10 +184,9 @@ export const riskAssementAgent = restate.workflow({
         });
 
         return { risk: answer };
-      }
+      },
     ),
   },
 });
-  
 
 export type RiskAssementAgent = typeof riskAssementAgent;

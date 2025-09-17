@@ -6,7 +6,11 @@ import { z } from "zod";
 import { openai } from "@ai-sdk/openai";
 import { generateObject, generateText, wrapLanguageModel } from "ai";
 import { superJson } from "@restatedev/vercel-ai-middleware";
-import {LanguageModelV2, LanguageModelV2CallOptions, LanguageModelV2Middleware} from "@ai-sdk/provider";
+import {
+  LanguageModelV2,
+  LanguageModelV2CallOptions,
+  LanguageModelV2Middleware,
+} from "@ai-sdk/provider";
 
 export const translation = restate.service({
   name: "translation",
@@ -17,7 +21,7 @@ export const translation = restate.service({
           z.object({
             text: z.string(),
             targetLanguage: z.string().default("English"),
-          })
+          }),
         ),
         output: serde.zod(z.string()),
       },
@@ -25,34 +29,44 @@ export const translation = restate.service({
         const { finalTranslation } = await translateWithFeedback(
           ctx,
           text,
-          targetLanguage
+          targetLanguage,
         );
         return finalTranslation;
-      }
+      },
     ),
   },
 });
 
 // https://ai-sdk.dev/docs/foundations/agents#evaluator-optimizer
-async function translateWithFeedback(ctx: restate.Context, text: string, targetLanguage: string) {
-  let currentTranslation = '';
+async function translateWithFeedback(
+  ctx: restate.Context,
+  text: string,
+  targetLanguage: string,
+) {
+  let currentTranslation = "";
   let iterations = 0;
   const MAX_ITERATIONS = 3;
-  
-   const gpt4oMini = wrapLanguageModel({
-     model: openai("gpt-4o-mini"),
-     middleware: remote.remoteCalls(ctx, { maxRetryAttempts: 3, maxConcurrency: 10 }),
-   });
-   
-   const gpt4o = wrapLanguageModel({
-     model: openai("gpt-4o"),
-     middleware: remote.remoteCalls(ctx, { maxRetryAttempts: 3, maxConcurrency: 10 }),
-   });
+
+  const gpt4oMini = wrapLanguageModel({
+    model: openai("gpt-4o-mini"),
+    middleware: remote.remoteCalls(ctx, {
+      maxRetryAttempts: 3,
+      maxConcurrency: 10,
+    }),
+  });
+
+  const gpt4o = wrapLanguageModel({
+    model: openai("gpt-4o"),
+    middleware: remote.remoteCalls(ctx, {
+      maxRetryAttempts: 3,
+      maxConcurrency: 10,
+    }),
+  });
 
   // Initial translation
   const { text: translation } = await generateText({
     model: gpt4oMini, // use small model for first attempt
-    system: 'You are an expert literary translator.',
+    system: "You are an expert literary translator.",
     prompt: `Translate this text to ${targetLanguage}, preserving tone and cultural nuances:
     ${text}`,
   });
@@ -72,7 +86,7 @@ async function translateWithFeedback(ctx: restate.Context, text: string, targetL
         specificIssues: z.array(z.string()),
         improvementSuggestions: z.array(z.string()),
       }),
-      system: 'You are an expert in evaluating literary translations.',
+      system: "You are an expert in evaluating literary translations.",
       prompt: `Evaluate this translation:
 
       Original: ${text}
@@ -98,10 +112,10 @@ async function translateWithFeedback(ctx: restate.Context, text: string, targetL
     // Generate improved translation based on feedback
     const { text: improvedTranslation } = await generateText({
       model: gpt4o, // use a larger model
-      system: 'You are an expert literary translator.',
+      system: "You are an expert literary translator.",
       prompt: `Improve this translation based on the following feedback:
-      ${evaluation.specificIssues.join('\n')}
-      ${evaluation.improvementSuggestions.join('\n')}
+      ${evaluation.specificIssues.join("\n")}
+      ${evaluation.improvementSuggestions.join("\n")}
 
       Original: ${text}
       Current Translation: ${currentTranslation}`,
@@ -118,7 +132,6 @@ async function translateWithFeedback(ctx: restate.Context, text: string, targetL
 }
 
 export namespace remote {
-
   export type DoGenerateResponseType = Awaited<
     ReturnType<LanguageModelV2["doGenerate"]>
   >;
@@ -151,7 +164,7 @@ export namespace remote {
    */
   export const remoteCalls = (
     ctx: restate.Context,
-    opts: RemoteModelCallOptions
+    opts: RemoteModelCallOptions,
   ): LanguageModelV2Middleware => {
     return {
       wrapGenerate({ model, params }) {
@@ -168,7 +181,7 @@ export namespace remote {
         if (opts.maxConcurrency) {
           // generate a random key from the range [0, opts.maxConcurrency)
           const randomIndex = Math.floor(
-            ctx.rand.random() * opts.maxConcurrency
+            ctx.rand.random() * opts.maxConcurrency,
           );
           concurrencyKey = `${model.provider}:${model.modelId}:${randomIndex}`;
         } else {
@@ -179,7 +192,7 @@ export namespace remote {
           .objectClient<ModelService>({ name: "models" }, concurrencyKey)
           .doGenerate(
             request,
-            restate.rpc.opts({ input: superJson, output: superJson })
+            restate.rpc.opts({ input: superJson, output: superJson }),
           );
       },
     };
@@ -200,14 +213,14 @@ export namespace remote {
         },
         async (
           ctx: restate.Context,
-          { params, modelProvider, modelId, runOpts }: RemoteModelRequest
+          { params, modelProvider, modelId, runOpts }: RemoteModelRequest,
         ): Promise<DoGenerateResponseType> => {
           let model;
           if (modelProvider === "openai.chat") {
             model = openai(modelId);
           } else {
             throw new restate.TerminalError(
-              `Model provider ${modelProvider} is not supported.`
+              `Model provider ${modelProvider} is not supported.`,
             );
           }
 
@@ -216,9 +229,9 @@ export namespace remote {
             async () => {
               return model.doGenerate(params);
             },
-            { maxRetryAttempts: 3, ...runOpts, serde: superJson }
+            { maxRetryAttempts: 3, ...runOpts, serde: superJson },
           );
-        }
+        },
       ),
     },
   });
