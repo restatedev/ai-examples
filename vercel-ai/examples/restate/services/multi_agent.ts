@@ -48,7 +48,6 @@ export const multiAgentLoanWorkflow = restate.workflow({
             reason: z.string(),
           })
         ),
-        output: serde.zod(z.void()),
       },
       async (ctx: restate.WorkflowSharedContext, approval) => {
         ctx.promise("approval").resolve(approval);

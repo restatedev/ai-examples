@@ -44,8 +44,7 @@ export default restate.workflow({
             approval: z.union([z.literal("approved"), z.literal("denied")]),
             reason: z.string(),
           })
-        ),
-        output: serde.zod(z.void()),
+        )
       },
       async (ctx: restate.WorkflowSharedContext, approval) => {
         ctx.promise("approval").resolve(approval);

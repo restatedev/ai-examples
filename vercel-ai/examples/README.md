@@ -54,7 +54,7 @@ The example is almost vanilla Vercel AI SDK code, with three small additions:
 2. We wrap the LLM model to make sure all inference steps are durable journaled:
    ```typescript
    const model = wrapLanguageModel({
-     model: openai("gpt-4o-2024-08-06", { structuredOutputs: true }),
+     model: openai("gpt-4o-2024-08-06"),
      middleware: durableCalls(ctx, { maxRetryAttempts: 3 }),
    });
    ```
@@ -106,7 +106,7 @@ Code: [human_approval.ts](./restate/services/human_approval.ts)
 // tool awaiting durable promise
 riskAnalysis: tool({
   description: /* ... */
-  parameters: z.object({ amount: z.number() }),
+  inputSchema: z.object({ amount: z.number() }),
   execute: async ({ amount }) => {
     // send some how the request to the human evaluator.
     // A human evaluator will receive a notification with all the relevant details and on their own time (maybe days later)
@@ -171,7 +171,7 @@ riskAssessmentAgent: tool({
     "A risk assessment agent that will determine the risk of a given loan request " +
     "It replies an object { risk } where risk is either 'high' or 'low'. " +
     "For example: { risk: 'high' } or { risk: 'low' }",
-  parameters: LoanRequest,
+  inputSchema: LoanRequest,
   execute: async ({ amount, reason }) => {
     // call the risk assessment agent by making a durable call to the agent workflow
     const response = await ctx
@@ -204,7 +204,7 @@ Use the `remoteCalls` middleware instead:
 
 ```typescript
 const model = wrapLanguageModel({
-     model: openai("gpt-4o-mini", { structuredOutputs: true }),
+     model: openai("gpt-4o-mini"),
      middleware: remoteCalls(ctx, { maxRetryAttempts: 3, maxConcurrency: 10 }),
 });
 ```
