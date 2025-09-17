@@ -29,13 +29,13 @@ export const pubsub = restate.object({
         input: serde.zod(
           z.object({
             offset: z.number(),
-          })
+          }),
         ),
         output: serde.zod(
           z.object({
-            messages: z.any({}).array(),
+            messages: z.any().array(),
             nextOffset: z.number(),
-          })
+          }),
         ),
       },
       async (ctx: restate.ObjectSharedContext<PubSubState>, { offset }) => {
@@ -48,19 +48,18 @@ export const pubsub = restate.object({
         }
         const { id, promise } = ctx.awakeable<Notification>();
         ctx.objectSendClient(pubsub, ctx.key).subscribe({ offset, id });
-        const { newMessages, newOffset } = await promise.orTimeout(
-          PULL_TIMEOUT
-        );
+        const { newMessages, newOffset } =
+          await promise.orTimeout(PULL_TIMEOUT);
         return {
           messages: newMessages,
           nextOffset: newOffset,
         };
-      }
+      },
     ),
 
     publish: async (
       ctx: restate.ObjectContext<PubSubState>,
-      message: unknown
+      message: unknown,
     ) => {
       const messages = (await ctx.get("messages")) ?? [];
       messages.push(message);
@@ -79,7 +78,7 @@ export const pubsub = restate.object({
 
     subscribe: async (
       ctx: restate.ObjectContext<PubSubState>,
-      subscription: Subscription
+      subscription: Subscription,
     ) => {
       const messages = (await ctx.get("messages")) ?? [];
       if (subscription.offset < messages.length) {
@@ -100,7 +99,7 @@ export const pubsub = restate.object({
 export const publishMessage = <T>(
   ctx: restate.Context,
   topic: string,
-  message: T
+  message: T,
 ) => {
   ctx.objectSendClient(pubsub, topic).publish(message);
 };

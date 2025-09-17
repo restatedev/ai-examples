@@ -4,11 +4,11 @@ import { serde } from "@restatedev/restate-sdk-zod";
 import { z } from "zod";
 
 import { openai } from "@ai-sdk/openai";
-import { generateText, tool, wrapLanguageModel } from "ai";
+import { generateText, stepCountIs, tool, wrapLanguageModel } from "ai";
 import { publishMessage } from "./pubsub";
 
 import * as mathjs from "mathjs";
-import { durableCalls, superJson, toolErrorAsTerminalError } from "@restatedev/vercel-ai-middleware";
+import { durableCalls, superJson } from "@restatedev/vercel-ai-middleware";
 
 // the Restate service that is the durable entry point for the
 // agent workflow
@@ -25,19 +25,15 @@ const tools = restate.service({
               .string()
               .default("channel")
               .describe("The topic to publish intermediate steps to"),
-          })
+          }),
         ),
         output: serde.zod(z.string()),
         description: "Use tools to solve math problems",
       },
       async (ctx: restate.Context, { prompt, topic }) => {
         return await toolsExample(ctx, prompt, topic);
-      }
+      },
     ),
-  },
-  options: {
-    journalRetention: { days: 1 },
-    ...toolErrorAsTerminalError,
   },
 });
 
@@ -45,7 +41,7 @@ const tools = restate.service({
 async function toolsExample(
   ctx: restate.Context,
   prompt: string,
-  topic: string
+  topic: string,
 ) {
   publishMessage(ctx, topic, {
     role: "user",
@@ -54,7 +50,7 @@ async function toolsExample(
   });
 
   const model = wrapLanguageModel({
-    model: openai("gpt-4o-2024-08-06", { structuredOutputs: true }),
+    model: openai("gpt-4o-2024-08-06"),
     middleware: durableCalls(ctx, { maxRetryAttempts: 3 }),
   });
 
@@ -66,7 +62,7 @@ async function toolsExample(
           "A tool for evaluating mathematical expressions. " +
           "Example expressions: " +
           "'1.2 * (2 + 4.5)', '12.7 cm to inch', 'sin(45 deg) ^ 2'.",
-        parameters: z.object({ expression: z.string() }),
+        inputSchema: z.object({ expression: z.string() }),
         execute: async ({ expression }) => {
           //
           // use the restate API over here to store function calls into
@@ -75,19 +71,19 @@ async function toolsExample(
           return await ctx.run(
             `evaluating ${expression}`,
             async () => mathjs.evaluate(expression),
-            { serde: superJson }
+            { serde: superJson },
           );
         },
       }),
     },
-    maxSteps: 10,
+    stopWhen: [stepCountIs(10)],
     maxRetries: 0,
     onStepFinish: async (step) => {
       step.toolCalls.forEach((toolCall) => {
         publishMessage(ctx, topic, {
           role: "assistant",
           content: `Tool call: ${toolCall.toolName}(${JSON.stringify(
-            toolCall.args
+            toolCall.input,
           )})`,
         });
       });

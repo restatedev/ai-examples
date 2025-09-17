@@ -1,7 +1,7 @@
 import * as restate from "@restatedev/restate-sdk";
-import { durableCalls, toolErrorAsTerminalError } from "@restatedev/vercel-ai-middleware"
+import { durableCalls } from "@restatedev/vercel-ai-middleware"
 import { openai } from "@ai-sdk/openai";
-import { generateText, tool, wrapLanguageModel } from "ai";
+import {generateText, stepCountIs, tool, wrapLanguageModel} from "ai";
 import { z } from "zod";
 import { fetchWeather } from "./utils/weather";
 
@@ -16,33 +16,33 @@ async function simpleAgent(restate: restate.Context, prompt: string) {
   // we wrap the model with the 'durableCalls' middleware, which
   // stores each response in Restate's journal, to be restored on retries
   const model = wrapLanguageModel({
-    model: openai("gpt-4o-2024-08-06", { structuredOutputs: true }),
+    model: openai("gpt-4o-2024-08-06"),
     middleware: durableCalls(restate, { maxRetryAttempts: 3 }),
   });
 
-  const result = await generateText({
+  const {text} = await generateText({
     model,
+    prompt,
     tools: {
       getWeather: tool({
         description: "Get the current weather for a given city.",
-        parameters: z.object({ city: z.string() }),
+        inputSchema: z.object({ city: z.string() }),
         execute: async ({ city }) => {
           // call tool wrapped as Restate durable step
           return await restate.run("get weather", () => fetchWeather(city));
         }
       })
     },
-    maxSteps: 5,
+    stopWhen: [stepCountIs(5)],
     // these are local retries by the AI SDK
     // Restate will retry the invocation once those local retries are exhausted to
     // handle longer downtimes, faulty processes, or network communication issues
     maxRetries: 3,
     system: "You are a helpful agent.",
-    messages: [{ role: "user", content: prompt }]
+    providerOptions: { openai: { parallelToolCalls: false } },
   });
 
-  return result.text;
-
+  return text;
 }
 
 // create a simple Restate service as the callable entrypoint
@@ -53,11 +53,7 @@ export const agent = restate.service({
     run: async (ctx: restate.Context, prompt: string) => {
       return simpleAgent(ctx, prompt);
     },
-  },
-  options: {
-    journalRetention: { days: 1 },
-    ...toolErrorAsTerminalError,
-  },
+  }
 });
 
 export type Agent = typeof agent;

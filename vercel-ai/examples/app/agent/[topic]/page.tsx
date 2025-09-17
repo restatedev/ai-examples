@@ -6,7 +6,7 @@ import { useParams } from "next/navigation";
 export default function Agent() {
   const { topic } = useParams<{ topic: string }>();
   const [messages, setMessages] = useState<{ content: string; role: string }[]>(
-    []
+    [],
   );
   const [isConnecting, setIsConnecting] = useState(true);
 
