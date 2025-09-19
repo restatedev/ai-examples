@@ -2,7 +2,7 @@ import * as restate from "@restatedev/restate-sdk";
 import { TerminalError } from "@restatedev/restate-sdk";
 import { z } from "zod";
 import * as crypto from "node:crypto";
-import { generateText, wrapLanguageModel } from "ai";
+import {generateText, stepCountIs, tool, wrapLanguageModel} from "ai";
 import { durableCalls } from "@restatedev/vercel-ai-middleware";
 import { openai } from "@ai-sdk/openai";
 
@@ -137,22 +137,18 @@ export const rateComparisonAgent = restate.service({
   },
 });
 
-export const fraudCheckAgent = restate.service({
-  name: "FraudCheckAgent",
+export const fraudTool = restate.service({
+  name: "FraudCheckTool",
   handlers: {
     run: async (ctx: restate.Context, claim: InsuranceClaim) => {
-      const model = wrapLanguageModel({
-        model: openai("gpt-4o"),
-        middleware: durableCalls(ctx, { maxRetryAttempts: 3 }),
-      });
-      const { text } = await generateText({
-        model,
-        system:
-          "Decide whether the claim is fraudulent." +
-          "Always respond with low risk, medium risk, or high risk.",
-        prompt: JSON.stringify(claim),
-      });
-      return text;
+      const approval = ctx.awakeable<boolean>();
+      await ctx.run("ask-human-approval", () =>
+          requestHumanReview(
+              `Please review: ${JSON.stringify(claim)}`,
+              approval.id,
+          ),
+      );
+      return approval.promise;
     },
   },
 });

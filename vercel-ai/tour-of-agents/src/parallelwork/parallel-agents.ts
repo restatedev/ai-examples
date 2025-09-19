@@ -4,7 +4,7 @@ import { generateText, wrapLanguageModel } from "ai";
 import {
   InsuranceClaim,
   eligibilityAgent,
-  fraudCheckAgent,
+  fraudTool,
   rateComparisonAgent,
 } from "../utils";
 import {RestatePromise} from "@restatedev/restate-sdk";
@@ -17,7 +17,7 @@ export default restate.service({
       const [eligibility, rateComparison, fraudCheck] = await RestatePromise.all([
         ctx.serviceClient(eligibilityAgent).run(claim),
         ctx.serviceClient(rateComparisonAgent).run(claim),
-        ctx.serviceClient(fraudCheckAgent).run(claim),
+        ctx.serviceClient(fraudTool).run(claim),
       ]);
 
       const model = wrapLanguageModel({

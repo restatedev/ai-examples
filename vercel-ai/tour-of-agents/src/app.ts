@@ -7,7 +7,7 @@ import {
   subWorkflowClaimApprovalAgent,
   humanApprovalWorfklow,
 } from "./orchestration/sub-workflow-agent";
-import multiAgentClaimApproval from "./orchestration/multi-agent";
+import multiAgentClaimApproval, {claimParserAgent} from "./orchestration/multi-agent";
 import parallelAgentClaimApproval from "./parallelwork/parallel-agents";
 import parallelToolClaimAgent from "./parallelwork/parallel-tools-agent";
 import stopOnTerminalErrorAgent from "./errorhandling/stop-on-terminal-tool-agent";
@@ -16,7 +16,7 @@ import manualLoopAgent from "./advanced/manual-loop-agent";
 import bookingWithRollbackAgent from "./advanced/rollback-agent";
 import {
   eligibilityAgent,
-  fraudCheckAgent,
+  fraudTool,
   rateComparisonAgent,
 } from "./utils";
 
@@ -44,7 +44,16 @@ restate.serve({
         manualLoopAgent,
         // Utils and sub-agents
         eligibilityAgent,
-        fraudCheckAgent,
+        fraudTool,
         rateComparisonAgent,
-    ]
+        claimParserAgent
+    ],
+    async journalValueCodecProvider() {
+        return {
+            encode: (bytes) => bytes,
+            decode: async (bytes) => {
+                return bytes;
+            },
+        };
+    },
 });
