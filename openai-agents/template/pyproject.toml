@@ -11,3 +11,8 @@ dependencies = [
     "pydantic>=2.11.9",
     "openai-agents==0.3.1",
 ]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.18.2",
+]
