@@ -39,7 +39,7 @@ async def run(ctx: restate.Context, req: ClaimRequest) -> ClaimData:
                 },
             ],
             text_format=ClaimData,
-        ).output_parsed
+        ).output_parsed or ClaimData()
 
     # Extract claim data
     claim = await ctx.run("Extracting", parse_claim_data, args=())
@@ -50,7 +50,7 @@ async def run(ctx: restate.Context, req: ClaimRequest) -> ClaimData:
         if not missing_fields:
             break
 
-        id, promise = ctx.awakeable()
+        id, promise = ctx.awakeable(type_hint=str)
         await ctx.run("Request missing info", send_message_to_customer, args=(missing_fields, id))
         extra_info = await promise
 
