@@ -17,13 +17,17 @@ function search_and_replace_version() {
   fi;
 }
 
-search_and_replace_version $PROJECT_ROOT/python/templates/python
-search_and_replace_version $PROJECT_ROOT/python/basics
-search_and_replace_version $PROJECT_ROOT/python/patterns-use-cases
-search_and_replace_version $PROJECT_ROOT/python/tutorials/tour-of-restate-python
-search_and_replace_version $PROJECT_ROOT/python/tutorials/tour-of-orchestration-python
-search_and_replace_version $PROJECT_ROOT/python/tutorials/tour-of-workflows-python
-search_and_replace_version $PROJECT_ROOT/python/integrations/deployment-lambda-cdk/lib/lambda
-search_and_replace_version $PROJECT_ROOT/python/end-to-end-applications/chat-bot/backend
-search_and_replace_version $PROJECT_ROOT/python/end-to-end-applications/rag-ingestion
-search_and_replace_version $PROJECT_ROOT/python/end-to-end-applications/food-ordering/app
+# Advanced Python examples
+search_and_replace_version $PROJECT_ROOT/advanced/insurance-claims
+search_and_replace_version $PROJECT_ROOT/advanced/interruptible-agent
+search_and_replace_version $PROJECT_ROOT/advanced/restate-native-agent
+
+# A2A Python examples
+search_and_replace_version $PROJECT_ROOT/a2a
+
+# OpenAI agents Python examples
+search_and_replace_version $PROJECT_ROOT/openai-agents/examples
+search_and_replace_version $PROJECT_ROOT/openai-agents/template
+
+# Pattern Python examples
+search_and_replace_version $PROJECT_ROOT/patterns

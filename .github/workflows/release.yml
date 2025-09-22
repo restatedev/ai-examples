@@ -80,3 +80,21 @@ jobs:
                   rust-hello-world.zip
                   rust-shuttle-hello-world.zip
                   rust-tour-of-restate.zip
+                  advanced-insurance-claims.zip
+                  advanced-interruptible-agent.zip
+                  advanced-restate-native-agent.zip
+                  a2a-a2a.zip
+                  mcp-restate-mcp.zip
+                  mcp-tools.zip
+                  openai-agents-examples.zip
+                  openai-agents-template.zip
+                  patterns-chaining.zip
+                  patterns-evaluator-optimizer.zip
+                  patterns-human-in-the-loop.zip
+                  patterns-orchestrator-workers.zip
+                  patterns-parallelization.zip
+                  patterns-routing.zip
+                  vercel-ai-examples.zip
+                  vercel-ai-template.zip
+                  vercel-ai-template-nextjs.zip
+                  vercel-ai-tour-of-agents.zip

@@ -32,22 +32,15 @@ function bump_restate_sdk_deps() {
     done
 }
 
-# Update all projects with package.json
-bump_restate_sdk_deps $PROJECT_ROOT/typescript/basics
-bump_restate_sdk_deps $PROJECT_ROOT/typescript/templates/node
-bump_restate_sdk_deps $PROJECT_ROOT/typescript/templates/typescript-testing
-bump_restate_sdk_deps $PROJECT_ROOT/typescript/integrations/deployment-lambda-cdk
-bump_restate_sdk_deps $PROJECT_ROOT/typescript/templates/bun
-bump_restate_sdk_deps $PROJECT_ROOT/typescript/templates/nextjs
-bump_restate_sdk_deps $PROJECT_ROOT/typescript/templates/cloudflare-worker
-bump_restate_sdk_deps $PROJECT_ROOT/typescript/tutorials/tour-of-restate-typescript
-bump_restate_sdk_deps $PROJECT_ROOT/typescript/tutorials/tour-of-orchestration-typescript
-bump_restate_sdk_deps $PROJECT_ROOT/typescript/tutorials/tour-of-workflows-typescript
-bump_restate_sdk_deps $PROJECT_ROOT/typescript/patterns-use-cases
-bump_restate_sdk_deps $PROJECT_ROOT/typescript/end-to-end-applications/ai-image-workflows
-bump_restate_sdk_deps $PROJECT_ROOT/typescript/end-to-end-applications/food-ordering/app
-bump_restate_sdk_deps $PROJECT_ROOT/typescript/end-to-end-applications/food-ordering/webui
-bump_restate_sdk_deps $PROJECT_ROOT/typescript/end-to-end-applications/chat-bot
+# MCP TypeScript examples
+bump_restate_sdk_deps $PROJECT_ROOT/mcp/restate-mcp
+bump_restate_sdk_deps $PROJECT_ROOT/mcp/tools
+
+# Vercel AI TypeScript examples
+bump_restate_sdk_deps $PROJECT_ROOT/vercel-ai/examples
+bump_restate_sdk_deps $PROJECT_ROOT/vercel-ai/template
+bump_restate_sdk_deps $PROJECT_ROOT/vercel-ai/template_nextjs
+bump_restate_sdk_deps $PROJECT_ROOT/vercel-ai/tour-of-agents
 
 # deno bump - it doesn't use a package.json, only import strings
 # -i works differently in gnu sed and mac (bsd) sed - best avoided
