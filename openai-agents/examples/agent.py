@@ -43,10 +43,10 @@ async def update_seat(
     )
 
     # 2. Update the seat in the booking system
-    success = await restate_context.run(
+    success = await restate_context.run_typed(
         "Update seat",
         update_seat_in_booking_system,
-        args=(confirmation_number, new_seat, flight),
+        confirmation_number=confirmation_number, new_seat=new_seat, flight=flight
     )
 
     if not success:
@@ -65,12 +65,12 @@ async def invoice_sending(
     restate_context = wrapper.context
 
     # 1. Look up the flight using the confirmation number
-    flight = await restate_context.run(
-        "Info lookup", retrieve_flight_info, args=(confirmation_number,)
+    flight = await restate_context.run_typed(
+        "Info lookup", retrieve_flight_info, confirmation_number=confirmation_number
     )
 
     # 2. Send the invoice to the customer
-    await restate_context.run("Send invoice", send_invoice, args=(confirmation_number, flight))
+    await restate_context.run_typed("Send invoice", send_invoice, confirmation_number=confirmation_number, flight=flight)
 
 
 ### AGENTS
