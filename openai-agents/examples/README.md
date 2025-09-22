@@ -66,7 +66,7 @@ Or with the [client](client/__main__.py):
 - **Request**: 
    
    ```shell
-    uv run client peter "can you send me an invoice for booking AB4568?"          
+    uv run client.py peter "can you send me an invoice for booking AB4568?"          
    ```
   
    With `peter` as the conversation ID.
@@ -76,14 +76,14 @@ Or with the [client](client/__main__.py):
 - **Or have longer conversations**: 
    
    ```shell
-   uv run client peter "can you change my seat to 10b?"
+   uv run client.py peter "can you change my seat to 10b?"
    ```
    
    Example response: `To change your seat to 10B, I'll need your confirmation number. Could you please provide that?`
 
    Respond to the question by sending a new message to the same stateful session:
    ```shell
-   uv run client peter "5666"                         
+   uv run client.py peter "5666"                         
    ```
    
    Example response: `Your seat has been successfully changed to 5B. If there's anything else you need, feel free to ask!`
