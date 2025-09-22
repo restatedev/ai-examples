@@ -2,12 +2,12 @@
 
 
 async def update_seat_in_booking_system(
-    confirmation_number: str, new_seat: str, flight_info: dict
+    confirmation_number: str, new_seat: str, flight: dict[str, str]
 ) -> bool:
     # Simulate updating the seat in a booking system
     # In a real application, this would involve an API call or database update
     print(
-        f"Updating seat for confirmation number {confirmation_number} and flight {flight_info} to {new_seat}"
+        f"Updating seat for confirmation number {confirmation_number} and flight {flight} to {new_seat}"
     )
     return True
 

@@ -3,7 +3,7 @@ import sys
 import httpx
 
 
-def main():
+def run():
     if len(sys.argv) == 0:
         raise ValueError("No input provided")
     key = sys.argv[1]
@@ -19,5 +19,4 @@ def main():
     print(r.json())
 
 
-if __name__ == "__main__":
-    main()
+run()

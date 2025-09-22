@@ -3,12 +3,7 @@ import restate
 from agents import (
     Usage,
     Model,
-    ModelSettings,
-    Tool,
     TResponseInputItem,
-    Handoff,
-    ModelTracing,
-    AgentOutputSchemaBase,
 )
 from agents.models.multi_provider import MultiProvider
 from agents.items import TResponseStreamEvent, TResponseOutputItem
@@ -60,28 +55,9 @@ class RestateModelWrapper(Model):
         self.model = model
         self.model_name = f"RestateModelWrapper"
 
-    async def get_response(
-        self,
-        system_instructions: str | None,
-        input: str | list[TResponseInputItem],
-        model_settings: ModelSettings,
-        tools: list[Tool],
-        output_schema: AgentOutputSchemaBase | None,
-        handoffs: list[Handoff],
-        tracing: ModelTracing,
-        previous_response_id: str | None,
-    ) -> RestateModelResponse:
+    async def get_response(self, *args, **kwargs) -> RestateModelResponse:
         async def call_llm() -> RestateModelResponse:
-            resp = await self.model.get_response(
-                system_instructions=system_instructions,
-                input=input,
-                model_settings=model_settings,
-                tools=tools,
-                output_schema=output_schema,
-                handoffs=handoffs,
-                tracing=tracing,
-                previous_response_id=previous_response_id,
-            )
+            resp = await self.model.get_response(*args, **kwargs)
             return RestateModelResponse(
                 output=resp.output,
                 usage=resp.usage,
@@ -90,18 +66,7 @@ class RestateModelWrapper(Model):
 
         return await self.ctx.run("call LLM", call_llm, max_attempts=3)
 
-    def stream_response(
-        self,
-        system_instructions: str | None,
-        input: str | list[TResponseInputItem],
-        model_settings: ModelSettings,
-        tools: list[Tool],
-        output_schema: AgentOutputSchemaBase | None,
-        handoffs: list[Handoff],
-        tracing: ModelTracing,
-        *,
-        previous_response_id: str | None,
-    ) -> AsyncIterator[TResponseStreamEvent]:
+    def stream_response(self, *args, **kwargs) -> AsyncIterator[TResponseStreamEvent]:
         raise restate.TerminalError(
             "Streaming is not supported in Restate. Use `get_response` instead."
         )
