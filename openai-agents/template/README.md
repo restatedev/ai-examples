@@ -21,7 +21,6 @@ The example is an agent that can search for the weather in certain city.
     ```
 3. Start the services:
     ```shell
-    cd openai_sdk
     uv run .
     ```
 4. Register the services: 
