@@ -1,0 +1,78 @@
+name: Pre-release updates
+
+on:
+  workflow_dispatch:
+    inputs:
+      restateVersion:
+        description: "Restate runtime version (without prepending v). Leave empty if you do not want to update it."
+        required: false
+        type: string
+      sdkTypescriptVersion:
+        description: "sdk-typescript version (without prepending v). Leave empty if you do not want to update it."
+        required: false
+        type: string
+      sdkPythonVersion:
+        description: 'sdk-python version (without prepending v). Leave empty if you do not want to update it.'
+        required: false
+        type: string
+
+
+jobs:
+  updates:
+    # prevent from running on forks
+    if: github.repository_owner == 'restatedev'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      RESTATE_DISABLE_TELEMETRY: "true"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Bump Restate
+        if: github.event.inputs.restateVersion != ''
+        run: ./.tools/update_restate.sh ${{ inputs.restateVersion }}
+
+      # Bump Typescript SDK
+      - uses: actions/setup-node@v3
+        if: github.event.inputs.sdkTypescriptVersion != ''
+        with:
+          node-version: "19.x"
+          registry-url: "https://registry.npmjs.org"
+      - name: Bump sdk-typescript
+        if: github.event.inputs.sdkTypescriptVersion != ''
+        run: ./.tools/update_node_examples.sh ${{ inputs.sdkTypescriptVersion }}
+      - name: Bump cdk
+        if: github.event.inputs.cdkVersion != ''
+        run: ./.tools/update_cdk_examples.sh ${{ inputs.cdkVersion }}
+      - name: Run Node tests
+        if: github.event.inputs.sdkTypescriptVersion != ''
+        run: ./.tools/run_node_tests.sh
+
+      # Bump Python SDK
+      - uses: actions/checkout@v3
+        if: github.event.inputs.sdkPythonVersion != ''
+      - uses: actions/setup-python@v5
+        if: github.event.inputs.sdkPythonVersion != ''
+        with:
+          python-version: "3.12"
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+      - name: Bump Python SDK
+        if: github.event.inputs.sdkPythonVersion != ''
+        run: ./.tools/update_python_examples.sh ${{ inputs.sdkPythonVersion }}
+      - name: Run Python tests
+        if: github.event.inputs.sdkPythonVersion != ''
+        run: ./.tools/run_python_tests.sh
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          title: "[GithubActions] Update Restate ${{ inputs.restateVersion != '' && format('Runtime {0} ', inputs.restateVersion) }}${{ inputs.sdkTypescriptVersion != '' && format('SDK-Typescript {0} ', inputs.sdkTypescriptVersion) }}${{ inputs.sdkPythonVersion != '' && format('SDK-Python {0} ', inputs.sdkPythonVersion) }}"
+          commit-message: "[GithubActions] Update Restate ${{ inputs.restateVersion != '' && format('Runtime {0} ', inputs.restateVersion) }}${{ inputs.sdkTypescriptVersion != '' && format('SDK-Typescript {0} ', inputs.sdkTypescriptVersion) }}${{ inputs.sdkPythonVersion != '' && format('SDK-Python {0} ', inputs.sdkPythonVersion) }}"
+          add-paths: |
+            **/package.json
+            **/package-lock.json
+            **/pyproject.toml
+            **/requirements.txt
