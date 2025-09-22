@@ -292,7 +292,7 @@ async def run_agent(ctx: restate.ObjectContext, req: AgentInput) -> AgentRespons
     session_state = SessionState(input_items=await ctx.get("agent_state"))
     session_state.add_user_message(ctx, req.message)
 
-    agent_name = await ctx.get("agent_name") or req.starting_agent.formatted_name
+    agent_name = await ctx.get("agent_name", type_hint=str) or req.starting_agent.formatted_name
     ctx.set("agent_name", agent_name)
 
     agents_dict = {a.formatted_name: a for a in req.agents}
@@ -500,7 +500,7 @@ def restate_tool(tool_call: Callable[[Any, I], Awaitable[O]]) -> RestateTool:
         tool_schema={
             "type": "function",
             "name": f"{target_handler.name}",
-            "description": description,
+            "description": description or "",
             "parameters": to_strict_json_schema(RestateRequest[input_type]),
             "strict": True,
         },
