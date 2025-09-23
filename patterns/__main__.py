@@ -2,7 +2,7 @@ import hypercorn
 import asyncio
 import restate
 
-from chaining.service import call_chaining_svc
+from chaining import call_chaining_svc
 from parallelization.service import parallelization_svc
 from routing.service import routing_svc
 from orchestrator_workers.service import flexible_orchestrator

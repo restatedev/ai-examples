@@ -1,4 +1,6 @@
 import restate
+from pydantic import BaseModel
+
 from util.util import llm_call
 
 """
@@ -12,18 +14,20 @@ Input → Analysis → Extraction → Summary → Result
 
 call_chaining_svc = restate.Service("CallChainingService")
 
-
-@call_chaining_svc.handler()
-async def run(ctx: restate.Context, input: str) -> str:
-    """
-    Chains multiple LLM calls sequentially, where each step processes the previous step's output.
-
-    Example input:
-        Q3 Performance Summary:
+# Example input text to analyze
+example_prompt = """Q3 Performance Summary:
         Our customer satisfaction score rose to 92 points this quarter.
         Revenue grew by 45% compared to last year.
         Market share is now at 23% in our primary market.
-        Customer churn decreased to 5% from 8%.
+        Customer churn decreased to 5% from 8%."""
+
+class Prompt(BaseModel):
+    message: str = example_prompt
+
+@call_chaining_svc.handler()
+async def run(ctx: restate.Context, prompt: Prompt) -> str:
+    """
+    Chains multiple LLM calls sequentially, where each step processes the previous step's output.
     """
 
     # Step 1: Process the initial input with the first prompt
@@ -31,7 +35,7 @@ async def run(ctx: restate.Context, input: str) -> str:
         "Extract metrics",
         llm_call,
         prompt=f"Extract only the numerical values and their associated metrics from the text. "
-               f"Format each as 'metric name: metric' on a new line. Input: {input}",
+               f"Format each as 'metric name: metric' on a new line. Input: {prompt}",
     )
 
     # Step 2: Process the result from Step 1
