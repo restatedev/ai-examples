@@ -26,36 +26,57 @@ async def run(ctx: restate.Context, req: ClaimRequest) -> ClaimData:
     """
 
     # Parse the PDF receipt
-    raw_claim = await ctx.run("Read PDF", extract_text_from_pdf, args=(req.url,))
+    raw_claim = await ctx.run_typed("Read PDF", extract_text_from_pdf, url=req.url)
 
-    def parse_claim_data(extra_info: str = "") -> ClaimData:
-        return client.responses.parse(
-            model="gpt-4o-2024-08-06",
-            input=[
-                {"role": "system", "content": "Extract the claim information."},
-                {
-                    "role": "user",
-                    "content": f"Claim data: {raw_claim}  Extra info: {extra_info}",
-                },
-            ],
-            text_format=ClaimData,
-        ).output_parsed
+    def parse_claim_data(raw_claim_input: str, extra_info_input: str = "") -> ClaimData:
+        return (
+            client.responses.parse(
+                model="gpt-4o-2024-08-06",
+                input=[
+                    {"role": "system", "content": "Extract the claim information."},
+                    {
+                        "role": "user",
+                        "content": f"Claim data: {raw_claim_input}  Extra info: {extra_info_input}",
+                    },
+                ],
+                text_format=ClaimData,
+            ).output_parsed
+            or ClaimData()
+        )
 
     # Extract claim data
-    claim = await ctx.run("Extracting", parse_claim_data, args=())
+    claim = await ctx.run_typed(
+        "Extracting",
+        parse_claim_data,
+        restate.RunOptions(type_hint=ClaimData),
+        raw_claim_input=raw_claim,
+    )
 
     # Repetitively check for missing fields and request additional information if needed
     while True:
-        missing_fields = await ctx.run("completeness check", check_missing_fields, args=(claim,))
+        missing_fields = await ctx.run_typed(
+            "completeness check", check_missing_fields, claim=claim
+        )
         if not missing_fields:
             break
 
-        id, promise = ctx.awakeable()
-        await ctx.run("Request missing info", send_message_to_customer, args=(missing_fields, id))
+        id, promise = ctx.awakeable(type_hint=str)
+        await ctx.run_typed(
+            "Request missing info",
+            send_message_to_customer,
+            missing_fields=missing_fields,
+            id=id,
+        )
         extra_info = await promise
 
-        claim = await ctx.run("Extracting", parse_claim_data, args=(extra_info,))
+        claim = await ctx.run_typed(
+            "Extracting",
+            parse_claim_data,
+            restate.RunOptions(type_hint=ClaimData),
+            raw_claim_input=raw_claim,
+            extra_info_input=extra_info,
+        )
 
     # Create the claim in the legacy system
-    await ctx.run("create", lambda: create_claim(claim))
+    await ctx.run_typed("create", lambda: create_claim(claim))
     return claim

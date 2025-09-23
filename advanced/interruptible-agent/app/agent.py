@@ -38,13 +38,13 @@ async def run(ctx: restate.ObjectContext, req: AgentInput):
     input_items = [{"role": "user", "content": msg} for msg in req.message_history]
     logger.info("Starting new agent run with input: %s", input_items)
 
-    id, new_input_promise = ctx.awakeable()
+    id, new_input_promise = ctx.awakeable(type_hint=str)
     ctx.set(NEW_INPUT_PROMISE, id)
 
     # run agent loop
     while True:
         # call agent
-        response = await ctx.run("Call agent", call_task_agent, args=(input_items,))
+        response = await ctx.run_typed("Call agent", call_task_agent, input_items=input_items)
         output = response.output[0]
         logger.info(f"Agent generated output: {output}")
 
@@ -85,7 +85,7 @@ async def run(ctx: restate.ObjectContext, req: AgentInput):
 
 @agent.handler(kind="shared")
 async def incorporate_new_input(ctx: restate.ObjectSharedContext, req: str) -> bool:
-    id = await ctx.get(NEW_INPUT_PROMISE)
+    id = await ctx.get(NEW_INPUT_PROMISE, type_hint=str)
 
     if id is None:
         logger.warning(

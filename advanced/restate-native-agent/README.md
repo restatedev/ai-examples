@@ -48,11 +48,11 @@ Now you can send requests to the agent via the UI playground (click on the agent
 
 <img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/restate-native-agent/ui_example.png" alt="UI example" width="1200px"/>
 
-Or with the [client](client/__main__.py):
+Or with the [client](client.py):
 
 - **Request**: 
    ```shell
-   uv run client "how much is my balance?"
+   uv run client.py "how much is my balance?"
    ```
    Example response: `Your current balance is $100,000.00. If you have any other questions, feel free to ask!`
 
@@ -60,14 +60,14 @@ Or with the [client](client/__main__.py):
 
 - **Request**:
    ```shell
-   uv run client "how much did I spend on gambling last month?"
+   uv run client.py "how much did I spend on gambling last month?"
    ```
    Example response: `I reviewed your transactions from last month, and it appears you didn't spend any money on gambling during that period. If you have any other questions or need further clarification, please let me know!`
 
 - **Request**: 
    
    ```shell
-   uv run client "give me an overview of my outstanding loans and credit"
+   uv run client.py "give me an overview of my outstanding loans and credit"
    ```
    
    Example response:

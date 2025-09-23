@@ -59,9 +59,6 @@ class LoanDecision(BaseModel):
     reason: str
 
 
-LoanDecisionSerde = PydanticJsonSerde(LoanDecision)
-
-
 class Loan(BaseModel):
     """
     A loan object.
@@ -87,4 +84,4 @@ class CustomerLoanOverview(BaseModel):
         loans (Dict[str, Loan]): The list of loans.
     """
 
-    loans: list[Loan] = Field(default={})
+    loans: list[Loan] = Field(default=[])

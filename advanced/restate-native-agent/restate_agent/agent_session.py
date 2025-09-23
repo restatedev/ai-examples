@@ -25,6 +25,7 @@ from openai.types.responses import (
     Response,
     ResponseOutputMessage,
     ResponseOutputItem,
+    EasyInputMessage
 )
 from pydantic import BaseModel, ConfigDict, Field
 from restate import TerminalError
@@ -292,16 +293,17 @@ async def run_agent(ctx: restate.ObjectContext, req: AgentInput) -> AgentRespons
     session_state = SessionState(input_items=await ctx.get("agent_state"))
     session_state.add_user_message(ctx, req.message)
 
-    agent_name = await ctx.get("agent_name") or req.starting_agent.formatted_name
+    agent_name = await ctx.get("agent_name", type_hint=str) or req.starting_agent.formatted_name
     ctx.set("agent_name", agent_name)
 
     agents_dict = {a.formatted_name: a for a in req.agents}
-    agent = agents_dict.get(agent_name)
 
-    if agent is None:
+    if agent_name not in agents_dict:
         raise TerminalError(
             f"Agent {agent_name} not found in the list of agents: {list(agents_dict.keys())}"
         )
+    agent = agents_dict[agent_name]
+
 
     # === 2. Run the agent loop ===
     while True:
@@ -315,19 +317,24 @@ async def run_agent(ctx: restate.ObjectContext, req: AgentInput) -> AgentRespons
             tool_schemas = await generate_tool_schemas(agent, agents_dict)
 
             # Call the LLM - OpenAPI Responses API
-            logger.info(f"{log_prefix} Calling LLM")
-            response: Response = await ctx.run(
-                "Call LLM",
-                lambda: client.responses.create(
+            async def call_llm(session_items: list[SessionItem]) -> Response:
+                resp = client.responses.create(
                     model="gpt-4o",
                     instructions=agent.instructions,
-                    input=session_state.get_input_items(),
-                    tools=tool_schemas,
+                    input=session_items,  # type: ignore
+                    tools=tool_schemas,  # type: ignore
                     parallel_tool_calls=True,
                     stream=False,
-                ),
-                type_hint=Response,
-                max_attempts=3,  # To using too many credits on infinite retries during development
+                )
+                if not isinstance(resp, Response):
+                    raise TerminalError(f"LLM response is not of type Response: {type(resp)}")
+                return resp
+            logger.info(f"{log_prefix} Calling LLM")
+            response = await ctx.run_typed(
+                "Call LLM",
+                call_llm,
+                restate.RunOptions(max_attempts=3, type_hint=Response),  # To avoid using too many credits on infinite retries during development
+                session_items=session_state.get_input_items()
             )
 
             # Register the output in the session state
@@ -410,7 +417,7 @@ async def run_agent(ctx: restate.ObjectContext, req: AgentInput) -> AgentRespons
                 logger.info(f"{log_prefix} Final output message generated.")
                 return AgentResponse(
                     agent=agent.name,
-                    messages=session_state.get_new_items(),
+                    messages=session_state.get_new_items(),  # type: ignore
                     final_output=final_output,
                 )
         except AgentError as e:
@@ -475,7 +482,13 @@ def format_name(name: str) -> str:
 def restate_tool(tool_call: Callable[[Any, I], Awaitable[O]]) -> RestateTool:
     target_handler = handler_from_callable(tool_call)
     service_type = target_handler.service_tag.kind
-    input_type = target_handler.handler_io.input_type.annotation
+    handler_input = target_handler.handler_io.input_type
+    if handler_input is None or not hasattr(handler_input, 'annotation') or handler_input.annotation is None:
+        input_type = to_strict_json_schema(RestateRequest[Empty])
+    else:
+        annotation = handler_input.annotation
+        input_type = to_strict_json_schema(RestateRequest[annotation])  # type: ignore
+    description = ""
     match service_type:
         case "object":
             description = (
@@ -486,7 +499,8 @@ def restate_tool(tool_call: Callable[[Any, I], Awaitable[O]]) -> RestateTool:
                 f"{WORKFLOW_HANDLER_TOOL_PREFIX} \n{target_handler.description}"
             )
         case "service":
-            description = target_handler.description
+            if target_handler.description:
+                description = target_handler.description
         case _:
             raise TerminalError(
                 f"Unknown service type {service_type}. Is this tool a Restate handler?"
@@ -495,13 +509,13 @@ def restate_tool(tool_call: Callable[[Any, I], Awaitable[O]]) -> RestateTool:
     return RestateTool(
         service_name=target_handler.service_tag.name,
         name=target_handler.name,
-        description=target_handler.description,
+        description=description,
         service_type=service_type,
         tool_schema={
             "type": "function",
             "name": f"{target_handler.name}",
             "description": description,
-            "parameters": to_strict_json_schema(RestateRequest[input_type]),
+            "parameters": input_type,
             "strict": True,
         },
     )
@@ -515,7 +529,7 @@ def get_input_type_from_handler(handler: Callable[[Any, I], Awaitable[O]]) -> Ty
     input_type = next(
         (v for k, v in handler_annotations.items() if k not in {"ctx", "return"}), Empty
     )
-    return input_type
+    return input_type  # type: ignore
 
 
 def to_tool_call(tool: RestateTool, item: ResponseFunctionToolCall) -> ToolCall:
