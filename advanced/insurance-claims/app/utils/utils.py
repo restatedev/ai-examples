@@ -35,12 +35,12 @@ def send_message_to_customer(missing_fields: list[str], id: str) -> None:
     )
 
 
-def check_missing_fields(claim_data: ClaimData) -> list[str]:
+def check_missing_fields(claim: ClaimData) -> list[str]:
     # Check if all required fields are present in the claim data
     required_fields = ClaimData.model_fields.keys()
     missing_fields = []
     for field in required_fields:
-        if getattr(claim_data, field) is None:
+        if getattr(claim, field) is None:
             missing_fields.append(field)
 
     if missing_fields:
