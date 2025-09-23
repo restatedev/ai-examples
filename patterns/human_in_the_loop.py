@@ -1,7 +1,6 @@
-import pydantic
 import restate
 
-from util.util import llm_call, extract_xml
+from util import llm_call
 
 """
 Human-in-the-loop workflows with Restate
@@ -12,9 +11,6 @@ The same human operator (option 1 `run`) or another human operator (option 2 `ru
 
 This is implemented with a stateful entity called Virtual Object which keeps track of the memory and the chain of thought.
 If the human answers one week or one month later, the session can be recovered and resumed. 
-
-This example is a next iteration of the Anthropic AI agents Python notebook examples:
-https://github.com/anthropics/anthropic-cookbook/blob/main/patterns/agents/
 """
 
 human_in_the_loop_svc = restate.VirtualObject("HumanInTheLoopService")

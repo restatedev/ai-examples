@@ -1,6 +1,6 @@
 import restate
 from pydantic import BaseModel
-from util.util import llm_call, extract_xml
+from util import llm_call, extract_xml
 
 """
 Routing with Restate

@@ -1,7 +1,7 @@
 import restate
 from anthropic import BaseModel
 
-from util.util import llm_call
+from util import llm_call
 
 """
 LLM Parallel Processing

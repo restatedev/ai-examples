@@ -1,7 +1,7 @@
 import restate
 from pydantic import BaseModel
 
-from util.util import llm_call
+from util import llm_call
 
 """
 LLM Prompt Chaining
