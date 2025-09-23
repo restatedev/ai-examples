@@ -6,6 +6,12 @@ import restate
 from pydantic import BaseModel
 
 
+class WeatherRequest(BaseModel):
+    """Request to get the weather for a city."""
+
+    city: str
+
+
 class WeatherResponse(BaseModel):
     """Request to get the weather for a city."""
 
