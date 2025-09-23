@@ -1,15 +1,13 @@
 import restate
 
 from agents import Agent, RunConfig, Runner, function_tool, RunContextWrapper
-from pydantic import BaseModel
 
 from utils.middleware import DurableModelCalls
-from utils.utils import fetch_weather, parse_weather_data, WeatherResponse
-
-
-class WeatherRequest(BaseModel):
-    """Request to get the weather for a city."""
-    city: str
+from utils.utils import (
+    fetch_weather,
+    WeatherRequest,
+    WeatherResponse,
+)
 
 
 @function_tool
@@ -19,35 +17,30 @@ async def get_weather(
     """Get the current weather for a given city."""
     # Do durable steps using the Restate context
     restate_context = wrapper.context
-    resp = await restate_context.run(
-        "Get weather", fetch_weather, args=(req.city,))
-    return await parse_weather_data(resp)
+    return await restate_context.run_typed("Get weather", fetch_weather, city=req.city)
 
 
-my_agent = Agent[restate.Context](
-    name="Helpful Agent",
-    handoff_description="A helpful agent.",
-    instructions="You are a helpful agent.",
+weather_agent = Agent[restate.Context](
+    name="WeatherAgent",
+    instructions="You are a helpful agent that provides weather updates.",
     tools=[get_weather],
 )
 
 
-# Agent keyed by conversation id
-agent = restate.Service("Agent")
+agent_service = restate.Service("agent")
 
 
-@agent.handler()
+@agent_service.handler()
 async def run(restate_context: restate.Context, message: str) -> str:
 
     result = await Runner.run(
-        my_agent,
+        weather_agent,
         input=message,
         # Pass the Restate context to tools to make tool execution steps durable
         context=restate_context,
         # Choose any model and let Restate persist your calls
         run_config=RunConfig(
-            model="gpt-4o",
-            model_provider=DurableModelCalls(restate_context)
+            model="gpt-4o", model_provider=DurableModelCalls(restate_context)
         ),
     )
 
