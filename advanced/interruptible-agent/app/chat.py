@@ -36,7 +36,7 @@ async def process_user_message(ctx: restate.ObjectContext, req: ChatMessage):
 
     match os.getenv("MODE", "INTERRUPT").upper():
         case "INTERRUPT":
-            ongoing_agent_run = await ctx.get(ACTIVE_AGENT_INVOCATION_ID)
+            ongoing_agent_run = await ctx.get(ACTIVE_AGENT_INVOCATION_ID, type_hint=str)
             if ongoing_agent_run is not None:
                 logger.info("Interrupting ongoing agent run")
                 ctx.cancel_invocation(ongoing_agent_run)
@@ -45,7 +45,7 @@ async def process_user_message(ctx: restate.ObjectContext, req: ChatMessage):
             await send_message_to_agent(ctx, history)
         case "INCORPORATE":
             # If there is an ongoing agent run, we need to incorporate the new message
-            ongoing_agent_run = await ctx.get(ACTIVE_AGENT_INVOCATION_ID)
+            ongoing_agent_run = await ctx.get(ACTIVE_AGENT_INVOCATION_ID, type_hint=str)
             if ongoing_agent_run is not None:
                 logger.info("Incorporating new input into ongoing agent run")
                 success = await ctx.object_call(
