@@ -32,7 +32,6 @@ my_agent = Agent[restate.Context](
 )
 
 
-# Agent keyed by conversation id
 agent = restate.Service("Agent")
 
 

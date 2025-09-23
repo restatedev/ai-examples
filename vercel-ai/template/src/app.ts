@@ -6,15 +6,14 @@ import { z } from "zod";
 import { fetchWeather } from "./utils/weather";
 
 // --------------------------------------------------------
-//  A simple agent, following the template of the AI SDK
-//  tool calling examples
+//  A durable weather agent with Restate + Vercel AI SDK
 // --------------------------------------------------------
 
 async function simpleAgent(restate: restate.Context, prompt: string) {
   // we wrap the model with the 'durableCalls' middleware, which
   // stores each response in Restate's journal, to be restored on retries
   const model = wrapLanguageModel({
-    model: openai("gpt-4o-2024-08-06"),
+    model: openai("gpt-4o"),
     middleware: durableCalls(restate, { maxRetryAttempts: 3 }),
   });
 
@@ -32,10 +31,6 @@ async function simpleAgent(restate: restate.Context, prompt: string) {
       }),
     },
     stopWhen: [stepCountIs(5)],
-    // these are local retries by the AI SDK
-    // Restate will retry the invocation once those local retries are exhaused to
-    // handle longer downtimes, faulty processes, or network communication issues
-    maxRetries: 3,
     system: "You are a helpful agent.",
     providerOptions: { openai: { parallelToolCalls: false } },
   });
@@ -43,7 +38,7 @@ async function simpleAgent(restate: restate.Context, prompt: string) {
   return text;
 }
 
-// create a simple Restate service as the callable entrypoint
+// create a Restate Service as the callable entrypoint
 // for our durable agent function
 const agent = restate.service({
   name: "agent",
@@ -54,7 +49,7 @@ const agent = restate.service({
   },
 });
 
-// we serve the entry-point via an HTTP/2 server
+// Serve the entry-point via an HTTP/2 server
 restate.serve({
   services: [agent],
 });

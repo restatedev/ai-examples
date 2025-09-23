@@ -14,11 +14,6 @@ class WeatherResponse(BaseModel):
 
 
 async def fetch_weather(city: str) -> dict:
-    # This is a simulated failure to demo Durable Execution retries.
-    if os.getenv("WEATHER_API_FAIL") == "true":
-        print(f"[👻 SIMULATED] Weather API down...")
-        raise Exception(f"[👻 SIMULATED] Weather API down")
-
     try:
         resp = httpx.get(f"https://wttr.in/{httpx.URL(city)}?format=j1", timeout=10.0)
         resp.raise_for_status()
