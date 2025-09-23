@@ -8,8 +8,8 @@ requires-python = ">=3.12"
 dependencies = [
     "httpx>=0.28.1",
     "hypercorn",
-    "restate_sdk[serde]>=0.7.3",
-    "pydantic>=2.10.6",
+    "restate_sdk[serde]>=0.10.1",
+    "pydantic>=2.11.9",
     "openai",
     "openai-agents",
     "anthropic",
