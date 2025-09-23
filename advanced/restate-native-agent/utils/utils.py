@@ -1,4 +1,3 @@
-import restate
 import random
 
 from datetime import datetime, timedelta
@@ -12,11 +11,6 @@ from .models import (
     LoanDecision,
     RecurringLoanPayment,
 )
-
-
-async def time_now(ctx: restate.WorkflowContext | restate.ObjectContext) -> int:
-    return await ctx.run("time", lambda: round(datetime.now().timestamp() * 1000))
-
 
 regular_categories = {
     "income": ["Salary", "Bonus", "Freelance"],
@@ -81,7 +75,7 @@ def generate_transactions() -> TransactionHistory:
     return TransactionHistory(transactions=transactions)
 
 
-def generate_loan_overview():
+def generate_loan_overview() -> CustomerLoanOverview:
     return CustomerLoanOverview(
         loans=[
             Loan(

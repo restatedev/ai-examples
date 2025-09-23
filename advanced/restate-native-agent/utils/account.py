@@ -29,10 +29,9 @@ async def get_customer_loans(ctx: restate.ObjectContext) -> CustomerLoanOverview
     # If there are no loans, generate a demo loan overview
     if loans is None:
         # Generate a demo loan overview
-        loans = await ctx.run(
+        loans = await ctx.run_typed(
             "generate loans",
-            lambda: generate_loan_overview(),
-            type_hint=CustomerLoanOverview,
+            lambda: generate_loan_overview()
         )
         ctx.set(LOANS, loans)
     return loans
@@ -46,7 +45,7 @@ async def get_balance(ctx: restate.ObjectContext) -> float:
     Returns:
         float: The balance of the customer.
     """
-    return await ctx.get(BALANCE) or 100000.0
+    return await ctx.get(BALANCE, type_hint=float) or 100000.0
 
 
 @account.handler()
@@ -60,10 +59,9 @@ async def get_transaction_history(ctx: restate.ObjectContext) -> TransactionHist
     # If there is no transaction history, generate a demo transaction history
     history = await ctx.get(TRANSACTION_HISTORY, type_hint=TransactionHistory)
     if history is None:
-        history = await ctx.run(
+        history = await ctx.run_typed(
             "generate transactions",
-            lambda: generate_transactions(),
-            type_hint=TransactionHistory,
+            lambda: generate_transactions()
         )
         ctx.set(TRANSACTION_HISTORY, history)
     return history

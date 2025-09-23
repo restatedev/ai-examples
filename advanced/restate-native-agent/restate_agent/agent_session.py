@@ -25,6 +25,7 @@ from openai.types.responses import (
     Response,
     ResponseOutputMessage,
     ResponseOutputItem,
+    EasyInputMessage
 )
 from pydantic import BaseModel, ConfigDict, Field
 from restate import TerminalError
@@ -292,7 +293,7 @@ async def run_agent(ctx: restate.ObjectContext, req: AgentInput) -> AgentRespons
     session_state = SessionState(input_items=await ctx.get("agent_state"))
     session_state.add_user_message(ctx, req.message)
 
-    agent_name = await ctx.get("agent_name") or req.starting_agent.formatted_name
+    agent_name = await ctx.get("agent_name", type_hint=str) or req.starting_agent.formatted_name
     ctx.set("agent_name", agent_name)
 
     agents_dict = {a.formatted_name: a for a in req.agents}
@@ -316,7 +317,7 @@ async def run_agent(ctx: restate.ObjectContext, req: AgentInput) -> AgentRespons
 
             # Call the LLM - OpenAPI Responses API
             logger.info(f"{log_prefix} Calling LLM")
-            response: Response = await ctx.run(
+            response = await ctx.run_typed(
                 "Call LLM",
                 lambda: client.responses.create(
                     model="gpt-4o",
@@ -326,8 +327,7 @@ async def run_agent(ctx: restate.ObjectContext, req: AgentInput) -> AgentRespons
                     parallel_tool_calls=True,
                     stream=False,
                 ),
-                type_hint=Response,
-                max_attempts=3,  # To using too many credits on infinite retries during development
+                restate.RunOptions(max_attempts=3, type_hint=Response)  # To avoid using too many credits on infinite retries during development
             )
 
             # Register the output in the session state
@@ -476,6 +476,7 @@ def restate_tool(tool_call: Callable[[Any, I], Awaitable[O]]) -> RestateTool:
     target_handler = handler_from_callable(tool_call)
     service_type = target_handler.service_tag.kind
     input_type = target_handler.handler_io.input_type.annotation
+    description = ""
     match service_type:
         case "object":
             description = (
@@ -486,7 +487,8 @@ def restate_tool(tool_call: Callable[[Any, I], Awaitable[O]]) -> RestateTool:
                 f"{WORKFLOW_HANDLER_TOOL_PREFIX} \n{target_handler.description}"
             )
         case "service":
-            description = target_handler.description
+            if target_handler.description:
+                description = target_handler.description
         case _:
             raise TerminalError(
                 f"Unknown service type {service_type}. Is this tool a Restate handler?"
@@ -495,7 +497,7 @@ def restate_tool(tool_call: Callable[[Any, I], Awaitable[O]]) -> RestateTool:
     return RestateTool(
         service_name=target_handler.service_tag.name,
         name=target_handler.name,
-        description=target_handler.description,
+        description=description,
         service_type=service_type,
         tool_schema={
             "type": "function",
