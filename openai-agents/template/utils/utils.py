@@ -1,4 +1,5 @@
 import os
+from http.client import responses
 
 import httpx
 import restate
@@ -19,7 +20,22 @@ class WeatherResponse(BaseModel):
     description: str
 
 
-async def fetch_weather(city: str) -> dict:
+# <start_weather>
+async def fetch_weather(city: str) -> WeatherResponse:
+    fail_on_denver(city)
+    weather_data = await call_weather_api(city)
+    return parse_weather_data(weather_data)
+
+
+# <end_weather>
+
+
+def fail_on_denver(city):
+    if city == "Denver":
+        raise Exception("[👻 SIMULATED] Fetching weather failed: Weather API down...")
+
+
+async def call_weather_api(city):
     try:
         resp = httpx.get(f"https://wttr.in/{httpx.URL(city)}?format=j1", timeout=10.0)
         resp.raise_for_status()
@@ -39,7 +55,7 @@ async def fetch_weather(city: str) -> dict:
             raise Exception(f"HTTP error occurred: {e}") from e
 
 
-async def parse_weather_data(weather_data: dict) -> WeatherResponse:
+def parse_weather_data(weather_data: dict) -> WeatherResponse:
     # weather_json = json.loads(weather_data)
     current = weather_data["current_condition"][0]
     return WeatherResponse(

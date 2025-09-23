@@ -9,7 +9,7 @@ import { fetchWeather } from "./utils/weather";
 //  A durable weather agent with Restate + Vercel AI SDK
 // --------------------------------------------------------
 
-async function simpleAgent(restate: restate.Context, prompt: string) {
+async function weatherAgent(restate: restate.Context, prompt: string) {
   // we wrap the model with the 'durableCalls' middleware, which
   // stores each response in Restate's journal, to be restored on retries
   const model = wrapLanguageModel({
@@ -19,6 +19,7 @@ async function simpleAgent(restate: restate.Context, prompt: string) {
 
   const { text } = await generateText({
     model,
+    system: "You are a helpful agent that provides weather updates.",
     prompt,
     tools: {
       getWeather: tool({
@@ -31,7 +32,6 @@ async function simpleAgent(restate: restate.Context, prompt: string) {
       }),
     },
     stopWhen: [stepCountIs(5)],
-    system: "You are a helpful agent.",
     providerOptions: { openai: { parallelToolCalls: false } },
   });
 
@@ -44,7 +44,7 @@ const agent = restate.service({
   name: "agent",
   handlers: {
     run: async (ctx: restate.Context, prompt: string) => {
-      return simpleAgent(ctx, prompt);
+      return weatherAgent(ctx, prompt);
     },
   },
 });
