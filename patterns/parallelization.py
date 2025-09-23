@@ -27,10 +27,7 @@ class Prompt(BaseModel):
 
 @parallelization_svc.handler()
 async def analyze_text(ctx: restate.Context, prompt: Prompt) -> list[str]:
-    """
-    Analyzes multiple aspects of the text in parallel.
-    Each ctx.run() call executes is retried and recoverable.
-    """
+    """Analyzes multiple aspects of the text in parallel."""
 
     # Create parallel tasks - each runs independently
     sentiment_task = ctx.run_typed(
