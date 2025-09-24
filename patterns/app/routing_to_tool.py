@@ -89,14 +89,14 @@ async def user_database_tool(ctx: restate.Context, user_id: str) -> str:
     return await ctx.run_typed("query_user_db", query_user_database, user_id=user_id)
 
 
-async def service_status_tool(ctx: restate.Context) -> dict[str, str]:
+async def service_status_tool(ctx: restate.Context) -> str:
     """Tool for checking service status and outages via internal APIs."""
     return await ctx.run_typed("check_service_status", fetch_service_status)
 
 
 async def ticket_management_tool(ctx: restate.Context, request: Prompt) -> str:
     """Tool for creating tickets in CRM system for bugs, feature requests, escalations."""
-    await ctx.run_typed(
+    return await ctx.run_typed(
         "create support ticket",
         create_support_ticket,
         request=request.message,

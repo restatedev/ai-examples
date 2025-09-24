@@ -12,3 +12,8 @@ dependencies = [
     "openai",
     "anthropic",
 ]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.18.2",
+]

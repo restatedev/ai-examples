@@ -63,7 +63,7 @@ async def route(ctx: restate.Context, prompt: Prompt) -> str:
 
     # Route to specialized agent
     response = await ctx.generic_call(
-        agent_service, "run", arg=json.dumps(prompt.message).encode("utf-8")
+        agent_service, f"{agent_service}_run", arg=json.dumps(prompt.message).encode("utf-8")
     )
 
     return response.decode("utf-8")
@@ -76,7 +76,7 @@ billing_agent = restate.Service("BillingAgent")
 
 
 @billing_agent.handler()
-async def run(ctx: restate.Context, prompt: str) -> str:
+async def billing_agent_run(ctx: restate.Context, prompt: str) -> str:
     return await ctx.run(
         "billing_response",
         lambda: llm_call(
@@ -94,7 +94,7 @@ account_agent = restate.Service("AccountAgent")
 
 
 @account_agent.handler()
-async def run(ctx: restate.Context, prompt: str) -> str:
+async def account_agent_run(ctx: restate.Context, prompt: str) -> str:
     return await ctx.run(
         "account_response",
         lambda: llm_call(
@@ -112,7 +112,7 @@ product_agent = restate.Service("ProductAgent")
 
 
 @product_agent.handler()
-async def run(ctx: restate.Context, prompt: str) -> str:
+async def product_agent_run(ctx: restate.Context, prompt: str) -> str:
     return await ctx.run(
         "product_response",
         lambda: llm_call(

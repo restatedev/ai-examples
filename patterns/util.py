@@ -63,9 +63,9 @@ def print_evaluation(iteration: int, solution: str, evaluation: str):
 # MOCK DATA
 
 
-def fetch_service_status():
+def fetch_service_status() -> str:
     # Mock service status data (would be real API calls to monitoring systems)
-    return {
+    return str({
         "api": {
             "name": "API Gateway",
             "status": "operational",
@@ -103,19 +103,19 @@ def fetch_service_status():
             "incidents": 0,
             "incident_description": "Scheduled maintenance until 14:00 UTC",
         },
-    }
+    })
 
 
-def create_support_ticket(request: str, user_id: str) -> dict:
+def create_support_ticket(request: str, user_id: str) -> str:
     # Mock ticket creation (would be real API calls to ticketing systems)
     ticket_id = "TICKET-" + str(abs(hash(request)) % 10000)
-    return {
+    return str({
         "ticket_id": ticket_id,
         "user_id": user_id,
         "status": "open",
         "created_at": datetime.datetime.now().isoformat(),
         "details": request,
-    }
+    })
 
 
 # Mock user database with subscription and usage data
@@ -161,8 +161,8 @@ users_db = {
 }
 
 
-def query_user_database(user_id: str) -> dict | None:
-    return users_db.get(user_id, None)
+def query_user_database(user_id: str) -> str:
+    return users_db.get(user_id, None) or "User not found"
 
 
 def parse_instructions(task_breakdown: str) -> dict:
