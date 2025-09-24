@@ -37,8 +37,8 @@ async def process_text(ctx: restate.Context, prompt: Prompt) -> list[str]:
     task_breakdown = await ctx.run_typed(
         "orchestrator_analysis",
         llm_call,
+        restate.RunOptions(max_attempts=3),
         system="""You are an orchestrator breaking down text analysis into specific subtasks.
-
         For each task, specify what the worker should focus on:
         [task_type]: [specific prompt/instructions for worker]""",
         prompt=f"Text to analyze: {prompt}",
@@ -53,6 +53,7 @@ async def process_text(ctx: restate.Context, prompt: Prompt) -> list[str]:
         worker_task = ctx.run_typed(
             f"worker_{task_type.lower()}",
             llm_call,
+            restate.RunOptions(max_attempts=3),
             system=f"You are a {task_type} specialist.",
             prompt=f"Task: {instruction} - Text to analyze: {prompt}",
         )

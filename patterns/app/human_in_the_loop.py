@@ -12,6 +12,7 @@ These durable promises survive crashes and can be recovered on other processes o
 
 content_moderator_svc = restate.Service("HumanInTheLoopService")
 
+
 class Content(BaseModel):
     message: str = "Very explicit content that clearly violates policy."
 
@@ -24,7 +25,8 @@ async def moderate(ctx: restate.Context, content: Content) -> str:
     analysis = await ctx.run_typed(
         "analyze_content",
         llm_call,
-        prompt=f"Analyze content for policy violations. Return 'needsHumanReview' or your decision: {content}"
+        restate.RunOptions(max_attempts=3),
+        prompt=f"Analyze content for policy violations. Return 'needsHumanReview' or your decision: {content}",
     )
 
     # Simple parsing - in real implementation you'd use proper JSON parsing
@@ -33,7 +35,12 @@ async def moderate(ctx: restate.Context, content: Content) -> str:
         approval_id, approval_promise = ctx.awakeable(type_hint=str)
 
         # Notify moderator, identify the durable promise by its id
-        await ctx.run_typed("notify_moderator", notify_moderator, content=content.message, approval_id=approval_id)
+        await ctx.run_typed(
+            "notify_moderator",
+            notify_moderator,
+            content=content.message,
+            approval_id=approval_id,
+        )
 
         # Pause for completion of the promise.
         # The workflow suspends here and resumes after the promise resolution.
@@ -42,5 +49,3 @@ async def moderate(ctx: restate.Context, content: Content) -> str:
         return await approval_promise
 
     return analysis
-
-

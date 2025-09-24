@@ -18,11 +18,15 @@ class Prompt(BaseModel):
 async def message(ctx: restate.ObjectContext, prompt: Prompt) -> str:
     """A long-lived stateful chat session that allows for ongoing conversation."""
 
-    memory = await ctx.get("memory") or []
+    memory = await ctx.get("memory", type_hint=list[dict[str, str]]) or []
     memory.append({"role": "user", "content": prompt.message})
 
     result = await ctx.run_typed(
-        "LLM call", llm_call, prompt=prompt.message, messages=memory
+        "LLM call",
+        llm_call,
+        restate.RunOptions(max_attempts=3),
+        prompt=prompt.message,
+        messages=memory,
     )
 
     memory.append({"role": "assistant", "content": result})

@@ -1,7 +1,9 @@
 import datetime
 import logging
 import os
+from typing import Optional
 
+import restate
 from openai import OpenAI
 from anthropic import Anthropic
 
@@ -9,7 +11,9 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def llm_call(prompt: str, system: str = "", messages: list[dict[str, str]] = None) -> str:
+def llm_call(
+    prompt: str, system: str = "", messages: Optional[list[dict[str, str]]] = None
+) -> str:
     """
     Calls the model with the given prompt and returns the response.
 
@@ -21,34 +25,42 @@ def llm_call(prompt: str, system: str = "", messages: list[dict[str, str]] = Non
     Returns:
         str: The response from the language model.
     """
+    messages = messages or []
+    if system:
+        messages.append({"role": "system", "content": system})
+    if prompt:
+        messages.append({"role": "user", "content": prompt})
 
     if os.getenv("OPENAI_API_KEY"):
-        messages = messages or []
-        if system:
-            messages.append({"role": "system", "content": system})
-        if prompt:
-            messages.append({"role": "user", "content": prompt})
-        client = OpenAI()
-        response = client.chat.completions.create(
+        openai_client = OpenAI()
+        openai_response = openai_client.chat.completions.create(
             model="gpt-4o",
             max_tokens=4096,
             messages=messages,
             temperature=0.1,
         )
-        return response.choices[0].message.content
+        content = openai_response.choices[0].message.content
+        if content:
+            return content
+        else:
+            raise RuntimeError("No content in OpenAI response")
     elif os.getenv("ANTHROPIC_API_KEY"):
-        client = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
-        messages = [{"role": "user", "content": prompt}]
-        response = client.messages.create(
+        anthropic_client = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+        anthropic_response = anthropic_client.messages.create(
             model="claude-3-5-sonnet-latest",
             max_tokens=4096,
             system=system,
             messages=messages,
             temperature=0.1,
         )
-        return response.content[0].text
+        if anthropic_response.content[0].type == "text":
+            return anthropic_response.content[0].text
+        else:
+            raise RuntimeError(
+                f"Unexpected response type: {anthropic_response.content[0].type}"
+            )
     else:
-        raise RuntimeError(
+        raise restate.TerminalError(
             "Missing API key: set either the env var OPENAI_API_KEY or ANTHROPIC_API_KEY"
         )
 
@@ -65,57 +77,61 @@ def print_evaluation(iteration: int, solution: str, evaluation: str):
 
 def fetch_service_status() -> str:
     # Mock service status data (would be real API calls to monitoring systems)
-    return str({
-        "api": {
-            "name": "API Gateway",
-            "status": "operational",
-            "uptime_24h": 99.8,
-            "response_time_avg": "120ms",
-            "incidents": 0,
-        },
-        "database": {
-            "name": "Primary Database",
-            "status": "operational",
-            "uptime_24h": 100.0,
-            "response_time_avg": "15ms",
-            "incidents": 0,
-        },
-        "payment": {
-            "name": "Payment Service",
-            "status": "degraded",
-            "uptime_24h": 95.2,
-            "response_time_avg": "450ms",
-            "incidents": 1,
-            "incident_description": "Intermittent timeout issues with payment processor",
-        },
-        "dashboard": {
-            "name": "User Dashboard",
-            "status": "operational",
-            "uptime_24h": 99.9,
-            "response_time_avg": "200ms",
-            "incidents": 0,
-        },
-        "notifications": {
-            "name": "Email/SMS Service",
-            "status": "maintenance",
-            "uptime_24h": 98.5,
-            "response_time_avg": "N/A",
-            "incidents": 0,
-            "incident_description": "Scheduled maintenance until 14:00 UTC",
-        },
-    })
+    return str(
+        {
+            "api": {
+                "name": "API Gateway",
+                "status": "operational",
+                "uptime_24h": 99.8,
+                "response_time_avg": "120ms",
+                "incidents": 0,
+            },
+            "database": {
+                "name": "Primary Database",
+                "status": "operational",
+                "uptime_24h": 100.0,
+                "response_time_avg": "15ms",
+                "incidents": 0,
+            },
+            "payment": {
+                "name": "Payment Service",
+                "status": "degraded",
+                "uptime_24h": 95.2,
+                "response_time_avg": "450ms",
+                "incidents": 1,
+                "incident_description": "Intermittent timeout issues with payment processor",
+            },
+            "dashboard": {
+                "name": "User Dashboard",
+                "status": "operational",
+                "uptime_24h": 99.9,
+                "response_time_avg": "200ms",
+                "incidents": 0,
+            },
+            "notifications": {
+                "name": "Email/SMS Service",
+                "status": "maintenance",
+                "uptime_24h": 98.5,
+                "response_time_avg": "N/A",
+                "incidents": 0,
+                "incident_description": "Scheduled maintenance until 14:00 UTC",
+            },
+        }
+    )
 
 
 def create_support_ticket(request: str, user_id: str) -> str:
     # Mock ticket creation (would be real API calls to ticketing systems)
     ticket_id = "TICKET-" + str(abs(hash(request)) % 10000)
-    return str({
-        "ticket_id": ticket_id,
-        "user_id": user_id,
-        "status": "open",
-        "created_at": datetime.datetime.now().isoformat(),
-        "details": request,
-    })
+    return str(
+        {
+            "ticket_id": ticket_id,
+            "user_id": user_id,
+            "status": "open",
+            "created_at": datetime.datetime.now().isoformat(),
+            "details": request,
+        }
+    )
 
 
 # Mock user database with subscription and usage data
@@ -162,7 +178,11 @@ users_db = {
 
 
 def query_user_database(user_id: str) -> str:
-    return users_db.get(user_id, None) or "User not found"
+    content = users_db.get(user_id, None)
+    if content:
+        return str(content)
+    else:
+        return "User not found"
 
 
 def parse_instructions(task_breakdown: str) -> dict:
@@ -188,6 +208,10 @@ def notify_moderator(content: str, approval_id: str):
     print(f"Content: {content}")
     print(f"Awaiting human decision...")
     print("\nTo approve:")
-    print(f"curl http://localhost:8080/restate/awakeables/{approval_id}/resolve --json '\"approved\"'")
+    print(
+        f"curl http://localhost:8080/restate/awakeables/{approval_id}/resolve --json '\"approved\"'"
+    )
     print("\nTo reject:")
-    print(f"curl http://localhost:8080/restate/awakeables/{approval_id}/resolve --json '\"rejected\"'")
+    print(
+        f"curl http://localhost:8080/restate/awakeables/{approval_id}/resolve --json '\"rejected\"'"
+    )

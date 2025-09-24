@@ -37,17 +37,22 @@ async def analyze_text(ctx: restate.Context, prompt: Prompt) -> list[str]:
     sentiment_task = ctx.run_typed(
         "Analyze sentiment",
         llm_call,
+        restate.RunOptions(max_attempts=3),
         prompt=f"Analyze sentiment (positive/negative/neutral): {prompt}",
     )
 
     key_points_task = ctx.run_typed(
         "Extract key points",
         llm_call,
+        restate.RunOptions(max_attempts=3),
         prompt=f"Extract 3 key points as bullets: {prompt}",
     )
 
     summary_task = ctx.run_typed(
-        "Summarize", llm_call, prompt=f"Summarize in one sentence: {prompt}"
+        "Summarize",
+        llm_call,
+        restate.RunOptions(max_attempts=3),
+        prompt=f"Summarize in one sentence: {prompt}",
     )
 
     # Wait for all tasks to complete

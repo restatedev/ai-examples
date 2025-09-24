@@ -49,6 +49,7 @@ async def route(ctx: restate.Context, prompt: Prompt) -> str:
     route_key = await ctx.run_typed(
         "classify_request",
         llm_call,
+        restate.RunOptions(max_attempts=3),
         prompt=f"""Classify this customer support request into one category: {list(TOOLS)}
 
         user_database: account info, subscription details, usage limits, billing questions, user profile
@@ -75,6 +76,7 @@ async def route(ctx: restate.Context, prompt: Prompt) -> str:
     response = await ctx.run_typed(
         "analyze tool output",
         llm_call,
+        restate.RunOptions(max_attempts=3),
         prompt=f"Provide a concise, friendly response to the user question {prompt} based on this info: {tool_result}",
     )
 

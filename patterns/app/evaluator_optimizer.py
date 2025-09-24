@@ -28,7 +28,7 @@ class Prompt(BaseModel):
 async def improve_until_good(ctx: restate.Context, prompt: Prompt) -> str:
     """Iteratively improve a solution until it meets quality standards."""
 
-    attempts = []
+    attempts: list[str] = []
     max_iterations = 5
 
     for iteration in range(max_iterations):
@@ -42,6 +42,7 @@ async def improve_until_good(ctx: restate.Context, prompt: Prompt) -> str:
         solution = await ctx.run_typed(
             f"generate_v{iteration+1}",
             llm_call,
+            restate.RunOptions(max_attempts=3),
             system="Create a Python function to solve this task. Eagerly return results for review.",
             prompt=f" Previous attempts: {context} - Task: {prompt}" "",
         )
@@ -50,6 +51,7 @@ async def improve_until_good(ctx: restate.Context, prompt: Prompt) -> str:
         evaluation = await ctx.run_typed(
             f"evaluate_v{iteration+1}",
             llm_call,
+            restate.RunOptions(max_attempts=3),
             prompt=f"""Evaluate this solution on correctness, efficiency, and readability.
             Reply with either:
             'PASS: [brief reason]' if the solution is correct and very well-implemented

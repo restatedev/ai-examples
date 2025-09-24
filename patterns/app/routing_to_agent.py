@@ -44,10 +44,11 @@ async def route(ctx: restate.Context, prompt: Prompt) -> str:
     """Classify request and route to appropriate specialized agent."""
 
     # Classify the request
-    route_key = await ctx.run(
+    route_key = await ctx.run_typed(
         "classify_request",
-        lambda: llm_call(
-            f"""Classify this support request into one category: {AGENTS.keys()}
+        llm_call,
+        restate.RunOptions(max_attempts=3),
+        prompt=f"""Classify this support request into one category: {AGENTS.keys()}
 
         billing: payments, charges, refunds, plans
         account: login, password, security, access
@@ -56,14 +57,15 @@ async def route(ctx: restate.Context, prompt: Prompt) -> str:
         Reply with only the category name.
 
         Request: {prompt.message}"""
-        ),
     )
 
     agent_service = AGENTS.get(route_key.strip().lower()) or "ProductAgent"
 
     # Route to specialized agent
     response = await ctx.generic_call(
-        agent_service, f"{agent_service}_run", arg=json.dumps(prompt.message).encode("utf-8")
+        agent_service,
+        f"{agent_service}_run",
+        arg=json.dumps(prompt.message).encode("utf-8"),
     )
 
     return response.decode("utf-8")
@@ -76,16 +78,16 @@ billing_agent = restate.Service("BillingAgent")
 
 
 @billing_agent.handler()
-async def billing_agent_run(ctx: restate.Context, prompt: str) -> str:
-    return await ctx.run(
+async def billing_run(ctx: restate.Context, prompt: str) -> str:
+    return await ctx.run_typed(
         "billing_response",
-        lambda: llm_call(
-            f"""You are a billing support specialist.
+        llm_call,
+        restate.RunOptions(max_attempts=3),
+        prompt=f"""You are a billing support specialist.
         Acknowledge the billing issue, explain charges clearly, provide next steps with timeline.
         Keep responses professional but friendly.
 
         Input: {prompt}"""
-        ),
     )
 
 
@@ -94,16 +96,16 @@ account_agent = restate.Service("AccountAgent")
 
 
 @account_agent.handler()
-async def account_agent_run(ctx: restate.Context, prompt: str) -> str:
-    return await ctx.run(
+async def account_run(ctx: restate.Context, prompt: str) -> str:
+    return await ctx.run_typed(
         "account_response",
-        lambda: llm_call(
-            f"""You are an account security specialist.
+        llm_call,
+        restate.RunOptions(max_attempts=3),
+        prompt=f"""You are an account security specialist.
         Prioritize account security and verification, provide clear recovery steps, include security tips.
         Maintain a serious, security-focused tone.
 
         Input: {prompt}"""
-        ),
     )
 
 
@@ -112,14 +114,14 @@ product_agent = restate.Service("ProductAgent")
 
 
 @product_agent.handler()
-async def product_agent_run(ctx: restate.Context, prompt: str) -> str:
-    return await ctx.run(
+async def product_run(ctx: restate.Context, prompt: str) -> str:
+    return await ctx.run_typed(
         "product_response",
-        lambda: llm_call(
-            f"""You are a product specialist.
+        llm_call,
+        restate.RunOptions(max_attempts=3),
+        prompt=f"""You are a product specialist.
         Focus on feature education and best practices, include specific examples, suggest related features.
         Be educational and encouraging in tone.
 
         Input: {prompt}"""
-        ),
     )
