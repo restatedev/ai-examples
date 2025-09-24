@@ -5,12 +5,14 @@ These patterns show how you can use Restate to harden LLM-based routing decision
 They do not implement end-to-end agents, but serve as small self-contained patterns that can be mixed and matched to build more complex workflows.
 
 The patterns included here:
-- [Chaining LLM calls](chaining/service.py): Refine the results by calling the LLM iteratively with its own output.
-- [Parallelizing tool calls](parallelization/service.py): Call multiple tools in parallel and wait for their results in a durable way. Tool calls are retried if they fail, and the results are persisted.
-- [Dynamic routing based on LLM output](routing/service.py): Route the execution to different tools based on the LLM's output. Routing decisions are persisted and can be retried.
-- [Orchestrator-worker pattern](orchestrator_workers/service.py): A resilient orchestration workflow in which a central LLM dynamically breaks down tasks, delegates them to worker LLMs, and analyzes their results.
-- [Evaluator-optimizer pattern](evaluator_optimizer/service.py): Let the LLM generate a response, and ask another LLM to evaluate the response, and let them iterate on it.
-- [Human-in-the-loop pattern](human_in_the_loop/service.py): An LLM generates a response, and then a human can review and approve the response before the LLM continues with the next step.
+- [Chaining LLM calls](app/chaining.py): Refine the results by calling the LLM iteratively with its own output.
+- [Parallelizing tool calls](app/parallelization.py): Call multiple tools in parallel and wait for their results in a durable way. Tool calls are retried if they fail, and the results are persisted.
+- [Dynamic tool routing based on LLM output](app/routing_to_tool.py): Route the execution to different tools based on the LLM's output. Routing decisions are persisted and can be retried.
+- [Multi-agent routing based on LLM output](app/routing_to_agent.py): Route the execution to specialized agents based on the LLM's output. Routing decisions are persisted and can be retried.
+- [Orchestrator-worker pattern](app/orchestrator_workers.py): A resilient orchestration workflow in which a central LLM dynamically breaks down tasks, delegates them to worker LLMs, and analyzes their results.
+- [Evaluator-optimizer pattern](app/evaluator_optimizer.py): Let the LLM generate a response, and ask another LLM to evaluate the response, and let them iterate on it.
+- [Human-in-the-loop pattern](app/human_in_the_loop.py): An LLM generates a response, and then a human can review and approve the response before the LLM continues with the next step.
+- [Chat sessions](app/chat.py): A chat session where the state is kept across multiple requests, and where a human can provide feedback on the LLM's responses.
 
 A part of these patterns are based on Anthropic's [agents cookbook](https://github.com/anthropics/anthropic-cookbook/tree/main/patterns/agents).
 
@@ -34,7 +36,8 @@ These benefits are best portrayed in the following patterns:
 | Dynamic routing             | ✅                  | ✅                      |                   |              
 | Orchestrator-worker pattern | ✅                  | ✅                      |                   |              
 | Evaluator-optimizer pattern | ✅                  | ✅                      |                   |              
-| Human-in-the-loop pattern   | ✅                  | ✅                      | ✅                 |              
+| Human-in-the-loop pattern   | ✅                  | ✅                      |                   |              
+| Chat sessions               | ✅                  | ✅                      | ✅                 |              
 
 
 ## Running the examples
@@ -99,7 +102,7 @@ In the UI, you can see how the LLM decides to forward the request to the technic
 
 <img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/route-to-tools.png" alt="Dynamic routing based on LLM output - UI"/>
 
-### Dynamic routing to agents based on LLM output
+### Multi-agent routing based on LLM output
 [<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](app/routing_to_agent.py)
 
 Route the execution to specialized agents based on the LLM's output. Routing decisions are persisted and can be retried.
@@ -112,7 +115,7 @@ In the UI, you can see how the LLM decides to forward the request to the special
 <img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/route-to-agent.png" alt="Dynamic routing based on LLM output - UI"/>
 
 ### Orchestrator-worker pattern
-[<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](orchestrator_workers/service.py)
+[<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](app/orchestrator_workers.py)
 
 A resilient orchestration workflow in which a central LLM dynamically breaks down tasks, delegates them to worker LLMs, and analyzes their results.
 
@@ -123,7 +126,7 @@ In the UI, you can see how the LLM split the task in three parts and how each of
 <img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/orchestrator.png" alt="Orchestrator-worker pattern - UI"/>
 
 ### Evaluator-optimizer pattern
-[<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](evaluator_optimizer/service.py)
+[<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](app/evaluator_optimizer.py)
 
 Let the LLM generate a response, and ask another LLM to evaluate the response, and let them iterate on it.
 
@@ -139,7 +142,7 @@ In the UI, you can see how the LLM generates a response, and how the evaluator L
 An LLM generates a response, and then a human can review and approve the response before the LLM continues with the next step.
 
 #### Option 1: `run_with_promise` handler
-[<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](human_in_the_loop/service.py)
+[<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](app/human_in_the_loop.py)
 
 This handler gathers human feedback by blocking the generation-evaluation loop on a Promise that gets resolved with human feedback.
 
@@ -158,7 +161,7 @@ You can see how the feedback gets incorporated in the Invocations tab in the Res
 
 
 ### Long-lived, stateful Chat sessions
-[<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](human_in_the_loop/service.py)
+[<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](app/chat.py)
 
 A chat session where the state is kept across multiple requests, and where a human can provide feedback on the LLM's responses.
 
