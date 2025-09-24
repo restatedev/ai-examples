@@ -129,7 +129,7 @@ users_db = {
             "next_billing": "2024-02-15",
         },
         "usage": {
-            "api_calls_this_month": 8500,
+            "api_calls_this_month": 10000,
             "api_limit": 10000,
             "storage_used_gb": 12.5,
             "storage_limit_gb": 50,

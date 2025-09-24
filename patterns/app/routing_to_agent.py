@@ -14,7 +14,7 @@ Request → Classifier → Agent A/B/C → Specialized Response
 
 
 # Specialized agent service names
-AGENTS = ["billing", "account", "product"]
+AGENTS = {"billing": "BillingAgent", "account": "AccountAgent", "product": "ProductAgent"}
 
 # Example input text to analyze
 example_prompt = "I can't log into my account. Keep getting invalid password errors."
@@ -36,14 +36,14 @@ agent_router_service = restate.Service("AgentRouterService")
 
 
 @agent_router_service.handler()
-async def route(ctx: restate.Context, request: str) -> str:
+async def route(ctx: restate.Context, prompt: Prompt) -> str:
     """Classify request and route to appropriate specialized agent."""
 
     # Classify the request
     route_key = await ctx.run(
         "classify_request",
         lambda: llm_call(
-            f"""Classify this support request into one category: {list(AGENTS)}
+            f"""Classify this support request into one category: {AGENTS.keys()}
 
         billing: payments, charges, refunds, plans
         account: login, password, security, access
@@ -51,15 +51,15 @@ async def route(ctx: restate.Context, request: str) -> str:
 
         Reply with only the category name.
 
-        Request: {request}"""
+        Request: {prompt.message}"""
         ),
     )
 
-    agent_service = route_key.strip().lower()
+    agent_service = AGENTS.get(route_key.strip().lower()) or "ProductAgent"
 
     # Route to specialized agent
     response = await ctx.generic_call(
-        agent_service, "run", arg=json.dumps(request).encode("utf-8")
+        agent_service, "run", arg=json.dumps(prompt.message).encode("utf-8")
     )
 
     return response.decode("utf-8")
@@ -68,7 +68,7 @@ async def route(ctx: restate.Context, request: str) -> str:
 # SPECIALIZED AGENT SERVICES
 
 # Billing Support Agent
-billing_agent = restate.Service("billing")
+billing_agent = restate.Service("BillingAgent")
 
 
 @billing_agent.handler()
@@ -86,7 +86,7 @@ async def run(ctx: restate.Context, prompt: str) -> str:
 
 
 # Account Security Agent
-account_agent = restate.Service("account")
+account_agent = restate.Service("AccountAgent")
 
 
 @account_agent.handler()
@@ -104,7 +104,7 @@ async def run(ctx: restate.Context, prompt: str) -> str:
 
 
 # Product Support Agent
-product_agent = restate.Service("product")
+product_agent = restate.Service("ProductAgent")
 
 
 @product_agent.handler()

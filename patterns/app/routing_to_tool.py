@@ -1,8 +1,4 @@
 import restate
-import json
-import requests
-from datetime import datetime, timedelta
-from typing import Dict, List
 from pydantic import BaseModel
 
 from util import (
@@ -68,13 +64,20 @@ async def route(ctx: restate.Context, prompt: Prompt) -> str:
 
     # Route to appropriate support tool
     if tool_category == "user_database":
-        response = await user_database_tool(ctx, user_id=prompt.user_id)
+        tool_result = await user_database_tool(ctx, user_id=prompt.user_id)
     elif tool_category == "service_status":
-        response = await service_status_tool(ctx)
+        tool_result = await service_status_tool(ctx)
     elif tool_category == "ticket_management":
-        response = await ticket_management_tool(ctx, prompt)
+        tool_result = await ticket_management_tool(ctx, prompt)
     else:
-        response = f"Unknown support category: {tool_category}"
+        tool_result = f"Didn't find info for {tool_category}"
+
+
+    response = await ctx.run_typed(
+        "analyze tool output",
+        llm_call,
+        prompt=f"Provide a concise, friendly response to the user question {prompt} based on this info: {tool_result}",
+    )
 
     return response
 
