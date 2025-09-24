@@ -9,23 +9,25 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def llm_call(prompt: str, system: str = "") -> str:
+def llm_call(prompt: str, system: str = "", messages: list[dict[str, str]] = None) -> str:
     """
     Calls the model with the given prompt and returns the response.
 
     Args:
         prompt (str): The user prompt to send to the model.
         system (str, optional): The system prompt to send to the model. Defaults to "".
+        messages (list, optional): Previous messages for context in chat models. Defaults to None.
 
     Returns:
         str: The response from the language model.
     """
 
     if os.getenv("OPENAI_API_KEY"):
-        messages = [
-            {"role": "system", "content": system},
-            {"role": "user", "content": prompt},
-        ]
+        messages = messages or []
+        if system:
+            messages.append({"role": "system", "content": system})
+        if prompt:
+            messages.append({"role": "user", "content": prompt})
         client = OpenAI()
         response = client.chat.completions.create(
             model="gpt-4o",
@@ -178,3 +180,14 @@ def parse_instructions(task_breakdown: str) -> dict:
         print(f"- {task}: {instruction}")
 
     return worker_instructions
+
+
+def notify_moderator(content: str, approval_id: str):
+    """Notify human moderator about content requiring review."""
+    print("\n🔍 CONTENT MODERATION REQUIRED 🔍")
+    print(f"Content: {content}")
+    print(f"Awaiting human decision...")
+    print("\nTo approve:")
+    print(f"curl http://localhost:8080/restate/awakeables/{approval_id}/resolve --json '\"approved\"'")
+    print("\nTo reject:")
+    print(f"curl http://localhost:8080/restate/awakeables/{approval_id}/resolve --json '\"rejected\"'")

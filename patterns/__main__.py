@@ -8,7 +8,8 @@ from app.routing_to_agent import agent_router_service
 from app.routing_to_tool import tool_router_service
 from app.orchestrator_workers import orchestrator_svc
 from app.evaluator_optimizer import evaluator_optimizer
-from app.human_in_the_loop import human_in_the_loop_svc
+from app.human_in_the_loop import content_moderator_svc
+from app.chat import chat
 from app.routing_to_agent import billing_agent, product_agent, account_agent
 
 app = restate.app(
@@ -19,7 +20,8 @@ app = restate.app(
         tool_router_service,
         orchestrator_svc,
         evaluator_optimizer,
-        human_in_the_loop_svc,
+        content_moderator_svc,
+        chat,
         billing_agent,
         account_agent,
         product_agent,

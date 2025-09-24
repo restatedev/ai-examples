@@ -145,18 +145,16 @@ This handler gathers human feedback by blocking the generation-evaluation loop o
 
 This is a **Durable Promise**, meaning that the promise can be recovered across processes and time. The Promise is persisted inside Restate. 
 
+In the UI (`http://localhost:9070`), click on the `moderate` handler of the `HumanInTheLoopService` to open the playground and send a default request:
+<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/human-in-the-loop-playground.png" alt="Human-in-the-loop pattern - UI"/>
+
 Test this out by killing the service halfway through or restarting the Restate Server. You will notice that Restate will still be able to resolve the promise and invoke the handler again.
 
-```shell
-curl localhost:8080/HumanInTheLoopService/giselle/run_with_promise \
-    --json '"Write a poem about Durable Execution"'
-```
-
-Then use the printed curl command to incorporate external feedback. And supply `PASS` as feedback to accept the solution.
+Then use the **curl command printed in the service logs** to provide your feedback.
 
 You can see how the feedback gets incorporated in the Invocations tab in the Restate UI (`http://localhost:9070`):
 
-<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/human_in_the_loop.png" alt="Human-in-the-loop pattern - UI"/>
+<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/human-in-the-loop.png" alt="Human-in-the-loop pattern - UI"/>
 
 
 ### Long-lived, stateful Chat sessions
@@ -168,8 +166,14 @@ Restate keeps the state.
 
 In the UI (`http://localhost:9070`), click on the `message` handler of the `Chat` service to open the playground and send a default request:
 
-<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/human_in_the_loop.png" alt="Human-in-the-loop" width="900px"/>
+<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/chat-1.png" alt="Chat" width="900px"/>
 
 You can then provide feedback on the response by sending new messages to the same session:
 
-<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/human_in_the_loop_2.png" alt="Human-in-the-loop" width="900px"/>
+<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/chat-2.png" alt="Chat" width="900px"/>
+
+In the invocations tab, you can see how the memory was loaded and stored in Restate:
+<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/chat.png" alt="Chat - UI"/>
+
+Go to the state tab of the UI to see the state of the chat session:
+<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/chat-state.png" alt="Chat" width="900px"/>
