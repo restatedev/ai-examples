@@ -91,7 +91,7 @@ Join our [Discord](https://discord.gg/skW3AZ6uGd)/[Slack](https://join.slack.com
 ## Learn more
 - [Documentation](https://docs.restate.dev/)
 - [Quickstart](https://docs.restate.dev/get_started/quickstart)
-- [Tour of Restate: a tutorial including the most important features](https://docs.restate.dev/get_started/tour)
+- [Tour of Agents: a tutorial including the most important features](https://docs.restate.dev/tour/ai-agents)
 - [Examples on workflows, microservice orchestration, async tasks, event processing](https://github.com/restatedev/examples)
 - [Restate Cloud](https://restate.dev/cloud/)
 - [Discord](https://discord.gg/skW3AZ6uGd) / [Slack](https://join.slack.com/t/restatecommunity/shared_invite/zt-2v9gl005c-WBpr167o5XJZI1l7HWKImA)
