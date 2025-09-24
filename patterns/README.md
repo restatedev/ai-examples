@@ -65,11 +65,8 @@ These benefits are best portrayed in the following patterns:
 
 Refine the results by calling the LLM iteratively with its own output.
 
-Send an HTTP request to the service by running the [client](chaining/client.py):
-
-```shell
-uv run chaining_client
-```
+Send an HTTP request to the service via the [UI playground](http://localhost:9070/ui/overview?servicePlayground=CallChainingService&service=CallChainingService#/operations/run):
+![img.png](img.png)
 
 You see in the UI how the LLM is called multiple times, and how the results are refined step by step:
 

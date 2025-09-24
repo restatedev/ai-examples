@@ -32,10 +32,10 @@ class Prompt(BaseModel):
 
 # ROUTING SERVICE
 
-routing_svc = restate.Service("RoutingService")
+agent_router_service = restate.Service("AgentRouterService")
 
 
-@routing_svc.handler()
+@agent_router_service.handler()
 async def route(ctx: restate.Context, request: str) -> str:
     """Classify request and route to appropriate specialized agent."""
 

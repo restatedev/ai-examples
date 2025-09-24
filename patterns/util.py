@@ -1,8 +1,6 @@
 import datetime
 import logging
 import os
-import re
-import time
 
 from openai import OpenAI
 from anthropic import Anthropic

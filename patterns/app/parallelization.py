@@ -17,10 +17,12 @@ Task C ↗
 parallelization_svc = restate.Service("ParallelizationService")
 
 # Example input text to analyze
-example_prompt = """Our Q3 results exceeded all expectations! Customer satisfaction reached 95%, revenue grew
-      by 40% year-over-year, and we successfully launched three new product features. The team
-      worked incredibly hard to deliver these outcomes despite supply chain challenges. Our
-      market share increased to 23%, and we're well-positioned for continued growth in Q4."""
+example_prompt = (
+    "Our Q3 results exceeded all expectations! Customer satisfaction reached 95%, revenue grew "
+    "by 40% year-over-year, and we successfully launched three new product features. "
+    "The team worked incredibly hard to deliver these outcomes despite supply chain challenges. "
+    "Our market share increased to 23%, and we're well-positioned for continued growth in Q4."
+)
 
 
 class Prompt(BaseModel):

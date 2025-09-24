@@ -16,11 +16,13 @@ Task → Orchestrator → [Worker A, Worker B, Worker C] → Aggregated Results
 orchestrator_svc = restate.Service("Orchestrator")
 
 
-example_prompt = """Analyze the following text for sentiment, key points, and provide a summary: 
-    'Our Q3 results exceeded all expectations! Customer satisfaction reached 95%, 
-    revenue grew by 40% year-over-year, and we successfully launched three new product features. 
-    The team worked incredibly hard to deliver these outcomes despite supply chain challenges. 
-    Our market share increased to 23%, and we're well-positioned for continued growth in Q4.'"""
+example_prompt = (
+    "Analyze the following text for sentiment, key points, and provide a summary:"
+    "'Our Q3 results exceeded all expectations! Customer satisfaction reached 95%, "
+    "revenue grew by 40% year-over-year, and we successfully launched three new product features. "
+    "The team worked incredibly hard to deliver these outcomes despite supply chain challenges. "
+    "Our market share increased to 23%, and we're well-positioned for continued growth in Q4.'"
+)
 
 
 class Prompt(BaseModel):

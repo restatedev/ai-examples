@@ -42,10 +42,10 @@ class Prompt(BaseModel):
 
 # ROUTING SERVICE
 
-routing_svc = restate.Service("RoutingService")
+tool_router_service = restate.Service("ToolRouterService")
 
 
-@routing_svc.handler()
+@tool_router_service.handler()
 async def route(ctx: restate.Context, prompt: Prompt) -> str:
     """Classify request and route to appropriate tool function."""
 

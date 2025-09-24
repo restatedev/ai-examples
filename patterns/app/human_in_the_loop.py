@@ -27,9 +27,7 @@ class Prompt(BaseModel):
 
 
 @human_in_the_loop_svc.handler()
-async def run_with_promise(
-    ctx: restate.ObjectContext, prompt: Prompt
-) -> str:
+async def run_with_promise(ctx: restate.ObjectContext, prompt: Prompt) -> str:
     """
     OPTION 1: Human evaluator gives feedback via a promise.
     This is a useful pattern when the original person requesting the task is not the one giving feedback.
@@ -47,7 +45,10 @@ async def run_with_promise(
 
         # Check if the human feedback is a PASS
         if human_feedback == "PASS":
-            return f"Final accepted solution:\n{result} \n\n Memory of attempts:\n" + "\n".join(memory)
+            return (
+                f"Final accepted solution:\n{result} \n\n Memory of attempts:\n"
+                + "\n".join(memory)
+            )
 
         result = await generate(ctx, prompt, memory, human_feedback)
         memory.append(result)
@@ -72,7 +73,10 @@ async def run(ctx: restate.ObjectContext, task: str) -> str:
 
 
 async def generate(
-    ctx: restate.Context, prompt: Prompt, memory: list[str] = None, human_feedback: str = ""
+    ctx: restate.Context,
+    prompt: Prompt,
+    memory: list[str] = None,
+    human_feedback: str = "",
 ) -> str:
     """Generate and improve a solution based on feedback."""
     llm_context = "\n".join(
