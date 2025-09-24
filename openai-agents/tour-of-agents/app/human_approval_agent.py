@@ -1,8 +1,8 @@
 import restate
 from agents import Agent, RunConfig, Runner, function_tool, RunContextWrapper
 
-from app.middleware import DurableModelCalls
-from app.utils import (
+from app.utils.middleware import DurableModelCalls
+from app.utils.utils import (
     InsuranceClaim,
     request_human_review,
 )
@@ -12,37 +12,36 @@ from app.utils import (
 async def human_approval(
     wrapper: RunContextWrapper[restate.Context], claim: InsuranceClaim
 ) -> str:
-    """Ask for human approval for high-value claims with timeout handling."""
+    """Ask for human approval for high-value claims."""
     restate_context = wrapper.context
 
     # Create an awakeable for human approval
-    approval_awakeable = restate_context.awakeable()
+    approval_id, approval_promise = restate_context.awakeable(type_hint=str)
 
     # Request human review
     await restate_context.run_typed(
         "Request human review",
         request_human_review,
         message=f"Please review: {claim.model_dump_json()}",
-        awakeable_id=approval_awakeable.id
+        awakeable_id=approval_id
     )
 
-    # Wait for human approval with timeout logic handled by the agent framework
-    approval_result = await approval_awakeable.promise
+    # Wait for human approval
+    approval_result = await approval_promise
 
-    if approval_result is None:
-        return "Human approval timed out - proceeding with AI evaluation"
-    else:
-        return f"Human approval result: {'Approved' if approval_result else 'Rejected'}"
+    return f"Human approval result: {'Approved' if approval_result else 'Rejected'}"
 
 
 claim_approval_agent = Agent[restate.Context](
-    name="HumanClaimApprovalWithTimeoutsAgent",
-    instructions="You are an insurance claim evaluation agent. Use these rules: if the amount is more than 1000, ask for human approval; if the amount is less than 1000, decide by yourself. If human approval times out, proceed with AI evaluation.",
+    name="HumanClaimApprovalAgent",
+    instructions="You are an insurance claim evaluation agent. "
+                 "Use these rules: if the amount is more than 1000, ask for human approval; "
+                 "if the amount is less than 1000, decide by yourself.",
     tools=[human_approval],
 )
 
 
-agent_service = restate.Service("HumanClaimApprovalWithTimeoutsAgent")
+agent_service = restate.Service("HumanClaimApprovalAgent")
 
 
 @agent_service.handler()

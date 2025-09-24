@@ -1,8 +1,8 @@
 import restate
 from agents import Agent, RunConfig, Runner, function_tool, RunContextWrapper
 
-from app.middleware import DurableModelCalls
-from app.utils import (
+from app.utils.middleware import DurableModelCalls
+from app.utils.utils import (
     InsuranceClaim,
     request_human_review,
 )
@@ -12,7 +12,7 @@ from app.utils import (
 async def human_approval(
     wrapper: RunContextWrapper[restate.Context], claim: InsuranceClaim
 ) -> str:
-    """Ask for human approval for high-value claims."""
+    """Ask for human approval for high-value claims with timeout handling."""
     restate_context = wrapper.context
 
     # Create an awakeable for human approval
@@ -26,20 +26,23 @@ async def human_approval(
         awakeable_id=approval_awakeable.id
     )
 
-    # Wait for human approval
+    # Wait for human approval with timeout logic handled by the agent framework
     approval_result = await approval_awakeable.promise
 
-    return f"Human approval result: {'Approved' if approval_result else 'Rejected'}"
+    if approval_result is None:
+        return "Human approval timed out - proceeding with AI evaluation"
+    else:
+        return f"Human approval result: {'Approved' if approval_result else 'Rejected'}"
 
 
 claim_approval_agent = Agent[restate.Context](
-    name="HumanClaimApprovalAgent",
-    instructions="You are an insurance claim evaluation agent. Use these rules: if the amount is more than 1000, ask for human approval; if the amount is less than 1000, decide by yourself.",
+    name="HumanClaimApprovalWithTimeoutsAgent",
+    instructions="You are an insurance claim evaluation agent. Use these rules: if the amount is more than 1000, ask for human approval; if the amount is less than 1000, decide by yourself. If human approval times out, proceed with AI evaluation.",
     tools=[human_approval],
 )
 
 
-agent_service = restate.Service("HumanClaimApprovalAgent")
+agent_service = restate.Service("HumanClaimApprovalWithTimeoutsAgent")
 
 
 @agent_service.handler()

@@ -1,8 +1,8 @@
 import restate
 from agents import Agent, RunConfig, Runner, function_tool, RunContextWrapper
 
-from app.middleware import DurableModelCalls
-from app.utils import (
+from app.utils.middleware import DurableModelCalls
+from app.utils.utils import (
     InsuranceClaim,
     request_human_review,
 )

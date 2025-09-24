@@ -207,7 +207,9 @@ async def check_fraud(claim: InsuranceClaim) -> Dict[str, Any]:
     }
 
 
+
 # Booking-related models and functions for advanced examples
+
 class HotelBooking(BaseModel):
     """Hotel booking data structure."""
     location: str
@@ -233,6 +235,12 @@ class CarBooking(BaseModel):
     pickup_date: str
     return_date: str
     car_type: str = "compact"
+
+class BookingRequest(BaseModel):
+    """Booking request data structure."""
+    hotel: Optional[HotelBooking] = None
+    flight: Optional[FlightBooking] = None
+    car: Optional[CarBooking] = None
 
 
 class BookingResult(BaseModel):

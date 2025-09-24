@@ -1,8 +1,8 @@
 import restate
 from agents import Agent, RunConfig, Runner, function_tool, RunContextWrapper
 
-from app.middleware import DurableModelCalls
-from app.utils import (
+from app.utils.middleware import DurableModelCalls
+from app.utils.utils import (
     HotelBooking,
     FlightBooking,
     CarBooking,
@@ -54,7 +54,7 @@ agent_service = restate.Service("BookingWithRollbackAgent")
 
 
 @agent_service.handler()
-async def book(restate_context: restate.Context, message: str) -> str:
+async def book(restate_context: restate.Context, message: BookingRequest) -> str:
     result = await Runner.run(
         booking_agent,
         input=message,

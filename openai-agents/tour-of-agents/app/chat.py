@@ -3,7 +3,7 @@ from agents import Agent, RunConfig, Runner
 from agents.extensions.handoff_prompt import RECOMMENDED_PROMPT_PREFIX
 from restate import VirtualObject, ObjectContext, ObjectSharedContext
 
-from app.middleware import DurableModelCalls
+from app.utils.middleware import DurableModelCalls
 
 chat_agent = Agent[restate.ObjectContext](
     name="Triage Agent",
