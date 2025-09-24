@@ -14,7 +14,11 @@ Request → Classifier → Agent A/B/C → Specialized Response
 
 
 # Specialized agent service names
-AGENTS = {"billing": "BillingAgent", "account": "AccountAgent", "product": "ProductAgent"}
+AGENTS = {
+    "billing": "BillingAgent",
+    "account": "AccountAgent",
+    "product": "ProductAgent",
+}
 
 # Example input text to analyze
 example_prompt = "I can't log into my account. Keep getting invalid password errors."

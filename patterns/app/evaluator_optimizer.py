@@ -42,7 +42,7 @@ async def improve_until_good(ctx: restate.Context, prompt: Prompt) -> str:
         solution = await ctx.run_typed(
             f"generate_v{iteration+1}",
             llm_call,
-            system="Create a Python function to solve this task. Focus on correctness, efficiency, and readability.",
+            system="Create a Python function to solve this task. Eagerly return results for review.",
             prompt=f" Previous attempts: {context} - Task: {prompt}" "",
         )
 
@@ -50,8 +50,9 @@ async def improve_until_good(ctx: restate.Context, prompt: Prompt) -> str:
         evaluation = await ctx.run_typed(
             f"evaluate_v{iteration+1}",
             llm_call,
-            prompt=f"""Evaluate this solution. Reply with either:
-            'PASS: [brief reason]' if the solution is correct and well-implemented
+            prompt=f"""Evaluate this solution on correctness, efficiency, and readability.
+            Reply with either:
+            'PASS: [brief reason]' if the solution is correct and very well-implemented
             'IMPROVE: [specific issues to fix]' if it needs work
 
             Task: {prompt}

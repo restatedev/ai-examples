@@ -72,7 +72,6 @@ async def route(ctx: restate.Context, prompt: Prompt) -> str:
     else:
         tool_result = f"Didn't find info for {tool_category}"
 
-
     response = await ctx.run_typed(
         "analyze tool output",
         llm_call,

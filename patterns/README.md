@@ -127,12 +127,10 @@ In the UI, you can see how the LLM split the task in three parts and how each of
 
 Let the LLM generate a response, and ask another LLM to evaluate the response, and let them iterate on it.
 
-Send an HTTP request to the service by running the [client](evaluator_optimizer/client.py):
+In the UI (`http://localhost:9070`), click on the `improve_until_good` handler of the `EvaluatorOptimizer` to open the playground and send a default request:
+<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/evaluator-playground.png" alt="Evaluator-optimizer pattern - UI"/>
 
-```shell
-uv run evaluator_client
-```
-
+In the UI, you can see how the LLM generates a response, and how the evaluator LLM evaluates it and asks for improvements until the response is satisfactory:
 <img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/evaluator.png" alt="Evaluator-optimizer pattern - UI"/>
 
 
@@ -161,30 +159,17 @@ You can see how the feedback gets incorporated in the Invocations tab in the Res
 <img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/human_in_the_loop.png" alt="Human-in-the-loop pattern - UI"/>
 
 
-#### Option 2: `run` handler
+### Long-lived, stateful Chat sessions
 [<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](human_in_the_loop/service.py)
 
-Repeatedly invoke the handler with feedback until the response is satisfactory.
+A chat session where the state is kept across multiple requests, and where a human can provide feedback on the LLM's responses.
 
-This is useful when the person providing feedback is the same as the one generating the response.
+Restate keeps the state. 
 
-Restate keeps the state 
+In the UI (`http://localhost:9070`), click on the `message` handler of the `Chat` service to open the playground and send a default request:
 
-Use the UI playground to test the human-in-the-loop.
-1. Go to the Restate UI at `http://localhost:9070`
-2. Click on the `HumanInTheLoopService` and then on the `Playground` button.
-3. Select the `run` handler and send it a message. For example:
+<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/human_in_the_loop.png" alt="Human-in-the-loop" width="900px"/>
 
-   <img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/human_in_the_loop.png" alt="Human-in-the-loop" width="900px"/>
+You can then provide feedback on the response by sending new messages to the same session:
 
-4. You can then provide feedback on the response and send it back to the handler.
-
-   <img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/human_in_the_loop_2.png" alt="Human-in-the-loop" width="900px"/>
-
-
-Alternatively, you can use `curl`:
-```shell
-curl localhost:8080/HumanInTheLoopService/giselle/run --json '"Write a poem about Durable Execution"'
-```
-
-And repeatedly do the same to provide feedback.
+<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/human_in_the_loop_2.png" alt="Human-in-the-loop" width="900px"/>

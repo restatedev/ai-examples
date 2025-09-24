@@ -29,7 +29,7 @@ class Prompt(BaseModel):
 @human_in_the_loop_svc.handler()
 async def run_with_promise(ctx: restate.ObjectContext, prompt: Prompt) -> str:
     """
-    OPTION 1: Human evaluator gives feedback via a promise.
+    Human evaluator gives feedback via a promise.
     This is a useful pattern when the original person requesting the task is not the one giving feedback.
     """
 
@@ -54,24 +54,7 @@ async def run_with_promise(ctx: restate.ObjectContext, prompt: Prompt) -> str:
         memory.append(result)
 
 
-@human_in_the_loop_svc.handler()
-async def run(ctx: restate.ObjectContext, task: str) -> str:
-    """
-    OPTION 2: Human evaluator gives feedback by sending a new request to the same stateful session.
-    This is a useful pattern when the original person requesting the task is also the one giving feedback.
-    """
-
-    memory = await ctx.get("memory") or []
-    result = await generate(ctx, task, memory)
-    memory.append(result)
-    ctx.set("memory", memory)
-
-    return result
-
-
 # UTILS
-
-
 async def generate(
     ctx: restate.Context,
     prompt: Prompt,
