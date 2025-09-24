@@ -10,8 +10,8 @@ import { fetchWeather } from "./utils/weather";
 // --------------------------------------------------------
 
 async function weatherAgent(restate: restate.Context, prompt: string) {
-  // we wrap the model with the 'durableCalls' middleware, which
-  // stores each response in Restate's journal, to be restored on retries
+  // The durableCalls middleware persists each LLM response in Restate,
+  // so they can be restored on retries without re-calling the LLM
   const model = wrapLanguageModel({
     model: openai("gpt-4o"),
     middleware: durableCalls(restate, { maxRetryAttempts: 3 }),
