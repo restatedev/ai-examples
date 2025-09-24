@@ -1,5 +1,6 @@
 import restate
-from util import llm_call
+from pydantic import BaseModel
+from util import llm_call, print_evaluation
 
 """
 LLM Iterative Improvement
@@ -13,6 +14,16 @@ Generate → Evaluate → [Pass/Improve] → Final Result
 
 evaluator_optimizer = restate.Service("EvaluatorOptimizer")
 
+example_prompt = (
+    "Write a Python function that finds the longest palindromic substring in a string. "
+    "It should be efficient and handle edge cases."
+)
+
+
+class Prompt(BaseModel):
+    message: str = example_prompt
+
+
 @evaluator_optimizer.handler()
 async def improve_until_good(ctx: restate.Context, task: str) -> str:
     """Iteratively improve a solution until it meets quality standards."""
@@ -24,32 +35,29 @@ async def improve_until_good(ctx: restate.Context, task: str) -> str:
         # Generate solution (with context from previous attempts)
         context = ""
         if attempts:
-            context = f"\nPrevious attempts that need improvement:\n" + "\n".join(f"- {a}" for a in attempts[-2:])
+            context = f"\nPrevious attempts that need improvement:\n" + "\n".join(
+                f"- {a}" for a in attempts[-2:]
+            )
 
-        solution = await ctx.run(
+        solution = await ctx.run_typed(
             f"generate_v{iteration+1}",
-            lambda: llm_call(f"""Create a Python function to solve this task.
-            Focus on correctness, efficiency, and readability.
-            {context}
-
-            Task: {task}""")
+            llm_call,
+            system="Create a Python function to solve this task. Focus on correctness, efficiency, and readability.",
+            prompt=f" Previous attempts: {context} - Task: {task}" "",
         )
 
         # Evaluate the solution
-        evaluation = await ctx.run(
+        evaluation = await ctx.run_typed(
             f"evaluate_v{iteration+1}",
-            lambda: llm_call(f"""Evaluate this solution. Reply with either:
+            llm_call,
+            prompt=f"""Evaluate this solution. Reply with either:
             'PASS: [brief reason]' if the solution is correct and well-implemented
             'IMPROVE: [specific issues to fix]' if it needs work
 
             Task: {task}
-            Solution: {solution}""")
+            Solution: {solution}""",
         )
-
-        print(f"Iteration {iteration+1}:")
-        print(f"Solution: {solution[:100]}...")
-        print(f"Evaluation: {evaluation}")
-        print("-" * 50)
+        print_evaluation(iteration, solution, evaluation)
 
         if evaluation.startswith("PASS"):
             return solution

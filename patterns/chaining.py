@@ -21,8 +21,10 @@ example_prompt = """Q3 Performance Summary:
         Market share is now at 23% in our primary market.
         Customer churn decreased to 5% from 8%."""
 
+
 class Prompt(BaseModel):
     message: str = example_prompt
+
 
 @call_chaining_svc.handler()
 async def run(ctx: restate.Context, prompt: Prompt) -> str:
@@ -33,7 +35,7 @@ async def run(ctx: restate.Context, prompt: Prompt) -> str:
         "Extract metrics",
         llm_call,
         prompt=f"Extract only the numerical values and their associated metrics from the text. "
-               f"Format each as 'metric name: metric' on a new line. Input: {prompt}",
+        f"Format each as 'metric name: metric' on a new line. Input: {prompt}",
     )
 
     # Step 2: Process the result from Step 1

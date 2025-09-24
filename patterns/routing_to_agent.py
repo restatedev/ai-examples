@@ -25,6 +25,7 @@ Other examples:
     "What's the best way to organize my dashboard widgets?"
 """
 
+
 class Prompt(BaseModel):
     message: str = example_prompt
 
@@ -33,6 +34,7 @@ class Prompt(BaseModel):
 
 routing_svc = restate.Service("RoutingService")
 
+
 @routing_svc.handler()
 async def route(ctx: restate.Context, request: str) -> str:
     """Classify request and route to appropriate specialized agent."""
@@ -40,7 +42,8 @@ async def route(ctx: restate.Context, request: str) -> str:
     # Classify the request
     route_key = await ctx.run(
         "classify_request",
-        lambda: llm_call(f"""Classify this support request into one category: {list(AGENTS)}
+        lambda: llm_call(
+            f"""Classify this support request into one category: {list(AGENTS)}
 
         billing: payments, charges, refunds, plans
         account: login, password, security, access
@@ -48,7 +51,8 @@ async def route(ctx: restate.Context, request: str) -> str:
 
         Reply with only the category name.
 
-        Request: {request}""")
+        Request: {request}"""
+        ),
     )
 
     agent_service = route_key.strip().lower()
@@ -66,42 +70,52 @@ async def route(ctx: restate.Context, request: str) -> str:
 # Billing Support Agent
 billing_agent = restate.Service("billing")
 
+
 @billing_agent.handler()
 async def run(ctx: restate.Context, prompt: str) -> str:
     return await ctx.run(
         "billing_response",
-        lambda: llm_call(f"""You are a billing support specialist.
+        lambda: llm_call(
+            f"""You are a billing support specialist.
         Acknowledge the billing issue, explain charges clearly, provide next steps with timeline.
         Keep responses professional but friendly.
 
-        Input: {prompt}""")
+        Input: {prompt}"""
+        ),
     )
+
 
 # Account Security Agent
 account_agent = restate.Service("account")
+
 
 @account_agent.handler()
 async def run(ctx: restate.Context, prompt: str) -> str:
     return await ctx.run(
         "account_response",
-        lambda: llm_call(f"""You are an account security specialist.
+        lambda: llm_call(
+            f"""You are an account security specialist.
         Prioritize account security and verification, provide clear recovery steps, include security tips.
         Maintain a serious, security-focused tone.
 
-        Input: {prompt}""")
+        Input: {prompt}"""
+        ),
     )
 
 
 # Product Support Agent
 product_agent = restate.Service("product")
 
+
 @product_agent.handler()
 async def run(ctx: restate.Context, prompt: str) -> str:
     return await ctx.run(
         "product_response",
-        lambda: llm_call(f"""You are a product specialist.
+        lambda: llm_call(
+            f"""You are a product specialist.
         Focus on feature education and best practices, include specific examples, suggest related features.
         Be educational and encouraging in tone.
 
-        Input: {prompt}""")
+        Input: {prompt}"""
+        ),
     )

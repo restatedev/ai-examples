@@ -22,8 +22,10 @@ example_prompt = """Our Q3 results exceeded all expectations! Customer satisfact
       worked incredibly hard to deliver these outcomes despite supply chain challenges. Our
       market share increased to 23%, and we're well-positioned for continued growth in Q4."""
 
+
 class Prompt(BaseModel):
     message: str = example_prompt
+
 
 @parallelization_svc.handler()
 async def analyze_text(ctx: restate.Context, prompt: Prompt) -> list[str]:
@@ -33,19 +35,17 @@ async def analyze_text(ctx: restate.Context, prompt: Prompt) -> list[str]:
     sentiment_task = ctx.run_typed(
         "Analyze sentiment",
         llm_call,
-        prompt=f"Analyze sentiment (positive/negative/neutral): {prompt}"
+        prompt=f"Analyze sentiment (positive/negative/neutral): {prompt}",
     )
 
     key_points_task = ctx.run_typed(
         "Extract key points",
         llm_call,
-        prompt=f"Extract 3 key points as bullets: {prompt}"
+        prompt=f"Extract 3 key points as bullets: {prompt}",
     )
 
     summary_task = ctx.run_typed(
-        "Summarize",
-        llm_call,
-        prompt=f"Summarize in one sentence: {prompt}"
+        "Summarize", llm_call, prompt=f"Summarize in one sentence: {prompt}"
     )
 
     # Wait for all tasks to complete

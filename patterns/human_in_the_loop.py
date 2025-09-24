@@ -1,5 +1,7 @@
 import restate
 
+from pydantic import BaseModel
+
 from util import llm_call
 
 """
@@ -15,37 +17,40 @@ If the human answers one week or one month later, the session can be recovered a
 
 human_in_the_loop_svc = restate.VirtualObject("HumanInTheLoopService")
 
+# Example input text to analyze
+# Ask as feedback to make it funnier, or more technical, etc.
+example_prompt = "Write a poem about Durable Execution"
+
+
+class Prompt(BaseModel):
+    message: str = example_prompt
+
 
 @human_in_the_loop_svc.handler()
 async def run_with_promise(
-    ctx: restate.ObjectContext, task: str
-) -> tuple[str, list[dict]]:
+    ctx: restate.ObjectContext, prompt: Prompt
+) -> str:
     """
     OPTION 1: Human evaluator gives feedback via a promise.
     This is a useful pattern when the original person requesting the task is not the one giving feedback.
     """
 
     # Generate the initial solution
-    result = await generate(ctx, task)
-
+    result = await generate(ctx, prompt)
     # Store the result in memory
-    memory = await ctx.get("memory") or []
-    memory.append(result)
-    ctx.set("memory", memory)
-
+    memory = [result]
     while True:
         # Durable promise that waits for human feedback
-        id, feedback_promise = ctx.awakeable()
+        id, feedback_promise = ctx.awakeable(type_hint=str)
         await ctx.run("ask human feedback", lambda: ask_for_feedback(id))
         human_feedback = await feedback_promise
 
         # Check if the human feedback is a PASS
         if human_feedback == "PASS":
-            return result, memory
+            return f"Final accepted solution:\n{result} \n\n Memory of attempts:\n" + "\n".join(memory)
 
-        result = await generate(ctx, task, memory, human_feedback)
+        result = await generate(ctx, prompt, memory, human_feedback)
         memory.append(result)
-        ctx.set("memory", memory)
 
 
 @human_in_the_loop_svc.handler()
@@ -67,7 +72,7 @@ async def run(ctx: restate.ObjectContext, task: str) -> str:
 
 
 async def generate(
-    ctx: restate.Context, task: str, memory: str = "", human_feedback: str = ""
+    ctx: restate.Context, prompt: Prompt, memory: list[str] = None, human_feedback: str = ""
 ) -> str:
     """Generate and improve a solution based on feedback."""
     llm_context = "\n".join(
@@ -77,13 +82,9 @@ async def generate(
             f"\nFeedback: {human_feedback}",
         ]
     )
-    full_prompt = f"{llm_context}\nTask: {task}" if llm_context else f"Task: {task}"
+    full_prompt = f"{llm_context}\nTask: {prompt}" if llm_context else f"Task: {prompt}"
     result = await ctx.run("LLM call", lambda: llm_call(full_prompt))
-
-    print("\n=== GENERATION START ===")
     print(f"Generated:\n{result}")
-    print("=== GENERATION END ===\n")
-
     return result
 
 
