@@ -56,15 +56,15 @@ async def route(ctx: restate.Context, prompt: Prompt) -> str:
 
         Reply with only the category name.
 
-        Request: {prompt.message}"""
+        Request: {prompt.message}""",
     )
-
-    agent_service = AGENTS.get(route_key.strip().lower()) or "ProductAgent"
+    category = route_key.strip().lower()
+    agent_service = AGENTS.get(category) or "ProductAgent"
 
     # Route to specialized agent
     response = await ctx.generic_call(
         agent_service,
-        f"{agent_service}_run",
+        f"get_{category}_support",
         arg=json.dumps(prompt.message).encode("utf-8"),
     )
 
@@ -78,7 +78,7 @@ billing_agent = restate.Service("BillingAgent")
 
 
 @billing_agent.handler()
-async def billing_run(ctx: restate.Context, prompt: str) -> str:
+async def get_billing_support(ctx: restate.Context, prompt: str) -> str:
     return await ctx.run_typed(
         "billing_response",
         llm_call,
@@ -87,7 +87,7 @@ async def billing_run(ctx: restate.Context, prompt: str) -> str:
         Acknowledge the billing issue, explain charges clearly, provide next steps with timeline.
         Keep responses professional but friendly.
 
-        Input: {prompt}"""
+        Input: {prompt}""",
     )
 
 
@@ -96,7 +96,7 @@ account_agent = restate.Service("AccountAgent")
 
 
 @account_agent.handler()
-async def account_run(ctx: restate.Context, prompt: str) -> str:
+async def get_account_support(ctx: restate.Context, prompt: str) -> str:
     return await ctx.run_typed(
         "account_response",
         llm_call,
@@ -105,7 +105,7 @@ async def account_run(ctx: restate.Context, prompt: str) -> str:
         Prioritize account security and verification, provide clear recovery steps, include security tips.
         Maintain a serious, security-focused tone.
 
-        Input: {prompt}"""
+        Input: {prompt}""",
     )
 
 
@@ -114,7 +114,7 @@ product_agent = restate.Service("ProductAgent")
 
 
 @product_agent.handler()
-async def product_run(ctx: restate.Context, prompt: str) -> str:
+async def get_product_support(ctx: restate.Context, prompt: str) -> str:
     return await ctx.run_typed(
         "product_response",
         llm_call,
@@ -123,5 +123,5 @@ async def product_run(ctx: restate.Context, prompt: str) -> str:
         Focus on feature education and best practices, include specific examples, suggest related features.
         Be educational and encouraging in tone.
 
-        Input: {prompt}"""
+        Input: {prompt}""",
     )
