@@ -18,6 +18,7 @@ The Restate approach works **independent of specific SDKs** but **integrates eas
 ### Restate + Vercel AI SDK
 
 - **[<img src="https://skillicons.dev/icons?i=ts" width="24" height="24"> Template](vercel-ai/template)**
+- [Tour of Agents: Restate + Vercel AI SDK](vercel-ai/tour-of-agents): A step-by-step tutorial showing how to build resilient agents with Restate and the Vercel AI SDK.
 - [More examples (including Next.js, multi-agent, etc.)](vercel-ai/examples).
 
 ### Restate + OpenAI Agent SDK
@@ -53,6 +54,7 @@ Restate is a flexible general-purpose runtime for what we call _innately resilie
 
 1. [**Restate + Vercel AI**](vercel-ai): 
    - [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24"> Template](vercel-ai/template): A minimal example of how to use Restate with the Vercel AI SDK.
+   - [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24"> Tour of Agents: Restate + Vercel AI SDK](vercel-ai/tour-of-agents): A step-by-step tutorial showing how to build resilient agents with Restate and the Vercel AI SDK.
    - [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24"> Examples](vercel-ai/examples): A more advanced example of how to use Restate with the Vercel AI SDK that can be deployed as a Next.js app on Vercel.
 2. [**Restate + OpenAI Agents Python SDK**](openai-agents): 
    - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Template](openai-agents/template): A minimal example of how to use Restate with the OpenAI Agents SDK.
@@ -60,10 +62,12 @@ Restate is a flexible general-purpose runtime for what we call _innately resilie
 2. [**Patterns**](patterns) for hardening custom LLM orchestration logic.
    - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Chaining LLM calls](patterns#chaining-llm-calls)
    - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Parallelizing tool calls](patterns#parallelizing-tool-calls)
-   - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Dynamic routing based on LLM output](patterns#dynamic-routing-based-on-llm-output)
+   - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Dynamic tool routing based on LLM output](patterns#dynamic-routing-to-tools-based-on-llm-output)
+   - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Multi-agent routing based on LLM output](patterns#multi-agent-routing-based-on-llm-output)
    - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Orchestrator-worker](patterns#orchestrator-worker-pattern)
    - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Evaluator-optimizer](patterns#evaluator-optimizer-pattern)
    - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Human-in-the-loop](patterns#human-in-the-loop-pattern)
+   - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Chat sessions](patterns#long-lived-stateful-chat-sessions)
 3. [**MCP** <img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](mcp): Using Restate for exposing tools and resilient orchestration of tool calls.
 4. [**A2A** <img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> ](a2a): Implement Google's Agent-to-Agent protocol with Restate as resilient, scalable task orchestrator.
 5. [**Advanced examples**](end-to-end-applications): 
