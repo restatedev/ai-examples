@@ -8,6 +8,7 @@ from app.utils.utils import (
 )
 
 
+# <start_here>
 @function_tool
 async def human_approval(
     wrapper: RunContextWrapper[restate.Context], claim: InsuranceClaim
@@ -27,9 +28,8 @@ async def human_approval(
     )
 
     # Wait for human approval
-    approval_result = await approval_promise
-
-    return f"Human approval result: {'Approved' if approval_result else 'Rejected'}"
+    return await approval_promise
+# <end_here>
 
 
 claim_approval_agent = Agent[restate.Context](
@@ -56,15 +56,3 @@ async def run(restate_context: restate.Context, message: str) -> str:
     )
 
     return result.final_output
-
-
-@agent_service.handler()
-async def resolve_approval(restate_context: restate.Context, data: dict) -> str:
-    """Resolve a pending human approval."""
-    awakeable_id = data["awakeable_id"]
-    approval = data["approval"]  # boolean
-
-    # Resolve the awakeable
-    restate_context.resolve_awakeable(awakeable_id, approval)
-
-    return f"Approval {'granted' if approval else 'denied'} for awakeable {awakeable_id}"

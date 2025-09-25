@@ -1,26 +1,21 @@
 import restate
 from agents import Agent, RunConfig, Runner
-from agents.extensions.handoff_prompt import RECOMMENDED_PROMPT_PREFIX
 from restate import VirtualObject, ObjectContext, ObjectSharedContext
 
 from app.utils.middleware import DurableModelCalls
 
 chat_agent = Agent[restate.ObjectContext](
-    name="Triage Agent",
-    handoff_description="A triage agent that can delegate a customer's request to the appropriate agent.",
-    instructions=(
-        f"{RECOMMENDED_PROMPT_PREFIX} "
-        "You are a helpful triaging agent. You can use your tools to delegate questions to other appropriate agents."
-    )
+    name="Assistant",
+    instructions="You are a helpful assistant."
 )
 
 chat = VirtualObject("Chat")
 
 @chat.handler()
-async def message(restate_context: ObjectContext, req: dict) -> dict:
+async def message(restate_context: ObjectContext, message: str) -> dict:
 
     messages = await restate_context.get("messages") or []
-    messages.append({"role": "user", "content": req["message"]})
+    messages.append({"role": "user", "content": message})
 
     result = await Runner.run(
         chat_agent,

@@ -28,7 +28,7 @@ class WeatherResponse(BaseModel):
 
 # <start_weather>
 async def fetch_weather(city: str) -> WeatherResponse:
-    fail_on_denver(city)
+    # fail_on_denver(city)
     weather_data = await call_weather_api(city)
     return parse_weather_data(weather_data)
 

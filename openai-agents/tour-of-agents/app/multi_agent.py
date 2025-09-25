@@ -1,36 +1,40 @@
 import restate
-from agents import Agent, RunConfig, Runner, function_tool, RunContextWrapper
+from agents import Agent, RunConfig, Runner
 
 from app.utils.middleware import DurableModelCalls
-from app.utils.utils import (
-    InsuranceClaim,
-    check_eligibility,
-    check_fraud,
+from app.utils.utils import InsuranceClaim
+
+
+eligibility_agent = Agent[restate.Context](
+    name="EligibilityAgent",
+    handoff_description="You are a helpful agent that analyzes insurance claim eligibility.",
+    instructions="Decide whether the following claim is eligible for reimbursement." +
+    "Respond with eligible if it's a medical claim, and not eligible otherwise.",
 )
 
+rate_comparison_agent = Agent[restate.Context](
+    name="RateComparisonAgent",
+    handoff_description="You are a helpful agent that analyzes whether the claim amount is reasonable.",
+    instructions="Decide whether the cost of the claim is reasonable given the treatment." +
+          "Respond with reasonable or not reasonable.",
+)
 
-@function_tool
-async def analyze_eligibility(
-    wrapper: RunContextWrapper[restate.Context], claim: InsuranceClaim
-) -> str:
-    """Analyze eligibility result using durable execution."""
-    restate_context = wrapper.context
-    return await restate_context.run_typed("Eligibility analysis", check_eligibility, claim=claim)
-
-
-@function_tool
-async def analyze_fraud(
-    wrapper: RunContextWrapper[restate.Context], claim: InsuranceClaim
-) -> str:
-    """Analyze probability of fraud using durable execution."""
-    restate_context = wrapper.context
-    return await restate_context.run_typed("Fraud analysis", check_fraud, claim=claim)
+fraud_agent = Agent[restate.Context](
+    name="FraudCheckAgent",
+    handoff_description="You are a helpful agent that analyzes the probability of insurance fraud.",
+    instructions="Decide whether the claim is fraudulent." +
+          "Always respond with low risk, medium risk, or high risk."
+)
 
 
 multi_agent_coordinator = Agent[restate.Context](
     name="MultiAgentClaimApproval",
     instructions="You are a claim approval engine. Analyze the claim and use your tools to decide whether to approve it.",
-    tools=[analyze_eligibility, analyze_fraud],
+    tools=[
+        eligibility_agent.as_tool(),
+        rate_comparison_agent.as_tool(),
+        fraud_agent.as_tool()
+    ]
 )
 
 

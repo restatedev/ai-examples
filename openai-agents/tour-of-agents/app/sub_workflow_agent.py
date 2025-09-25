@@ -8,40 +8,31 @@ from app.utils.utils import (
 )
 
 
+# <start_wf>
 # Sub-workflow service for human approval
 human_approval_workflow = restate.Service("HumanApprovalWorkflow")
 
 
-@human_approval_workflow.handler()
-async def request_approval(restate_context: restate.Context, claim: InsuranceClaim) -> bool:
+@human_approval_workflow.handler("requestApproval")
+async def request_approval(restate_context: restate.Context, claim: InsuranceClaim) -> str:
     """Request human approval for a claim and wait for response."""
-    # Create an awakeable that can be resolved by external input
-    approval_awakeable = restate_context.awakeable()
+    # Create an awakeable that can be resolved via HTTP
+    approval_id, approval_promise = restate_context.awakeable(type_hint=str)
 
     # Request human review
     await restate_context.run_typed(
         "Request human review",
         request_human_review,
         message=f"Please review: {claim.model_dump_json()}",
-        awakeable_id=approval_awakeable.id
+        awakeable_id=approval_id
     )
 
-    # Wait for the awakeable to be resolved
-    return await approval_awakeable.promise
+    # Wait for human approval
+    return await approval_promise
+# <end_wf>
 
 
-@human_approval_workflow.handler()
-async def resolve_approval(restate_context: restate.Context, data: dict) -> str:
-    """Resolve a pending human approval."""
-    awakeable_id = data["awakeable_id"]
-    approval = data["approval"]  # boolean
-
-    # Resolve the awakeable
-    restate_context.resolve_awakeable(awakeable_id, approval)
-
-    return f"Approval {'granted' if approval else 'denied'} for awakeable {awakeable_id}"
-
-
+# <start_here>
 @function_tool
 async def human_approval(
     wrapper: RunContextWrapper[restate.Context], claim: InsuranceClaim
@@ -50,14 +41,15 @@ async def human_approval(
     restate_context = wrapper.context
 
     # Call the human approval sub-workflow
-    approval_result = await restate_context.service_client(human_approval_workflow).request_approval(claim)
-
-    return f"Human approval result: {'Approved' if approval_result else 'Rejected'}"
+    return await restate_context.service_call(request_approval, claim)
+# <end_here>
 
 
 sub_workflow_agent = Agent[restate.Context](
-    name="SubWorkflowClaimApprovalAgent",
-    instructions="You are an insurance claim evaluation agent that uses sub-workflows for human approval. Use these rules: if the amount is more than 1000, ask for human approval; if the amount is less than 1000, decide by yourself.",
+    name="ClaimApprovalAgent",
+    instructions="You are an insurance claim evaluation agent. "
+                 "Use these rules: if the amount is more than 1000, ask for human approval; "
+                 "if the amount is less than 1000, decide by yourself.",
     tools=[human_approval],
 )
 
