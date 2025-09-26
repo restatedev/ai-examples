@@ -1,5 +1,5 @@
 import restate
-from agents import Agent, RunConfig, Runner, function_tool, RunContextWrapper
+from agents import Agent, RunConfig, Runner, function_tool, RunContextWrapper, ModelSettings
 
 from app.utils.middleware import DurableModelCalls
 from app.utils.utils import (
@@ -10,43 +10,27 @@ from app.utils.utils import (
 )
 
 
+# <start_here>
 @function_tool
 async def calculate_metrics(
     wrapper: RunContextWrapper[restate.Context], claim: InsuranceClaim
-) -> dict:
-    """Calculate all claim metrics in parallel."""
+) -> list[str]:
+    """Calculate claim metrics."""
     restate_context = wrapper.context
 
-    # Execute each calculation as a separate durable step
-    eligibility_result = await restate_context.run_typed(
-        "eligibility",
-        check_eligibility,
-        claim=claim
+    # Run tools/steps in parallel with durable execution
+    results_done = await restate.gather(
+        restate_context.run_typed("eligibility", check_eligibility,claim=claim),
+        restate_context.run_typed("cost", compare_to_standard_rates, claim=claim),
+        restate_context.run_typed("fraud", check_fraud, claim=claim)
     )
-
-    cost_result = await restate_context.run_typed(
-        "cost",
-        compare_to_standard_rates,
-        claim=claim
-    )
-
-    fraud_result = await restate_context.run_typed(
-        "fraud",
-        check_fraud,
-        claim=claim
-    )
-
-    return {
-        "eligibility": eligibility_result,
-        "cost": cost_result,
-        "fraud": fraud_result,
-        "processed_at": "parallel"
-    }
+    return [await result for result in results_done]
+# <end_here>
 
 
 parallel_tools_agent = Agent[restate.Context](
     name="ParallelToolsAgent",
-    instructions="You are a claim analysis agent that uses parallel tools to analyze insurance claims efficiently.",
+    instructions="You are a claim analysis agent that analyzes insurance claims.",
     tools=[calculate_metrics],
 )
 
@@ -61,7 +45,9 @@ async def run(restate_context: restate.Context, claim: InsuranceClaim) -> str:
         input=f"Analyze the claim {claim.model_dump_json()}. Use your tools to calculate key metrics and decide whether to approve.",
         context=restate_context,
         run_config=RunConfig(
-            model="gpt-4o", model_provider=DurableModelCalls(restate_context)
+            model="gpt-4o",
+            model_provider=DurableModelCalls(restate_context, max_retries=3),
+            model_settings=ModelSettings(parallel_tool_calls=False)
         ),
     )
 

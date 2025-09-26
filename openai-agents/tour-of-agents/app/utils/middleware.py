@@ -2,11 +2,13 @@ import restate
 
 from agents import (
     Usage,
-    Model,
-    TResponseInputItem,
+    Model, default_tool_error_function, RunContextWrapper,
 )
 from agents.models.multi_provider import MultiProvider
 from agents.items import TResponseStreamEvent, TResponseOutputItem
+from agents.memory.session import SessionABC
+from agents.items import TResponseInputItem
+from typing import List, Any
 from typing import AsyncIterator
 
 from pydantic import BaseModel
@@ -37,12 +39,13 @@ class DurableModelCalls(MultiProvider):
     A Restate model provider that wraps the OpenAI SDK's default MultiProvider.
     """
 
-    def __init__(self, ctx: restate.Context):
+    def __init__(self, ctx: restate.Context, max_retries: int | None = 3):
         super().__init__()
         self.ctx = ctx
+        self.max_retries = max_retries
 
     def get_model(self, model_name: str | None) -> Model:
-        return RestateModelWrapper(self.ctx, super().get_model(model_name or None))
+        return RestateModelWrapper(self.ctx, super().get_model(model_name or None), self.max_retries)
 
 
 class RestateModelWrapper(Model):
@@ -50,10 +53,11 @@ class RestateModelWrapper(Model):
     A wrapper around the OpenAI SDK's Model that persists LLM calls in the Restate journal.
     """
 
-    def __init__(self, ctx: restate.Context, model: Model):
+    def __init__(self, ctx: restate.Context, model: Model, max_retries: int | None = None):
         self.ctx = ctx
         self.model = model
         self.model_name = f"RestateModelWrapper"
+        self.max_retries = max_retries
 
     async def get_response(self, *args, **kwargs) -> RestateModelResponse:
         async def call_llm() -> RestateModelResponse:
@@ -64,9 +68,52 @@ class RestateModelWrapper(Model):
                 response_id=resp.response_id,
             )
 
-        return await self.ctx.run("call LLM", call_llm, max_attempts=3)
+        return await self.ctx.run_typed("call LLM", call_llm, restate.RunOptions(max_attempts=self.max_retries))
 
     def stream_response(self, *args, **kwargs) -> AsyncIterator[TResponseStreamEvent]:
         raise restate.TerminalError(
             "Streaming is not supported in Restate. Use `get_response` instead."
         )
+
+
+class RestateSession(SessionABC):
+    """Restate session implementation following the Session protocol."""
+
+    def __init__(self, session_id: str, ctx: restate.ObjectContext | restate.ObjectSharedContext  | restate.WorkflowContext | restate.WorkflowSharedContext):
+        self.session_id = session_id
+        self.ctx = ctx
+        # Your initialization here
+
+    async def get_items(self, limit: int | None = None) -> List[TResponseInputItem]:
+        """Retrieve conversation history for this session."""
+        current_items = await self.ctx.get("items", type_hint=List[TResponseInputItem])  or []
+        print("Current items:", current_items)
+        if limit is not None:
+            return current_items[-limit:]
+        return current_items
+
+    async def add_items(self, items: List[TResponseInputItem]) -> None:
+        """Store new items for this session."""
+        # Your implementation here
+        current_items = await self.get_items()
+        self.ctx.set("items", current_items + items)
+
+    async def pop_item(self) -> TResponseInputItem | None:
+        """Remove and return the most recent item from this session."""
+        items = await self.get_items()
+        if items:
+            item = items.pop()
+            self.ctx.set("items", items)
+            return item
+        return None
+
+    async def clear_session(self) -> None:
+        """Clear all items for this session."""
+        self.ctx.clear("items")
+
+
+def raise_terminal_error(context: RunContextWrapper[Any], error: Exception) -> str:
+    """A custom function to provide a user-friendly error message."""
+    if isinstance(error, restate.TerminalError):
+        raise error
+    return default_tool_error_function(context, error)

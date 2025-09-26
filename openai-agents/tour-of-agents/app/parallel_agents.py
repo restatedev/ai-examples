@@ -1,5 +1,5 @@
 import restate
-from agents import Agent, RunConfig, Runner, function_tool, RunContextWrapper
+from agents import Agent, RunConfig, Runner, function_tool, RunContextWrapper, ModelSettings
 
 from app.utils.middleware import DurableModelCalls
 from app.utils.utils import (
@@ -54,7 +54,9 @@ async def run(restate_context: restate.Context, claim: InsuranceClaim) -> str:
         input=f"Analyze this insurance claim comprehensively: {claim.model_dump_json()}. Use all available tools to evaluate eligibility, cost, and fraud risk before making your final decision.",
         context=restate_context,
         run_config=RunConfig(
-            model="gpt-4o", model_provider=DurableModelCalls(restate_context)
+            model="gpt-4o",
+            model_provider=DurableModelCalls(restate_context, max_retries=3),
+            model_settings=ModelSettings(parallel_tool_calls=False)
         ),
     )
 
