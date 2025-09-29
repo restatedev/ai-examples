@@ -10,6 +10,7 @@ from app.sub_workflow_agent import (
     human_approval_workflow
 )
 from app.multi_agent import agent_service as multi_agent_claim_approval
+from app.multi_agent_remote import fraud_agent_service, agent_service as remote_multi_agent_claim_approval
 from app.human_approval_agent import agent_service as human_claim_approval_agent
 from app.human_approval_agent_with_timeout import agent_service as human_claim_approval_with_timeouts_agent
 from app.advanced.rollback_agent import agent_service as booking_with_rollback_agent
@@ -29,6 +30,7 @@ app = restate.app(
 
         # Orchestration
         multi_agent_claim_approval,
+        remote_multi_agent_claim_approval,
         sub_workflow_claim_approval_agent,
         human_approval_workflow,
 
@@ -45,6 +47,9 @@ app = restate.app(
         # Parallel processing
         parallel_agent_claim_approval,
         parallel_tool_claim_agent,
+
+        # Utils
+        fraud_agent_service
     ]
 )
 

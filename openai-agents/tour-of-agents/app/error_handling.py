@@ -38,12 +38,10 @@ async def run(restate_context: restate.Context, message: str) -> str:
         result = await Runner.run(
             weather_agent,
             input=message,
-            # Pass the Restate context to tools to make tool execution steps durable
             context=restate_context,
-            # Choose any model and let Restate persist your calls
             run_config=RunConfig(
                 model="gpt-4o",
-                model_provider=DurableModelCalls(restate_context, max_retries=3),
+                model_provider=DurableModelCalls(restate_context, max_retries=2),
                 model_settings=ModelSettings(parallel_tool_calls=False)
             ),
         )

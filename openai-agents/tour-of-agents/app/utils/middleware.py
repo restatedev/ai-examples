@@ -53,7 +53,7 @@ class RestateModelWrapper(Model):
     A wrapper around the OpenAI SDK's Model that persists LLM calls in the Restate journal.
     """
 
-    def __init__(self, ctx: restate.Context, model: Model, max_retries: int | None = None):
+    def __init__(self, ctx: restate.Context, model: Model, max_retries: int | None = 3):
         self.ctx = ctx
         self.model = model
         self.model_name = f"RestateModelWrapper"

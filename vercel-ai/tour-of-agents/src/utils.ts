@@ -191,8 +191,7 @@ export const CarBookingSchema = z.object({
 
 export type CarBooking = z.infer<typeof CarBookingSchema>;
 
-export async function reserveHotel({ name, guests, dates }: HotelBooking) {
-  const id = crypto.randomUUID().toString();
+export async function reserveHotel(id: string, { name, guests, dates }: HotelBooking) {
   console.log(`Created hotel booking ${id}`);
   return {
     id,
@@ -200,13 +199,12 @@ export async function reserveHotel({ name, guests, dates }: HotelBooking) {
   };
 }
 
-export async function reserveFlight({
+export async function reserveFlight(id: string, {
   from,
   to,
   date,
   passengers,
 }: FlightBooking) {
-  const id = crypto.randomUUID().toString();
   console.log(`Created flight booking ${id}`);
   return {
     id,
@@ -214,14 +212,13 @@ export async function reserveFlight({
   };
 }
 
-export async function reserveCar({ type, location, dates }: CarBooking) {
+export async function reserveCar(id: string, { type, location, dates }: CarBooking) {
   if (type === "SUV") {
     const message = `[👻 SIMULATED] "Car booking failed: No SUVs available..."`;
     console.error(message);
     throw new restate.TerminalError(message);
   }
 
-  const id = crypto.randomUUID().toString();
   console.log(`Created car booking ${id}`);
   return {
     id,

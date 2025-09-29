@@ -23,7 +23,8 @@ import {
 // <start_here>
 const book = async (ctx: restate.Context, { prompt }: { prompt: string }) => {
   const on_rollback: { (): restate.RestatePromise<any> }[] = [];
-  const on_success: { (): restate.RestatePromise<any> }[] = [];
+
+  const bookingId = ctx.rand.uuidv4();
 
   const model = wrapLanguageModel({
     model: openai("gpt-4o"),
@@ -34,63 +35,33 @@ const book = async (ctx: restate.Context, { prompt }: { prompt: string }) => {
     const { text } = await generateText({
       model,
       system: `Book a complete travel package with the requirements in the prompt.
-        Use the tools to request booking of hotel, flight, car.`,
+        Use the tools to request booking of hotels and flights.`,
       prompt,
       tools: {
         bookHotel: tool({
           description: "Book a hotel reservation",
           inputSchema: HotelBookingSchema,
           execute: async (req: HotelBooking) => {
-            const result = await ctx.run("book-hotel", () => reserveHotel(req));
-            on_success.push(() =>
-              ctx.run("confirm-hotel", () => confirmHotel(result.id)),
-            );
-            on_rollback.push(() =>
-              ctx.run("cancel-hotel", () => cancelHotel(result.id)),
-            );
-            return result;
+            on_rollback.push(() => ctx.run("cancel-hotel", () => cancelHotel(bookingId)));
+            return ctx.run("book-hotel", () => reserveHotel(bookingId, req));
           },
         }),
         bookFlight: tool({
           description: "Book a flight",
           inputSchema: FlightBookingSchema,
           execute: async (req: FlightBooking) => {
-            const result = await ctx.run("book-flight", () =>
-              reserveFlight(req),
-            );
-            on_success.push(() =>
-              ctx.run("confirm-flight", () => confirmFlight(result.id)),
-            );
             on_rollback.push(() =>
-              ctx.run("cancel-flight", () => cancelFlight(result.id)),
+                ctx.run("cancel-flight", () => cancelFlight(bookingId)),
             );
-            return result;
+            return ctx.run("book-flight", () => reserveFlight(bookingId, req));
           },
         }),
-        bookCar: tool({
-          description: "Book a car rental",
-          inputSchema: CarBookingSchema,
-          execute: async (req: CarBooking) => {
-            const result = await ctx.run("book-car", () => reserveCar(req));
-            on_success.push(() =>
-              ctx.run("confirm-car", () => confirmCar(result.id)),
-            );
-            on_rollback.push(() =>
-              ctx.run("cancel-car", () => cancelCar(result.id)),
-            );
-            return result;
-          },
-        }),
+        // ... similar for car rental ...
       },
       stopWhen: [stepCountIs(10)],
       onStepFinish: rethrowTerminalToolError,
       providerOptions: { openai: { parallelToolCalls: false } },
     });
-
-    for (const confirm of on_success) {
-      await confirm();
-    }
-
     return text;
   } catch (error) {
     console.log("Error occurred, rolling back all bookings...");

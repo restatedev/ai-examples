@@ -2,11 +2,8 @@ import restate
 from agents import Agent, RunConfig, Runner, function_tool, RunContextWrapper
 
 from app.utils.middleware import DurableModelCalls
-from app.utils.utils import (
-    fetch_weather,
-    WeatherRequest,
-    WeatherResponse,
-)
+from app.utils.utils import fetch_weather
+from app.utils.models import WeatherRequest, WeatherResponse
 
 
 @function_tool

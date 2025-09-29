@@ -1,34 +1,13 @@
 import httpx
 import restate
-from openai import OpenAI
-from typing import Dict, Any, List, Optional
-from pydantic import BaseModel
+from typing import Dict, Any
 
-
-class InsuranceClaim(BaseModel):
-    """Insurance claim data structure."""
-    id: str
-    amount: float
-    description: str
-    claimant: str
-
-
-class WeatherRequest(BaseModel):
-    """Request to get the weather for a city."""
-
-    city: str
-
-
-class WeatherResponse(BaseModel):
-    """Request to get the weather for a city."""
-
-    temperature: float
-    description: str
+from app.utils.models import WeatherResponse, InsuranceClaim, BookingResult, FlightBooking, HotelBooking
 
 
 # <start_weather>
 async def fetch_weather(city: str) -> WeatherResponse:
-    # fail_on_denver(city)
+    fail_on_denver(city)
     weather_data = await call_weather_api(city)
     return parse_weather_data(weather_data)
 
@@ -78,93 +57,6 @@ async def request_human_review(message: str, awakeable_id: str) -> None:
     print("   [In a real system, this would notify a human reviewer]")
 
 
-def get_openai_client() -> OpenAI:
-    """Get OpenAI client with environment configuration."""
-    return OpenAI()
-
-
-class DurableOpenAIWrapper:
-    """Wrapper for OpenAI client with Restate durability."""
-
-    def __init__(self, ctx: restate.Context, max_retries: int = 3):
-        self.ctx = ctx
-        self.max_retries = max_retries
-        self.client = get_openai_client()
-
-    async def chat_completions_create(self, **kwargs):
-        """Create chat completion with durability."""
-        return await self.ctx.run_typed(
-            "openai-chat-completion",
-            self._create_chat_completion,
-            **kwargs
-        )
-
-    def _create_chat_completion(self, **kwargs):
-        """Internal method to create chat completion."""
-        return self.client.chat.completions.create(**kwargs)
-
-
-# Agent service stubs for multi-agent orchestration
-class EligibilityAgent:
-    """Eligibility analysis agent."""
-
-    async def run(self, ctx: restate.Context, claim: InsuranceClaim) -> str:
-        """Analyze claim eligibility."""
-        client = DurableOpenAIWrapper(ctx)
-
-        response = await client.chat_completions_create(
-            model="gpt-4o",
-            messages=[
-                {"role": "system", "content": "You are an eligibility analysis agent for insurance claims. Analyze the claim and provide a detailed eligibility assessment."},
-                {"role": "user", "content": f"Analyze this claim for eligibility: {claim.model_dump_json()}"}
-            ]
-        )
-
-        return response.choices[0].message.content
-
-
-class FraudCheckAgent:
-    """Fraud detection agent."""
-
-    async def run(self, ctx: restate.Context, claim: InsuranceClaim) -> str:
-        """Check claim for potential fraud."""
-        client = DurableOpenAIWrapper(ctx)
-
-        response = await client.chat_completions_create(
-            model="gpt-4o",
-            messages=[
-                {"role": "system", "content": "You are a fraud detection agent for insurance claims. Analyze the claim for potential fraud indicators."},
-                {"role": "user", "content": f"Analyze this claim for fraud: {claim.model_dump_json()}"}
-            ]
-        )
-
-        return response.choices[0].message.content
-
-
-class RateComparisonAgent:
-    """Rate comparison agent."""
-
-    async def run(self, ctx: restate.Context, claim: InsuranceClaim) -> str:
-        """Compare claim costs to standard rates."""
-        client = DurableOpenAIWrapper(ctx)
-
-        response = await client.chat_completions_create(
-            model="gpt-4o",
-            messages=[
-                {"role": "system", "content": "You are a rate comparison agent for insurance claims. Compare the claim amount to standard rates and provide cost analysis."},
-                {"role": "user", "content": f"Analyze cost for this claim: {claim.model_dump_json()}"}
-            ]
-        )
-
-        return response.choices[0].message.content
-
-
-# Global agent instances
-eligibility_agent = EligibilityAgent()
-fraud_check_agent = FraudCheckAgent()
-rate_comparison_agent = RateComparisonAgent()
-
-
 # Additional utility functions for parallel processing
 async def check_eligibility(claim: InsuranceClaim) -> Dict[str, Any]:
     """Check claim eligibility (simplified version)."""
@@ -208,49 +100,9 @@ async def check_fraud(claim: InsuranceClaim) -> Dict[str, Any]:
 
 
 
-# Booking-related models and functions for advanced examples
-
-class HotelBooking(BaseModel):
-    """Hotel booking data structure."""
-    location: str
-    checkin_date: str
-    checkout_date: str
-    guests: int
-    room_type: str = "standard"
 
 
-class FlightBooking(BaseModel):
-    """Flight booking data structure."""
-    origin: str
-    destination: str
-    departure_date: str
-    return_date: Optional[str] = None
-    passengers: int
-    class_type: str = "economy"
-
-
-class CarBooking(BaseModel):
-    """Car rental booking data structure."""
-    location: str
-    pickup_date: str
-    return_date: str
-    car_type: str = "compact"
-
-class BookingRequest(BaseModel):
-    """Booking request data structure."""
-    hotel: Optional[HotelBooking] = None
-    flight: Optional[FlightBooking] = None
-    car: Optional[CarBooking] = None
-
-
-class BookingResult(BaseModel):
-    """Booking result structure."""
-    id: str
-    status: str
-    details: Dict[str, Any]
-
-
-async def reserve_hotel(booking: HotelBooking) -> BookingResult:
+async def reserve_hotel(booking_id: str, booking: HotelBooking) -> BookingResult:
     """Reserve a hotel (simulated)."""
     import uuid
     booking_id = str(uuid.uuid4())
@@ -273,7 +125,7 @@ async def reserve_hotel(booking: HotelBooking) -> BookingResult:
     )
 
 
-async def reserve_flight(booking: FlightBooking) -> BookingResult:
+async def reserve_flight(booking_id: str, booking: FlightBooking) -> BookingResult:
     """Reserve a flight (simulated)."""
     import uuid
     booking_id = str(uuid.uuid4())
@@ -297,24 +149,6 @@ async def reserve_flight(booking: FlightBooking) -> BookingResult:
     )
 
 
-async def reserve_car(booking: CarBooking) -> BookingResult:
-    """Reserve a car (simulated)."""
-    import uuid
-    booking_id = str(uuid.uuid4())
-    print(f"🚗 Reserving {booking.car_type} car in {booking.location}")
-
-    return BookingResult(
-        id=booking_id,
-        status="reserved",
-        details={
-            "location": booking.location,
-            "pickup": booking.pickup_date,
-            "return": booking.return_date,
-            "car_type": booking.car_type
-        }
-    )
-
-
 async def confirm_hotel(booking_id: str) -> str:
     """Confirm hotel booking."""
     print(f"✅ Confirming hotel booking {booking_id}")
@@ -327,25 +161,12 @@ async def confirm_flight(booking_id: str) -> str:
     return f"Flight booking {booking_id} confirmed"
 
 
-async def confirm_car(booking_id: str) -> str:
-    """Confirm car booking."""
-    print(f"✅ Confirming car booking {booking_id}")
-    return f"Car booking {booking_id} confirmed"
-
-
-async def cancel_hotel(booking_id: str) -> str:
+async def cancel_hotel(booking_id: str) -> None:
     """Cancel hotel booking."""
     print(f"❌ Cancelling hotel booking {booking_id}")
-    return f"Hotel booking {booking_id} cancelled"
 
 
-async def cancel_flight(booking_id: str) -> str:
+async def cancel_flight(booking_id: str) -> None:
     """Cancel flight booking."""
     print(f"❌ Cancelling flight booking {booking_id}")
-    return f"Flight booking {booking_id} cancelled"
 
-
-async def cancel_car(booking_id: str) -> str:
-    """Cancel car booking."""
-    print(f"❌ Cancelling car booking {booking_id}")
-    return f"Car booking {booking_id} cancelled"

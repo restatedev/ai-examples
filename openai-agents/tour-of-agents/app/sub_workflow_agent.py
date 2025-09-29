@@ -65,7 +65,7 @@ async def run(restate_context: restate.Context, message: str) -> str:
         context=restate_context,
         run_config=RunConfig(
             model="gpt-4o",
-            model_provider=DurableModelCalls(restate_context, max_retries=3),
+            model_provider=DurableModelCalls(restate_context),
             model_settings=ModelSettings(parallel_tool_calls=False)
         ),
     )
