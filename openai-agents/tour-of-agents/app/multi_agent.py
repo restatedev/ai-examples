@@ -4,38 +4,37 @@ from agents import Agent, RunConfig, Runner, ModelSettings, handoff, RunContextW
 from app.utils.middleware import DurableModelCalls, RestateSession
 from app.utils.utils import InsuranceClaim
 
-eligibility_agent = Agent[restate.ObjectContext](
-    name="EligibilityAgent",
-    handoff_description="You are a helpful agent that analyzes insurance claim eligibility.",
-    instructions="Decide whether the following claim is eligible for reimbursement."
-    "Respond with eligible if it's a medical claim, and not eligible otherwise.",
+intake_agent = Agent[restate.ObjectContext](
+    name="IntakeAgent",
+    instructions="Route insurance claims to the appropriate specialist: medical, auto, or property.",
 )
 
-fraud_agent = Agent[restate.ObjectContext](
-    name="FraudCheckAgent",
-    handoff_description="You are a helpful agent that analyzes the probability of insurance fraud.",
-    instructions="Decide whether the claim is fraudulent."
-    "Always respond with low risk, medium risk, or high risk.",
+medical_specialist = Agent[restate.ObjectContext](
+    name="MedicalSpecialist",
+    handoff_description="I handle medical insurance claims from intake to final decision.",
+    instructions="Review medical claims for coverage and necessity. Approve/deny up to $50,000.",
 )
 
-claim_approval_coordinator = Agent[restate.ObjectContext](
-    name="ClaimApprovalCoordinator",
-    instructions="You are a claim approval engine. Analyze the claim and use your tools to decide whether to approve it.",
-    # example of handoff usage
-    handoffs=[eligibility_agent],
-    # example of agent as tool usage
-    tools=[
-        fraud_agent.as_tool(
-            tool_name="fraud_check",
-            tool_description="Analyze the probability of fraud",
-        )
-    ],
+auto_specialist = Agent[restate.ObjectContext](
+    name="AutoSpecialist",
+    handoff_description="I handle auto insurance claims from intake to final decision.",
+    instructions="Assess auto claims for liability and damage. Approve/deny up to $25,000.",
 )
+
+property_specialist = Agent[restate.ObjectContext](
+    name="PropertySpecialist",
+    handoff_description="I handle property insurance claims from intake to final decision.",
+    instructions="Evaluate property damage claims and coverage. Approve/deny up to $100,000.",
+)
+
+# Configure handoffs so intake agent can route to specialists
+intake_agent.handoffs = [medical_specialist, auto_specialist, property_specialist]
 
 agent_dict = {
-    "EligibilityAgent": eligibility_agent,
-    "FraudCheckAgent": fraud_agent,
-    "ClaimApprovalCoordinator": claim_approval_coordinator,
+    "IntakeAgent": intake_agent,
+    "MedicalSpecialist": medical_specialist,
+    "AutoSpecialist": auto_specialist,
+    "PropertySpecialist": property_specialist,
 }
 
 agent_service = restate.VirtualObject("MultiAgentClaimApproval")
@@ -47,9 +46,9 @@ async def run(restate_context: restate.ObjectContext, claim: InsuranceClaim) -> 
     # Store context in Restate's key-value store
     last_agent_name = (
         await restate_context.get("last_agent_name", type_hint=str)
-        or "ClaimApprovalCoordinator"
+        or "IntakeAgent"
     )
-    last_agent = agent_dict.get(last_agent_name, claim_approval_coordinator)
+    last_agent = agent_dict.get(last_agent_name, intake_agent)
 
     restate_session = await RestateSession.create(session_id=restate_context.key(), ctx=restate_context)
     result = await Runner.run(
