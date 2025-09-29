@@ -1,13 +1,20 @@
 import restate
 
-from agents import Agent, RunConfig, Runner, function_tool, RunContextWrapper, ModelSettings
+from agents import (
+    Agent,
+    RunConfig,
+    Runner,
+    function_tool,
+    RunContextWrapper,
+    ModelSettings,
+)
 
-from app.utils.middleware import DurableModelCalls
+from app.utils.middleware import DurableModelCalls, raise_restate_errors
 from app.utils.models import WeatherPrompt, WeatherRequest, WeatherResponse
 from app.utils.utils import fetch_weather
 
 
-@function_tool
+@function_tool(failure_error_function=raise_restate_errors)
 async def get_weather(
     wrapper: RunContextWrapper[restate.Context], req: WeatherRequest
 ) -> WeatherResponse:
@@ -39,7 +46,7 @@ async def run(restate_context: restate.Context, prompt: WeatherPrompt) -> str:
         run_config=RunConfig(
             model="gpt-4o",
             model_provider=DurableModelCalls(restate_context),
-            model_settings=ModelSettings(parallel_tool_calls=False)
+            model_settings=ModelSettings(parallel_tool_calls=False),
         ),
     )
 

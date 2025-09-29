@@ -1,12 +1,12 @@
 import restate
 from agents import Agent, RunConfig, Runner, function_tool, RunContextWrapper
 
-from app.utils.middleware import DurableModelCalls
+from app.utils.middleware import DurableModelCalls, raise_restate_errors
 from app.utils.utils import fetch_weather
 from app.utils.models import WeatherRequest, WeatherResponse
 
 
-@function_tool
+@function_tool(failure_error_function=raise_restate_errors)
 async def get_weather(
     wrapper: RunContextWrapper[restate.Context], req: WeatherRequest
 ) -> WeatherResponse:

@@ -1,8 +1,12 @@
+import asyncio
 import restate
 
 from agents import (
     Usage,
-    Model, default_tool_error_function, RunContextWrapper,
+    Model,
+    default_tool_error_function,
+    RunContextWrapper,
+    AgentsException,
 )
 from agents.models.multi_provider import MultiProvider
 from agents.items import TResponseStreamEvent, TResponseOutputItem
@@ -12,6 +16,7 @@ from typing import List, Any
 from typing import AsyncIterator
 
 from pydantic import BaseModel
+from restate.vm import SuspendedException
 
 
 # The OpenAI ModelResponse class is a dataclass with Pydantic fields.
@@ -45,7 +50,9 @@ class DurableModelCalls(MultiProvider):
         self.max_retries = max_retries
 
     def get_model(self, model_name: str | None) -> Model:
-        return RestateModelWrapper(self.ctx, super().get_model(model_name or None), self.max_retries)
+        return RestateModelWrapper(
+            self.ctx, super().get_model(model_name or None), self.max_retries
+        )
 
 
 class RestateModelWrapper(Model):
@@ -68,7 +75,9 @@ class RestateModelWrapper(Model):
                 response_id=resp.response_id,
             )
 
-        return await self.ctx.run_typed("call LLM", call_llm, restate.RunOptions(max_attempts=self.max_retries))
+        return await self.ctx.run_typed(
+            "call LLM", call_llm, restate.RunOptions(max_attempts=self.max_retries)
+        )
 
     def stream_response(self, *args, **kwargs) -> AsyncIterator[TResponseStreamEvent]:
         raise restate.TerminalError(
@@ -79,41 +88,97 @@ class RestateModelWrapper(Model):
 class RestateSession(SessionABC):
     """Restate session implementation following the Session protocol."""
 
-    def __init__(self, session_id: str, ctx: restate.ObjectContext | restate.ObjectSharedContext  | restate.WorkflowContext | restate.WorkflowSharedContext):
+    def __init__(
+        self,
+        session_id: str,
+        ctx: (
+            restate.ObjectContext
+            | restate.ObjectSharedContext
+            | restate.WorkflowContext
+            | restate.WorkflowSharedContext
+        ),
+        current_items: List[TResponseInputItem],
+    ):
         self.session_id = session_id
         self.ctx = ctx
-        # Your initialization here
+        self.current_items = current_items
+
+    @classmethod
+    async def create(
+        cls,
+        session_id: str,
+        ctx: (
+            restate.ObjectContext
+            | restate.ObjectSharedContext
+            | restate.WorkflowContext
+            | restate.WorkflowSharedContext
+        ),
+    ):
+        current_items = await ctx.get("items", type_hint=List[TResponseInputItem]) or []
+        return cls(session_id, ctx, current_items)
+
 
     async def get_items(self, limit: int | None = None) -> List[TResponseInputItem]:
         """Retrieve conversation history for this session."""
-        current_items = await self.ctx.get("items", type_hint=List[TResponseInputItem])  or []
-        print("Current items:", current_items)
         if limit is not None:
-            return current_items[-limit:]
-        return current_items
+            return self.current_items[-limit:]
+        return self.current_items
 
     async def add_items(self, items: List[TResponseInputItem]) -> None:
         """Store new items for this session."""
         # Your implementation here
-        current_items = await self.get_items()
-        self.ctx.set("items", current_items + items)
+        self.ctx.set("items", self.current_items + items)
 
     async def pop_item(self) -> TResponseInputItem | None:
         """Remove and return the most recent item from this session."""
-        items = await self.get_items()
-        if items:
-            item = items.pop()
-            self.ctx.set("items", items)
+        if self.current_items:
+            item = self.current_items.pop()
+            self.ctx.set("items", self.current_items)
             return item
         return None
 
     async def clear_session(self) -> None:
         """Clear all items for this session."""
+        self.current_items = []
         self.ctx.clear("items")
 
 
-def raise_terminal_error(context: RunContextWrapper[Any], error: Exception) -> str:
+class AgentsTerminalException(AgentsException, restate.TerminalError):
+    """Exception that is both an AgentsException and a restate.TerminalError."""
+
+    def __init__(self, *args: object) -> None:
+        super().__init__(*args)
+
+
+class AgentsSuspension(AgentsException, SuspendedException):
+    """Exception that is both an AgentsException and a restate.TerminalError."""
+
+    def __init__(self, *args: object) -> None:
+        super().__init__(*args)
+
+
+class AgentsAsyncioSuspension(AgentsException, asyncio.CancelledError):
+    """Exception that is both an AgentsException and a restate.TerminalError."""
+
+    def __init__(self, *args: object) -> None:
+        super().__init__(*args)
+
+
+def raise_restate_errors(context: RunContextWrapper[Any], error: Exception) -> str:
     """A custom function to provide a user-friendly error message."""
+    # Raise terminal errors and cancellations
     if isinstance(error, restate.TerminalError):
-        raise error
+        # For the agent SDK it needs to be an AgentsException, for restate it needs to be a TerminalError
+        # so we create a new exception that inherits from both
+        raise AgentsTerminalException(error)
+
+    # Raise suspensions
+    if isinstance(error, SuspendedException):
+        raise AgentsSuspension(error)
+
+    # Next Python SDK release will use CancelledError for suspensions
+    if isinstance(error, asyncio.CancelledError):
+        raise AgentsAsyncioSuspension(error)
+
+    # Feed all other errors back to the agent
     return default_tool_error_function(context, error)

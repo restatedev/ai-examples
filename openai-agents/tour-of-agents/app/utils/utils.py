@@ -2,7 +2,13 @@ import httpx
 import restate
 from typing import Dict, Any
 
-from app.utils.models import WeatherResponse, InsuranceClaim, BookingResult, FlightBooking, HotelBooking
+from app.utils.models import (
+    WeatherResponse,
+    InsuranceClaim,
+    BookingResult,
+    FlightBooking,
+    HotelBooking,
+)
 
 
 # <start_weather>
@@ -49,12 +55,13 @@ def parse_weather_data(weather_data: dict) -> WeatherResponse:
     )
 
 
-
-async def request_human_review(message: str, awakeable_id: str) -> None:
+async def request_human_review(claim: InsuranceClaim, awakeable_id: str) -> None:
     """Simulate requesting human review."""
-    print(f"🔔 Human review requested: {message}")
-    print(f"   Awakeable ID: {awakeable_id}")
-    print("   [In a real system, this would notify a human reviewer]")
+    print(f"🔔 Human review requested: {claim.model_dump_json()}")
+    print(f"  Submit your claim review via: \n ")
+    print(
+        f"  curl localhost:8080/restate/awakeables/{awakeable_id}/resolve --json 'true'"
+    )
 
 
 # Additional utility functions for parallel processing
@@ -62,8 +69,12 @@ async def check_eligibility(claim: InsuranceClaim) -> Dict[str, Any]:
     """Check claim eligibility (simplified version)."""
     return {
         "eligible": claim.amount <= 10000,
-        "reason": "Within standard limits" if claim.amount <= 10000 else "Exceeds maximum coverage",
-        "score": min(100, max(0, 100 - (claim.amount / 100)))
+        "reason": (
+            "Within standard limits"
+            if claim.amount <= 10000
+            else "Exceeds maximum coverage"
+        ),
+        "score": min(100, max(0, 100 - (claim.amount / 100))),
     }
 
 
@@ -76,7 +87,11 @@ async def compare_to_standard_rates(claim: InsuranceClaim) -> Dict[str, Any]:
         "standard_rate": standard_rate,
         "claim_amount": claim.amount,
         "ratio": ratio,
-        "assessment": "within_normal" if ratio <= 2.0 else "above_normal" if ratio <= 5.0 else "exceptional"
+        "assessment": (
+            "within_normal"
+            if ratio <= 2.0
+            else "above_normal" if ratio <= 5.0 else "exceptional"
+        ),
     }
 
 
@@ -94,23 +109,25 @@ async def check_fraud(claim: InsuranceClaim) -> Dict[str, Any]:
 
     return {
         "risk_score": risk_score,
-        "risk_level": "low" if risk_score < 25 else "medium" if risk_score < 50 else "high",
-        "indicators": []
+        "risk_level": (
+            "low" if risk_score < 25 else "medium" if risk_score < 50 else "high"
+        ),
+        "indicators": [],
     }
-
-
-
 
 
 async def reserve_hotel(booking_id: str, booking: HotelBooking) -> BookingResult:
     """Reserve a hotel (simulated)."""
     import uuid
+
     booking_id = str(uuid.uuid4())
     print(f"🏨 Reserving hotel in {booking.location} for {booking.guests} guests")
 
     # Simulate potential failure for certain locations
     if booking.location.lower() == "atlantis":
-        raise Exception(f"[👻 SIMULATED] Hotel booking failed: No hotels available in {booking.location}")
+        raise Exception(
+            f"[👻 SIMULATED] Hotel booking failed: No hotels available in {booking.location}"
+        )
 
     return BookingResult(
         id=booking_id,
@@ -120,20 +137,23 @@ async def reserve_hotel(booking_id: str, booking: HotelBooking) -> BookingResult
             "checkin": booking.checkin_date,
             "checkout": booking.checkout_date,
             "guests": booking.guests,
-            "room_type": booking.room_type
-        }
+            "room_type": booking.room_type,
+        },
     )
 
 
 async def reserve_flight(booking_id: str, booking: FlightBooking) -> BookingResult:
     """Reserve a flight (simulated)."""
     import uuid
+
     booking_id = str(uuid.uuid4())
     print(f"✈️ Reserving flight from {booking.origin} to {booking.destination}")
 
     # Simulate potential failure for certain routes
     if booking.origin.lower() == booking.destination.lower():
-        raise Exception(f"[👻 SIMULATED] Flight booking failed: Origin and destination cannot be the same")
+        raise Exception(
+            f"[👻 SIMULATED] Flight booking failed: Origin and destination cannot be the same"
+        )
 
     return BookingResult(
         id=booking_id,
@@ -144,8 +164,8 @@ async def reserve_flight(booking_id: str, booking: FlightBooking) -> BookingResu
             "departure": booking.departure_date,
             "return": booking.return_date,
             "passengers": booking.passengers,
-            "class": booking.class_type
-        }
+            "class": booking.class_type,
+        },
     )
 
 
@@ -169,4 +189,3 @@ async def cancel_hotel(booking_id: str) -> None:
 async def cancel_flight(booking_id: str) -> None:
     """Cancel flight booking."""
     print(f"❌ Cancelling flight booking {booking_id}")
-
