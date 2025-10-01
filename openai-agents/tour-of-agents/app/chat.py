@@ -10,7 +10,9 @@ chat = VirtualObject("Chat")
 @chat.handler()
 async def message(restate_context: ObjectContext, chat_message: ChatMessage) -> dict:
 
-    restate_session = await RestateSession.create(session_id=restate_context.key(), ctx=restate_context)
+    restate_session = await RestateSession.create(
+        session_id=restate_context.key(), ctx=restate_context
+    )
 
     result = await Runner.run(
         Agent("Assistant", "You are a helpful assistant."),

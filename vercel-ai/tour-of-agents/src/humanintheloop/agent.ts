@@ -32,10 +32,7 @@ export default restate.service({
             execute: async (claim: InsuranceClaim): Promise<boolean> => {
               const approval = ctx.awakeable<boolean>();
               await ctx.run("request-review", () =>
-                requestHumanReview(
-                  `Please review: ${JSON.stringify(claim)}`,
-                  approval.id,
-                ),
+                requestHumanReview(claim, approval.id),
               );
               return approval.promise;
             },

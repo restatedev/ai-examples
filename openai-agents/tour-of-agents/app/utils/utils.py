@@ -1,7 +1,8 @@
 import httpx
 import restate
-from typing import Dict, Any
+from agents import Runner, Agent, RunConfig, ModelSettings
 
+from app.utils.middleware import DurableModelCalls
 from app.utils.models import (
     WeatherResponse,
     InsuranceClaim,
@@ -65,107 +66,36 @@ async def request_human_review(claim: InsuranceClaim, awakeable_id: str) -> None
 
 
 # Additional utility functions for parallel processing
-async def check_eligibility(claim: InsuranceClaim) -> Dict[str, Any]:
+async def check_eligibility(claim: InsuranceClaim) -> str:
     """Check claim eligibility (simplified version)."""
-    return {
-        "eligible": claim.amount <= 10000,
-        "reason": (
-            "Within standard limits"
-            if claim.amount <= 10000
-            else "Exceeds maximum coverage"
-        ),
-        "score": min(100, max(0, 100 - (claim.amount / 100))),
-    }
+    return "eligible"
 
 
-async def compare_to_standard_rates(claim: InsuranceClaim) -> Dict[str, Any]:
+async def compare_to_standard_rates(claim: InsuranceClaim) -> str:
     """Compare claim to standard rates (simplified version)."""
-    standard_rate = 500.0  # Simplified standard rate
-    ratio = claim.amount / standard_rate
-
-    return {
-        "standard_rate": standard_rate,
-        "claim_amount": claim.amount,
-        "ratio": ratio,
-        "assessment": (
-            "within_normal"
-            if ratio <= 2.0
-            else "above_normal" if ratio <= 5.0 else "exceptional"
-        ),
-    }
+    return "reasonable"
 
 
-async def check_fraud(claim: InsuranceClaim) -> Dict[str, Any]:
+async def check_fraud(claim: InsuranceClaim) -> str:
     """Check for fraud indicators (simplified version)."""
     # Simple fraud detection based on claim characteristics
-    risk_score = 0
-
-    if claim.amount > 5000:
-        risk_score += 30
-    if "urgent" in claim.description.lower():
-        risk_score += 20
-    if len(claim.description) < 10:
-        risk_score += 25
-
-    return {
-        "risk_score": risk_score,
-        "risk_level": (
-            "low" if risk_score < 25 else "medium" if risk_score < 50 else "high"
-        ),
-        "indicators": [],
-    }
-
+    return "low risk"
 
 async def reserve_hotel(booking_id: str, booking: HotelBooking) -> BookingResult:
     """Reserve a hotel (simulated)."""
-    import uuid
-
-    booking_id = str(uuid.uuid4())
     print(f"🏨 Reserving hotel in {booking.location} for {booking.guests} guests")
-
-    # Simulate potential failure for certain locations
-    if booking.location.lower() == "atlantis":
-        raise Exception(
-            f"[👻 SIMULATED] Hotel booking failed: No hotels available in {booking.location}"
-        )
-
     return BookingResult(
         id=booking_id,
-        status="reserved",
-        details={
-            "location": booking.location,
-            "checkin": booking.checkin_date,
-            "checkout": booking.checkout_date,
-            "guests": booking.guests,
-            "room_type": booking.room_type,
-        },
+        confirmation=f"Hotel ${booking.name} booked for ${booking.guests} guests on ${booking.checkin_date}",
     )
 
 
 async def reserve_flight(booking_id: str, booking: FlightBooking) -> BookingResult:
     """Reserve a flight (simulated)."""
-    import uuid
-
-    booking_id = str(uuid.uuid4())
     print(f"✈️ Reserving flight from {booking.origin} to {booking.destination}")
-
-    # Simulate potential failure for certain routes
-    if booking.origin.lower() == booking.destination.lower():
-        raise Exception(
-            f"[👻 SIMULATED] Flight booking failed: Origin and destination cannot be the same"
-        )
-
     return BookingResult(
         id=booking_id,
-        status="reserved",
-        details={
-            "origin": booking.origin,
-            "destination": booking.destination,
-            "departure": booking.departure_date,
-            "return": booking.return_date,
-            "passengers": booking.passengers,
-            "class": booking.class_type,
-        },
+        confirmation=f"Flight from {booking.origin} to {booking.destination} on {booking.departure_date} for {booking.passengers} passengers"
     )
 
 
@@ -189,3 +119,67 @@ async def cancel_hotel(booking_id: str) -> None:
 async def cancel_flight(booking_id: str) -> None:
     """Cancel flight booking."""
     print(f"❌ Cancelling flight booking {booking_id}")
+
+
+eligibility_agent_service = restate.Service("EligibilityAgent")
+
+@eligibility_agent_service.handler()
+async def run_eligibility_agent(
+    restate_context: restate.Context, claim: InsuranceClaim
+) -> str:
+    result = await Runner.run(
+        Agent(
+            name="EligibilityAgent",
+            instructions="Decide whether the following claim is eligible for reimbursement."
+            "Respond with eligible if it's a medical claim, and not eligible otherwise.",
+        ),
+        input=claim.model_dump_json(),
+        run_config=RunConfig(
+            model="gpt-4o",
+            model_provider=DurableModelCalls(restate_context),
+            model_settings=ModelSettings(parallel_tool_calls=False),
+        ),
+    )
+    return result.final_output
+
+rate_comparison_agent_service = restate.Service("RateComparisonAgent")
+
+@rate_comparison_agent_service.handler()
+async def run_rate_comparison_agent(
+    restate_context: restate.Context, claim: InsuranceClaim
+) -> str:
+    result = await Runner.run(
+        Agent(
+            name="RateComparisonAgent",
+            instructions="Decide whether the cost of the claim is reasonable given the treatment." +
+            "Respond with reasonable or not reasonable.",
+        ),
+        input=claim.model_dump_json(),
+        run_config=RunConfig(
+            model="gpt-4o",
+            model_provider=DurableModelCalls(restate_context),
+            model_settings=ModelSettings(parallel_tool_calls=False),
+        ),
+    )
+    return result.final_output
+
+fraud_agent_service = restate.Service("FraudAgent")
+
+@fraud_agent_service.handler()
+async def run_fraud_agent(
+    restate_context: restate.Context, claim: InsuranceClaim
+) -> str:
+    result = await Runner.run(
+        Agent(
+            name="FraudAgent",
+            instructions="Decide whether the cost of the claim is reasonable given the treatment."
+            "Respond with reasonable or not reasonable.",
+        ),
+        input=claim.model_dump_json(),
+        run_config=RunConfig(
+            model="gpt-4o",
+            model_provider=DurableModelCalls(restate_context),
+            model_settings=ModelSettings(parallel_tool_calls=False),
+        ),
+    )
+    return result.final_output

@@ -10,11 +10,7 @@ from app.sub_workflow_agent import (
     human_approval_workflow,
 )
 from app.multi_agent import agent_service as multi_agent_claim_approval
-from app.multi_agent_remote import (
-    fraud_agent_service,
-    eligibility_agent_service,
-    agent_service as remote_multi_agent_claim_approval,
-)
+from app.multi_agent_remote import agent_service as remote_multi_agent_claim_approval
 from app.human_approval_agent import agent_service as human_claim_approval_agent
 from app.human_approval_agent_with_timeout import (
     agent_service as human_claim_approval_with_timeouts_agent,
@@ -24,6 +20,7 @@ from app.advanced.manual_loop_agent import agent_service as manual_loop_agent
 
 from app.parallel_agents import agent_service as parallel_agent_claim_approval
 from app.parallel_tools_agent import agent_service as parallel_tool_claim_agent
+from app.utils.utils import fraud_agent_service, rate_comparison_agent_service, eligibility_agent_service
 
 # Create Restate app with all tour services
 app = restate.app(
@@ -49,7 +46,8 @@ app = restate.app(
         parallel_tool_claim_agent,
         # Utils
         fraud_agent_service,
-        eligibility_agent_service
+        eligibility_agent_service,
+        rate_comparison_agent_service
     ]
 )
 

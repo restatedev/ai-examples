@@ -51,7 +51,8 @@ agent_service = restate.Service("ParallelToolClaimAgent")
 async def run(restate_context: restate.Context, claim: InsuranceClaim) -> str:
     result = await Runner.run(
         parallel_tools_agent,
-        input=f"Analyze the claim {claim.model_dump_json()}. Use your tools to calculate key metrics and decide whether to approve.",
+        input=f"Analyze the claim {claim.model_dump_json()}." 
+              "Use your tools to calculate key metrics and decide whether to approve.",
         context=restate_context,
         run_config=RunConfig(
             model="gpt-4o",
@@ -59,5 +60,4 @@ async def run(restate_context: restate.Context, claim: InsuranceClaim) -> str:
             model_settings=ModelSettings(parallel_tool_calls=False),
         ),
     )
-
     return result.final_output

@@ -117,7 +117,6 @@ class RestateSession(SessionABC):
         current_items = await ctx.get("items", type_hint=List[TResponseInputItem]) or []
         return cls(session_id, ctx, current_items)
 
-
     async def get_items(self, limit: int | None = None) -> List[TResponseInputItem]:
         """Retrieve conversation history for this session."""
         if limit is not None:

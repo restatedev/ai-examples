@@ -33,6 +33,7 @@ class InsuranceClaim(BaseModel):
 class WeatherRequest(BaseModel):
     """Request to get the weather for a city."""
 
+    model_config = ConfigDict(extra='forbid')
     city: str
 
 
@@ -53,7 +54,6 @@ class HotelBooking(BaseModel):
     checkin_date: str
     checkout_date: str
     guests: int
-    room_type: str = "standard"
 
 
 class FlightBooking(BaseModel):
@@ -62,9 +62,7 @@ class FlightBooking(BaseModel):
     origin: str
     destination: str
     departure_date: str
-    return_date: Optional[str] = None
     passengers: int
-    class_type: str = "economy"
 
 
 class BookingRequest(BaseModel):
@@ -79,5 +77,4 @@ class BookingResult(BaseModel):
     """Booking result structure."""
 
     id: str
-    status: str
-    details: Dict[str, Any]
+    confirmation: str

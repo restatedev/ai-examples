@@ -1,39 +1,73 @@
 import restate
-from agents import Agent, RunConfig, Runner, function_tool, RunContextWrapper
+from restate import Context
+from openai import OpenAI
+import json
 
-from app.utils.middleware import DurableModelCalls, raise_restate_errors
-from app.utils.utils import fetch_weather
 from app.utils.models import WeatherRequest, WeatherResponse
+from app.utils.utils import fetch_weather
+
+# Initialize OpenAI client
+client = OpenAI()
+
+# Tool definitions for OpenAI
+TOOLS = [
+    {
+        "type": "function",
+        "function": {
+            "name": "getWeather",
+            "description": "Get the current weather in a given location",
+            "parameters": WeatherRequest.model_json_schema()
+        }
+    }
+]
 
 
-@function_tool(failure_error_function=raise_restate_errors)
-async def get_weather(
-    wrapper: RunContextWrapper[restate.Context], req: WeatherRequest
-) -> WeatherResponse:
-    """Get the current weather for a given city."""
-    restate_context = wrapper.context
+async def get_weather(restate_context: Context, req: WeatherRequest) -> WeatherResponse:
+    """Get the current weather in a given location"""
     return await restate_context.run_typed("Get weather", fetch_weather, city=req.city)
 
 
-weather_agent = Agent[restate.Context](
-    name="ManualLoopWeatherAgent",
-    instructions="You are a helpful agent that provides weather updates using manual loop control for custom tool execution.",
-    tools=[get_weather],
-)
+manual_loop_agent = restate.Service("ManualLoopAgent")
 
 
-agent_service = restate.Service("ManualLoopAgent")
+@manual_loop_agent.handler()
+async def run(ctx: Context, prompt: str) -> str:
+    """Main agent loop with tool calling"""
+    messages = [{"role": "user", "content": prompt}]
 
+    while True:
+        # Call OpenAI with durable execution
+        response = await ctx.run(
+            "llm-call",
+            lambda: client.responses.completions.create(
+                model="gpt-4o",
+                messages=messages,
+                tools=TOOLS,
+                tool_choice="auto"
+            )
+        )
 
-@agent_service.handler()
-async def run(restate_context: restate.Context, message: str) -> str:
-    result = await Runner.run(
-        weather_agent,
-        input=message,
-        context=restate_context,
-        run_config=RunConfig(
-            model="gpt-4o", model_provider=DurableModelCalls(restate_context)
-        ),
-    )
+        response_message = response.choices[0].message
+        messages.append(response_message.model_dump(exclude_unset=True))
 
-    return result.final_output
+        # Check if we need to call tools
+        if response_message.tool_calls:
+            # Handle all tool calls
+            for tool_call in response_message.tool_calls:
+                function_name = tool_call.function.name
+                function_args = json.loads(tool_call.function.arguments)
+
+                if function_name == "getWeather":
+                    tool_output = await get_weather(ctx, function_args["city"])
+
+                    # Add tool response to messages
+                    messages.append({
+                        "role": "tool",
+                        "tool_call_id": tool_call.id,
+                        "content": json.dumps(tool_output)
+                    })
+                # Handle other tool calls here
+
+        else:
+            # No more tool calls, return final response
+            return response_message.content

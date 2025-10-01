@@ -7,18 +7,19 @@ import {
   fraudCheckAgent,
   rateComparisonAgent,
 } from "../utils";
-import {RestatePromise} from "@restatedev/restate-sdk";
-import {durableCalls} from "@restatedev/vercel-ai-middleware";
+import { RestatePromise } from "@restatedev/restate-sdk";
+import { durableCalls } from "@restatedev/vercel-ai-middleware";
 
 export default restate.service({
   name: "ParallelAgentClaimApproval",
   handlers: {
     run: async (ctx: restate.Context, claim: InsuranceClaim) => {
-      const [eligibility, rateComparison, fraudCheck] = await RestatePromise.all([
-        ctx.serviceClient(eligibilityAgent).run(claim),
-        ctx.serviceClient(rateComparisonAgent).run(claim),
-        ctx.serviceClient(fraudCheckAgent).run(claim),
-      ]);
+      const [eligibility, rateComparison, fraudCheck] =
+        await RestatePromise.all([
+          ctx.serviceClient(eligibilityAgent).run(claim),
+          ctx.serviceClient(rateComparisonAgent).run(claim),
+          ctx.serviceClient(fraudCheckAgent).run(claim),
+        ]);
 
       const model = wrapLanguageModel({
         model: openai("gpt-4o"),

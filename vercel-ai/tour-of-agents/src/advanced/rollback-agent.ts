@@ -1,19 +1,15 @@
 import * as restate from "@restatedev/restate-sdk";
 import { generateText, stepCountIs, tool, wrapLanguageModel } from "ai";
 import { openai } from "@ai-sdk/openai";
-import { durableCalls, rethrowTerminalToolError } from "@restatedev/vercel-ai-middleware";
+import {
+  durableCalls,
+  rethrowTerminalToolError,
+} from "@restatedev/vercel-ai-middleware";
 import {
   reserveHotel,
-  reserveCar,
   reserveFlight,
-  confirmHotel,
-  confirmCar,
-  confirmFlight,
-  cancelCar,
   cancelFlight,
   cancelHotel,
-  CarBooking,
-  CarBookingSchema,
   FlightBooking,
   FlightBookingSchema,
   HotelBooking,
@@ -42,7 +38,9 @@ const book = async (ctx: restate.Context, { prompt }: { prompt: string }) => {
           description: "Book a hotel reservation",
           inputSchema: HotelBookingSchema,
           execute: async (req: HotelBooking) => {
-            on_rollback.push(() => ctx.run("cancel-hotel", () => cancelHotel(bookingId)));
+            on_rollback.push(() =>
+              ctx.run("cancel-hotel", () => cancelHotel(bookingId)),
+            );
             return ctx.run("book-hotel", () => reserveHotel(bookingId, req));
           },
         }),
@@ -51,7 +49,7 @@ const book = async (ctx: restate.Context, { prompt }: { prompt: string }) => {
           inputSchema: FlightBookingSchema,
           execute: async (req: FlightBooking) => {
             on_rollback.push(() =>
-                ctx.run("cancel-flight", () => cancelFlight(bookingId)),
+              ctx.run("cancel-flight", () => cancelFlight(bookingId)),
             );
             return ctx.run("book-flight", () => reserveFlight(bookingId, req));
           },
@@ -74,6 +72,6 @@ const book = async (ctx: restate.Context, { prompt }: { prompt: string }) => {
 // <end_here>
 
 export default restate.service({
-  name: "BookingWithRollbackAgent",
+  name: "BookingAgent",
   handlers: { book },
 });

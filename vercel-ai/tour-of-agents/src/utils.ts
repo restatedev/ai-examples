@@ -57,8 +57,11 @@ async function parseWeatherResponse(output: string) {
   }
 }
 
-export function requestHumanReview(message: string, responseId: string = "") {
-  console.log(`>>> ${message} \n
+export function requestHumanReview(
+  claim: InsuranceClaim,
+  responseId: string = "",
+) {
+  console.log(`🔔 Human review requested: Please review: ${JSON.stringify(claim)} \n
   Submit your claim review via: \n
     curl localhost:8080/restate/awakeables/${responseId}/resolve --json 'true'
   `);
@@ -176,76 +179,45 @@ export const HotelBookingSchema = z.object({
 export type HotelBooking = z.infer<typeof HotelBookingSchema>;
 
 export const FlightBookingSchema = z.object({
-  from: z.string(),
-  to: z.string(),
+  origin: z.string(),
+  destination: z.string(),
   date: z.string(),
   passengers: z.number(),
 });
 export type FlightBooking = z.infer<typeof FlightBookingSchema>;
 
-export const CarBookingSchema = z.object({
-  location: z.string(),
-  dates: z.string(),
-  type: z.string(),
-});
-
-export type CarBooking = z.infer<typeof CarBookingSchema>;
-
-export async function reserveHotel(id: string, { name, guests, dates }: HotelBooking) {
-  console.log(`Created hotel booking ${id}`);
+export async function reserveHotel(
+  id: string,
+  { name, guests, dates }: HotelBooking,
+) {
+  console.log(`🏨 Created hotel booking ${id}`);
   return {
     id,
-    confirmation: `Hotel ${name} booked for ${guests} guests on ${dates}`,
+    confirmation: `🏨 Hotel ${name} booked for ${guests} guests on ${dates}`,
   };
 }
 
-export async function reserveFlight(id: string, {
-  from,
-  to,
-  date,
-  passengers,
-}: FlightBooking) {
-  console.log(`Created flight booking ${id}`);
-  return {
-    id,
-    confirmation: `Flight from ${from} to ${to} on ${date} for ${passengers} passengers`,
-  };
-}
-
-export async function reserveCar(id: string, { type, location, dates }: CarBooking) {
-  if (type === "SUV") {
-    const message = `[👻 SIMULATED] "Car booking failed: No SUVs available..."`;
+export async function reserveFlight(
+  id: string,
+  { origin, destination, date, passengers }: FlightBooking,
+) {
+  if (destination === "San Francisco" || destination === "SFO") {
+    const message = `[👻 SIMULATED] "Flight booking failed: No flights to SFO available..."`;
     console.error(message);
     throw new restate.TerminalError(message);
   }
-
-  console.log(`Created car booking ${id}`);
+  console.log(`✈️ Created flight booking ${id}`);
   return {
     id,
-    confirmation: `${type} car rental in ${location} for ${dates}`,
+    confirmation: `✈️ Flight from ${origin} to ${destination} on ${date} for ${passengers} passengers`,
   };
 }
 
-export async function confirmHotel(id: string) {
-  console.log(`Confirmed hotel booking ${id}`);
-}
-
-export async function confirmFlight(id: string) {
-  console.log(`Confirmed flight booking ${id}`);
-}
-
-export async function confirmCar(id: string) {
-  console.log(`Confirmed car booking ${id}`);
-}
 
 export async function cancelHotel(id: string) {
-  console.log(`Cancelled hotel booking ${id}`);
+  console.log(`🏨 Cancelled hotel booking ${id}`);
 }
 
 export async function cancelFlight(id: string) {
-  console.log(`Cancelled flight booking ${id}`);
-}
-
-export async function cancelCar(id: string) {
-  console.log(`Cancelled car booking ${id}`);
+  console.log(`✈️ Cancelled flight booking ${id}`);
 }

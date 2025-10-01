@@ -9,14 +9,15 @@ from agents import (
 )
 
 from app.utils.middleware import DurableModelCalls, raise_restate_errors
-from app.utils.utils import InsuranceClaim
+from app.utils.utils import InsuranceClaim, run_eligibility_agent, run_fraud_agent
+
 
 # Durable service call to the eligibility agent; persisted and retried by Restate
 @function_tool(failure_error_function=raise_restate_errors)
 async def check_eligibility(
     wrapper: RunContextWrapper[restate.Context], claim: InsuranceClaim
 ) -> str:
-    """"Analyze claim eligibility."""
+    """ "Analyze claim eligibility."""
     restate_context = wrapper.context
     return await restate_context.service_call(run_eligibility_agent, claim)
 
@@ -57,48 +58,3 @@ async def run(restate_context: restate.Context, claim: InsuranceClaim) -> str:
 
 
 # <end_here>
-
-# Fraud check agent
-# This can be deployed separately and called remotely
-fraud_agent_service = restate.Service("FraudCheckAgent")
-
-
-@fraud_agent_service.handler()
-async def run_fraud_agent(
-    restate_context: restate.Context, claim: InsuranceClaim
-) -> str:
-    result = await Runner.run(
-        Agent(
-            name="FraudCheckAgent",
-            instructions="You decide whether a claim is fraudulent."
-            "Always respond with low risk, medium risk, or high risk.",
-        ),
-        f"Claim: {claim.model_dump_json()}",
-        run_config=RunConfig(
-            model="gpt-4o", model_provider=DurableModelCalls(restate_context)
-        ),
-    )
-    return result.final_output
-
-
-# Fraud check agent
-# This can be deployed separately and called remotely
-eligibility_agent_service = restate.Service("EligibilityAgent")
-
-
-@eligibility_agent_service.handler()
-async def run_eligibility_agent(
-    restate_context: restate.Context, claim: InsuranceClaim
-) -> str:
-    result = await Runner.run(
-        Agent(
-            name="FraudCheckAgent",
-            instructions="You decide whether a claim is fraudulent."
-            "Always respond with low risk, medium risk, or high risk.",
-        ),
-        f"Claim: {claim.model_dump_json()}",
-        run_config=RunConfig(
-            model="gpt-4o", model_provider=DurableModelCalls(restate_context)
-        ),
-    )
-    return result.final_output
