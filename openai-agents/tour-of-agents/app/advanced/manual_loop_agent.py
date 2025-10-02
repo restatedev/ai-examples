@@ -1,4 +1,7 @@
 import restate
+from openai.types.chat import ChatCompletion
+from openai.types.responses import Response
+from pydantic import BaseModel
 from restate import Context
 from openai import OpenAI
 import json
@@ -9,14 +12,14 @@ from app.utils.utils import fetch_weather
 # Initialize OpenAI client
 client = OpenAI()
 
-# Tool definitions for OpenAI
+# Tool definitions
 TOOLS = [
     {
         "type": "function",
         "function": {
-            "name": "getWeather",
-            "description": "Get the current weather in a given location",
-            "parameters": WeatherRequest.model_json_schema()
+            "name": "get_weather",
+            "parameters": WeatherRequest.model_json_schema(),
+            "description": "Get the current weather in a given location"
         }
     }
 ]
@@ -30,44 +33,41 @@ async def get_weather(restate_context: Context, req: WeatherRequest) -> WeatherR
 manual_loop_agent = restate.Service("ManualLoopAgent")
 
 
+class MultiWeatherPrompt(BaseModel):
+    message: str = "What is the weather like in New York and San Francisco?"
+
 @manual_loop_agent.handler()
-async def run(ctx: Context, prompt: str) -> str:
+async def run(ctx: Context, prompt: MultiWeatherPrompt) -> str:
     """Main agent loop with tool calling"""
-    messages = [{"role": "user", "content": prompt}]
+    messages = [{"role": "user", "content": prompt.message}]
 
     while True:
         # Call OpenAI with durable execution
-        response = await ctx.run(
+        response = await ctx.run_typed(
             "llm-call",
-            lambda: client.responses.completions.create(
-                model="gpt-4o",
-                messages=messages,
-                tools=TOOLS,
-                tool_choice="auto"
-            )
+            client.chat.completions.create,
+            restate.RunOptions(max_attempts=3,
+                           type_hint=ChatCompletion),  # To avoid using too many credits on infinite retries during development
+            model="gpt-4o",
+            tools=TOOLS,
+            messages=messages,
         )
 
-        response_message = response.choices[0].message
-        messages.append(response_message.model_dump(exclude_unset=True))
+        # Save function call outputs for subsequent requests
+        assistant_message = response.choices[0].message
+        messages.append(assistant_message)
+
+        if not assistant_message.tool_calls:
+            return assistant_message.content
 
         # Check if we need to call tools
-        if response_message.tool_calls:
-            # Handle all tool calls
-            for tool_call in response_message.tool_calls:
-                function_name = tool_call.function.name
-                function_args = json.loads(tool_call.function.arguments)
+        for tool_call in assistant_message.tool_calls:
+            if tool_call.function.name == "get_weather":
+                tool_output = await get_weather(ctx, WeatherRequest(**json.loads(tool_call.function.arguments)))
 
-                if function_name == "getWeather":
-                    tool_output = await get_weather(ctx, function_args["city"])
-
-                    # Add tool response to messages
-                    messages.append({
-                        "role": "tool",
-                        "tool_call_id": tool_call.id,
-                        "content": json.dumps(tool_output)
-                    })
-                # Handle other tool calls here
-
-        else:
-            # No more tool calls, return final response
-            return response_message.content
+                # Add tool response to messages
+                messages.append({
+                    "role": "tool",
+                    "tool_call_id": tool_call.id,
+                    "content": tool_output.model_dump_json()
+                })

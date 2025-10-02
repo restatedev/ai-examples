@@ -39,7 +39,6 @@ class WeatherRequest(BaseModel):
 
 class WeatherResponse(BaseModel):
     """Request to get the weather for a city."""
-
     temperature: float
     description: str
 
@@ -50,9 +49,8 @@ class WeatherResponse(BaseModel):
 class HotelBooking(BaseModel):
     """Hotel booking data structure."""
 
-    location: str
-    checkin_date: str
-    checkout_date: str
+    name: str
+    dates: str
     guests: int
 
 
@@ -61,16 +59,15 @@ class FlightBooking(BaseModel):
 
     origin: str
     destination: str
-    departure_date: str
+    date: str
     passengers: int
 
 
-class BookingRequest(BaseModel):
+class BookingPrompt(BaseModel):
     """Booking request data structure."""
 
-    booking_id: str
-    hotel: Optional[HotelBooking] = None
-    flight: Optional[FlightBooking] = None
+    booking_id: str = "booking_123"
+    message: str = "I need to book a business trip to San Francisco from March 15-17. Flying from JFK, need a hotel downtown for 1 guest."
 
 
 class BookingResult(BaseModel):

@@ -1,12 +1,12 @@
-from typing import Callable, Any
+from typing import Callable
 
 import restate
 from agents import Agent, RunConfig, Runner, function_tool, RunContextWrapper
-from pydantic import Field
+from pydantic import Field, BaseModel, ConfigDict
 from restate import TerminalError
 
 from app.utils.middleware import DurableModelCalls, raise_restate_errors
-from app.utils.models import HotelBooking, FlightBooking, BookingRequest
+from app.utils.models import HotelBooking, FlightBooking, BookingPrompt, BookingResult
 from app.utils.utils import (
     reserve_hotel,
     reserve_flight,
@@ -16,54 +16,50 @@ from app.utils.utils import (
 
 
 # Enrich the agent context with a list to track rollback actions
-class BookingContext:
+class BookingContext(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
     booking_id: str
     restate_context: restate.Context
-    on_rollback: list[Callable[Any, Any]] = Field(default=[])
+    on_rollback: list[Callable] = Field(default=[])
 
 
 # Functions raise terminal errors instead of feeding them back to the agent
 @function_tool(failure_error_function=raise_restate_errors)
 async def book_hotel(
     wrapper: RunContextWrapper[BookingContext], booking: HotelBooking
-) -> dict:
+) -> BookingResult:
     """Book a hotel"""
     booking_context = wrapper.context
-    restate_context = booking_context.restate_context
-    booking_id = booking_context.booking_id
 
     # Register a rollback action for each step, in case of failures further on in the workflow
     booking_context.on_rollback.append(
-        lambda: restate_context.run_typed(
-            "Cancel hotel", cancel_hotel, booking_id=booking_id
+        lambda: booking_context.restate_context.run_typed(
+            "Cancel hotel", cancel_hotel, booking_id=booking_context.booking_id
         )
     )
 
     # Execute the workflow step
-    result = await restate_context.run_typed(
-        "Book hotel", reserve_hotel, booking_id=booking_id, booking=booking
+    return await booking_context.restate_context.run_typed(
+        "Book hotel", reserve_hotel, booking_id=booking_context.booking_id, booking=booking
     )
-    return result.model_dump()
 
 
 @function_tool(failure_error_function=raise_restate_errors)
 async def book_flight(
     wrapper: RunContextWrapper[BookingContext], booking: FlightBooking
-) -> dict:
+) -> BookingResult:
     """Book a flight"""
     booking_context = wrapper.context
-    restate_context = booking_context.restate_context
-    booking_id = booking_context.booking_id
 
     booking_context.on_rollback.append(
-        lambda: restate_context.run_typed(
-            "Cancel flight", cancel_flight, booking_id=booking_id
+        lambda: booking_context.restate_context.run_typed(
+            "Cancel flight", cancel_flight, booking_id=booking_context.booking_id
         )
     )
-    result = await restate_context.run_typed(
-        "Book flight", reserve_flight, booking_id=booking_id, booking=booking
+    return await booking_context.restate_context.run_typed(
+        "Book flight", reserve_flight, booking_id=booking_context.booking_id, booking=booking
     )
-    return result.model_dump()
 
 
 # ... Do the same for cars ...
@@ -73,23 +69,23 @@ agent_service = restate.Service("BookingWithRollbackAgent")
 
 
 @agent_service.handler()
-async def book(restate_context: restate.Context, message: BookingRequest) -> str:
+async def book(restate_context: restate.Context, prompt: BookingPrompt) -> str:
 
     booking_context = BookingContext(
-        booking_id=message.booking_id, restate_context=restate_context
+        booking_id=prompt.booking_id, restate_context=restate_context
     )
 
     booking_agent = Agent[BookingContext](
         name="BookingWithRollbackAgent",
         instructions="Book a complete travel package with the requirements in the prompt."
-        "Use the tools to request booking of hotels and flights.",
+        "Use tools to first book the hotel, then the flight.",
         tools=[book_hotel, book_flight],
     )
 
     try:
         result = await Runner.run(
             booking_agent,
-            input=message.model_dump_json(),
+            input=prompt.message,
             context=booking_context,
             run_config=RunConfig(
                 model="gpt-4o", model_provider=DurableModelCalls(restate_context)

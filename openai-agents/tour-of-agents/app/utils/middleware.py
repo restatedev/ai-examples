@@ -169,7 +169,7 @@ def raise_restate_errors(context: RunContextWrapper[Any], error: Exception) -> s
     if isinstance(error, restate.TerminalError):
         # For the agent SDK it needs to be an AgentsException, for restate it needs to be a TerminalError
         # so we create a new exception that inherits from both
-        raise AgentsTerminalException(error)
+        raise AgentsTerminalException(error.message)
 
     # Raise suspensions
     if isinstance(error, SuspendedException):

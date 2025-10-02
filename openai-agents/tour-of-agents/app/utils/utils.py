@@ -1,6 +1,7 @@
 import httpx
 import restate
 from agents import Runner, Agent, RunConfig, ModelSettings
+from restate import TerminalError
 
 from app.utils.middleware import DurableModelCalls
 from app.utils.models import (
@@ -83,33 +84,23 @@ async def check_fraud(claim: InsuranceClaim) -> str:
 
 async def reserve_hotel(booking_id: str, booking: HotelBooking) -> BookingResult:
     """Reserve a hotel (simulated)."""
-    print(f"🏨 Reserving hotel in {booking.location} for {booking.guests} guests")
+    print(f"🏨 Reserving hotel in {booking.name} for {booking.guests} guests")
     return BookingResult(
         id=booking_id,
-        confirmation=f"Hotel ${booking.name} booked for ${booking.guests} guests on ${booking.checkin_date}",
+        confirmation=f"Hotel ${booking.name} booked for ${booking.guests} guests on ${booking.dates}",
     )
 
 
 async def reserve_flight(booking_id: str, booking: FlightBooking) -> BookingResult:
     """Reserve a flight (simulated)."""
     print(f"✈️ Reserving flight from {booking.origin} to {booking.destination}")
+    if booking.destination == "San Francisco" or booking.destination == "SFO":
+        print(f"[👻 SIMULATED] Flight booking failed: No flights to SFO available...")
+        raise TerminalError(f"[👻 SIMULATED] Flight booking failed: No flights to SFO available...")
     return BookingResult(
         id=booking_id,
-        confirmation=f"Flight from {booking.origin} to {booking.destination} on {booking.departure_date} for {booking.passengers} passengers"
+        confirmation=f"Flight from {booking.origin} to {booking.destination} on {booking.date} for {booking.passengers} passengers"
     )
-
-
-async def confirm_hotel(booking_id: str) -> str:
-    """Confirm hotel booking."""
-    print(f"✅ Confirming hotel booking {booking_id}")
-    return f"Hotel booking {booking_id} confirmed"
-
-
-async def confirm_flight(booking_id: str) -> str:
-    """Confirm flight booking."""
-    print(f"✅ Confirming flight booking {booking_id}")
-    return f"Flight booking {booking_id} confirmed"
-
 
 async def cancel_hotel(booking_id: str) -> None:
     """Cancel hotel booking."""

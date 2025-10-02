@@ -202,7 +202,7 @@ export async function reserveFlight(
   { origin, destination, date, passengers }: FlightBooking,
 ) {
   if (destination === "San Francisco" || destination === "SFO") {
-    const message = `[👻 SIMULATED] "Flight booking failed: No flights to SFO available..."`;
+    const message = `[👻 SIMULATED] Flight booking failed: No flights to SFO available...`;
     console.error(message);
     throw new restate.TerminalError(message);
   }
