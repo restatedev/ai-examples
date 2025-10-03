@@ -1,20 +1,16 @@
+from datetime import timedelta
+
 import restate
 
-from agents import (
-    Agent,
-    RunConfig,
-    Runner,
-    function_tool,
-    RunContextWrapper,
-    ModelSettings,
-)
+from agents import Agent, RunContextWrapper, function_tool
+from restate import Context
 
-from app.utils.middleware import DurableModelCalls, raise_restate_errors
+from app.utils.middleware import RestateRunner, restate_function_tool
 from app.utils.models import WeatherPrompt, WeatherRequest, WeatherResponse
 from app.utils.utils import fetch_weather
 
 
-@function_tool(failure_error_function=raise_restate_errors)
+@function_tool
 async def get_weather(
     wrapper: RunContextWrapper[restate.Context], req: WeatherRequest
 ) -> WeatherResponse:
@@ -30,24 +26,15 @@ weather_agent = Agent[restate.Context](
     tools=[get_weather],
 )
 
-
 agent_service = restate.Service("WeatherAgent")
 
 
 @agent_service.handler()
-async def run(restate_context: restate.Context, prompt: WeatherPrompt) -> str:
-
-    result = await Runner.run(
-        weather_agent,
+async def run(restate_context: Context, prompt: WeatherPrompt) -> str:
+    result = await RestateRunner.run(
+        restate_context=restate_context,
+        starting_agent=weather_agent,
         input=prompt.message,
-        # Pass the Restate context to tools to make tool execution steps durable
         context=restate_context,
-        # Choose any model and let Restate persist your calls
-        run_config=RunConfig(
-            model="gpt-4o",
-            model_provider=DurableModelCalls(restate_context),
-            model_settings=ModelSettings(parallel_tool_calls=False),
-        ),
     )
-
     return result.final_output

@@ -1,4 +1,7 @@
 import asyncio
+import json
+
+import agents
 import restate
 
 from agents import (
@@ -7,14 +10,25 @@ from agents import (
     default_tool_error_function,
     RunContextWrapper,
     AgentsException,
+    Runner,
+    RunConfig,
+    ModelSettings,
+    Agent,
+    TContext,
+    RunResult,
+    AgentBase,
 )
+from agents.function_schema import DocstringStyle
 from agents.models.multi_provider import MultiProvider
 from agents.items import TResponseStreamEvent, TResponseOutputItem
 from agents.memory.session import SessionABC
 from agents.items import TResponseInputItem
-from typing import List, Any
+from typing import List, Any, overload, Callable
 from typing import AsyncIterator
 
+from agents.tool import ToolFunction, ToolErrorFunction, FunctionTool
+from agents.tool_context import ToolContext
+from agents.util._types import MaybeAwaitable
 from pydantic import BaseModel
 from restate.vm import SuspendedException
 
@@ -181,3 +195,129 @@ def raise_restate_errors(context: RunContextWrapper[Any], error: Exception) -> s
 
     # Feed all other errors back to the agent
     return default_tool_error_function(context, error)
+
+
+@overload
+def restate_function_tool(
+    func: ToolFunction[...],
+    *,
+    name_override: str | None = None,
+    description_override: str | None = None,
+    docstring_style: DocstringStyle | None = None,
+    use_docstring_info: bool = True,
+    failure_error_function: ToolErrorFunction | None = None,
+    strict_mode: bool = True,
+    is_enabled: (
+        bool | Callable[[RunContextWrapper[Any], AgentBase], MaybeAwaitable[bool]]
+    ) = True,
+) -> FunctionTool:
+    """Overload for usage as @function_tool (no parentheses)."""
+    ...
+
+
+@overload
+def restate_function_tool(
+    *,
+    name_override: str | None = None,
+    description_override: str | None = None,
+    docstring_style: DocstringStyle | None = None,
+    use_docstring_info: bool = True,
+    failure_error_function: ToolErrorFunction | None = None,
+    strict_mode: bool = True,
+    is_enabled: (
+        bool | Callable[[RunContextWrapper[Any], AgentBase], MaybeAwaitable[bool]]
+    ) = True,
+) -> Callable[[ToolFunction[...]], FunctionTool]:
+    """Overload for usage as @function_tool(...)."""
+    ...
+
+
+def restate_function_tool(
+    func: ToolFunction[...] | None = None,
+    *,
+    name_override: str | None = None,
+    description_override: str | None = None,
+    docstring_style: DocstringStyle | None = None,
+    use_docstring_info: bool = True,
+    failure_error_function: ToolErrorFunction | None = default_tool_error_function,
+    strict_mode: bool = True,
+    is_enabled: (
+        bool | Callable[[RunContextWrapper[Any], AgentBase], MaybeAwaitable[bool]]
+    ) = True,
+) -> FunctionTool | Callable[[ToolFunction[...]], FunctionTool]:
+    def _raise_suspensions(context: RunContextWrapper[Any], error: Exception) -> str:
+        """A custom function to provide a user-friendly error message."""
+        # Raise terminal errors and cancellations
+        if isinstance(error, restate.TerminalError):
+            # For the agent SDK it needs to be an AgentsException, for restate it needs to be a TerminalError
+            # so we create a new exception that inherits from both
+            raise AgentsTerminalException(error.message)
+
+        # Raise suspensions
+        if isinstance(error, SuspendedException):
+            raise AgentsSuspension(error)
+
+        # Next Python SDK release will use CancelledError for suspensions
+        if isinstance(error, asyncio.CancelledError):
+            raise AgentsAsyncioSuspension(error)
+
+        # Feed all other errors back to the agent
+        return failure_error_function(context, error)
+
+    return agents.function_tool(
+        func=func,
+        name_override=name_override,
+        description_override=description_override,
+        docstring_style=docstring_style,
+        use_docstring_info=use_docstring_info,
+        failure_error_function=_raise_suspensions,
+        strict_mode=strict_mode,
+        is_enabled=is_enabled,
+    )
+
+
+class RestateRunner:
+    """
+    A wrapper around Runner.run that automatically configures RunConfig for Restate contexts.
+
+    This class automatically sets up the appropriate model provider (DurableModelCalls) and
+    model settings, taking over any model and model_settings configuration provided in the
+    original RunConfig.
+    """
+
+    @staticmethod
+    async def run(
+        restate_context: restate.Context,
+        starting_agent: Agent[TContext],
+        *args: object,
+        run_config: RunConfig | None = None,
+        **kwargs,
+    ) -> RunResult:
+        """
+        Run an agent with automatic Restate configuration.
+
+        Args:
+            restate_context: The Restate context
+            starting_agent: The agent to run
+            input: The input message for the agent
+            context: The Restate context
+            run_config: Optional RunConfig (model and model_provider will be overridden)
+            model: Optional model to use (defaults to "gpt-4o")
+            model_settings: Optional model settings (defaults to parallel_tool_calls=False)
+            **kwargs: Additional arguments to pass to Runner.run
+
+        Returns:
+            The result from Runner.run
+        """
+
+        # Set durable model calls and disable parallel tool calls
+        effective_run_config = run_config or RunConfig()
+        effective_run_config.model_provider = DurableModelCalls(restate_context)
+        effective_run_config.model_settings = (
+            effective_run_config.model_settings or ModelSettings()
+        )
+        effective_run_config.model_settings.parallel_tool_calls = False
+
+        return await Runner.run(
+            starting_agent, *args, run_config=effective_run_config, **kwargs
+        )
