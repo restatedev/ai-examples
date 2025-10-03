@@ -118,10 +118,12 @@ async def route(ctx: restate.Context, prompt: Prompt) -> str:
         )
 
     # Final response to user based on tool result
-    return await ctx.run_typed(
+    response = await ctx.run_typed(
         "analyze tool output",
         llm_call,
         RunOptions(max_attempts=3, type_hint=Message),
         prompt=f"Provide a concise, friendly response to the user question {prompt.message} based on the tool output.",
         messages=messages,
     )
+
+    return response.content

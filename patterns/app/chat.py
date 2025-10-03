@@ -1,4 +1,5 @@
 import restate
+from litellm.types.utils import Message
 from pydantic import BaseModel
 
 from .util.litellm_call import llm_call
@@ -18,7 +19,7 @@ class Prompt(BaseModel):
 async def message(ctx: restate.ObjectContext, prompt: Prompt) -> str:
     """A long-lived stateful chat session that allows for ongoing conversation."""
 
-    memory = await ctx.get("memory", type_hint=list[dict[str, str]]) or []
+    memory = await ctx.get("memory", type_hint=list[dict]) or []
     memory.append({"role": "user", "content": prompt.message})
 
     result = await ctx.run_typed(
@@ -28,6 +29,6 @@ async def message(ctx: restate.ObjectContext, prompt: Prompt) -> str:
         messages=memory,
     )
 
-    memory.append({"role": "assistant", "content": result})
+    memory.append({"role": "user", "content": result.content})
     ctx.set("memory", memory)
-    return result
+    return result.content

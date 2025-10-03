@@ -3,7 +3,8 @@ import asyncio
 import restate
 
 from app.chaining import call_chaining_svc
-from app.parallelization import parallelization_svc
+from app.parallel_tools import parallel_tools_agent
+from app.parallel_agents import parallelization_svc
 from app.routing_to_agent import agent_router_service
 from app.routing_to_tool import tool_router_service
 from app.orchestrator_workers import orchestrator_svc
@@ -21,6 +22,7 @@ app = restate.app(
     services=[
         call_chaining_svc,
         parallelization_svc,
+        parallel_tools_agent,
         agent_router_service,
         tool_router_service,
         orchestrator_svc,

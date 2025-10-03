@@ -15,7 +15,7 @@ content_moderator_svc = restate.Service("HumanInTheLoopService")
 
 @content_moderator_svc.handler()
 async def moderate(ctx: restate.Context, content: Content) -> str:
-    """Restate service handler as the durable entry point for content moderation."""
+    """Moderate content with human-in-the-loop review"""
 
     # Durable step for LLM inference, auto retried & recovered
     result = await ctx.run_typed(
@@ -35,9 +35,8 @@ async def moderate(ctx: restate.Context, content: Content) -> str:
             }
         ],
     )
-    result.append(result.model_dump())
 
-    # Otherwise, handle each tool call
+    # request human review, if ordered by LLM
     if result.tool_calls and result.tool_calls[0].function.name == "get_human_review":
         # Create a durable promise (awakeable),
         approval_id, approval_promise = ctx.awakeable(type_hint=str)

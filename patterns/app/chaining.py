@@ -14,13 +14,14 @@ Input → Analysis → Extraction → Summary → Result
 
 call_chaining_svc = restate.Service("CallChainingService")
 
+example_prompt = """Q3 Performance Summary:
+Our customer satisfaction score rose to 92 points this quarter.
+Revenue grew by 45% compared to last year.
+Market share is now at 23% in our primary market.
+Customer churn decreased to 5% from 8%."""
 
 class Prompt(BaseModel):
-    message: str = "Q3 Performance Summary: "
-    "Our customer satisfaction score rose to 92 points this quarter. "
-    "Revenue grew by 45% compared to last year. "
-    "Market share is now at 23% in our primary market. "
-    "Customer churn decreased to 5% from 8%."
+    message: str = example_prompt
 
 
 @call_chaining_svc.handler()
@@ -45,9 +46,11 @@ async def run(ctx: restate.Context, prompt: Prompt) -> str:
     )
 
     # Step 3: Process the result from Step 2
-    return await ctx.run_typed(
+    result3 = await ctx.run_typed(
         "Format as table",
         llm_call,
         restate.RunOptions(max_attempts=3),
         prompt=f"Format the sorted data as a markdown table with columns 'Metric Name' and 'Value'. Input: {result2}",
     )
+
+    return result3.content

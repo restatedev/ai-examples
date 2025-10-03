@@ -29,44 +29,37 @@ class Prompt(BaseModel):
 async def improve_until_good(ctx: restate.Context, prompt: Prompt) -> str:
     """Iteratively improve a solution until it meets quality standards."""
 
-    attempts: list[str] = []
     max_iterations = 5
 
+    solution = ""
+    attempts = []
     for iteration in range(max_iterations):
         # Generate solution (with context from previous attempts)
-        context = ""
-        if attempts:
-            context = f"\nPrevious attempts that need improvement:\n" + "\n".join(
-                f"- {a}" for a in attempts[-2:]
-            )
-
-        solution = await ctx.run_typed(
+        solution_response = await ctx.run_typed(
             f"generate_v{iteration+1}",
             llm_call,
             restate.RunOptions(max_attempts=3),
             system="Create a Python function to solve this task. Eagerly return results for review.",
-            prompt=f" Previous attempts: {context} - Task: {prompt}" "",
+            prompt=f" Previous attempts: {attempts} - Task: {prompt}" "",
         )
+        solution = solution_response.content
+        attempts.append(solution)
 
         # Evaluate the solution
-        evaluation = await ctx.run_typed(
+        evaluation_response = await ctx.run_typed(
             f"evaluate_v{iteration+1}",
             llm_call,
             restate.RunOptions(max_attempts=3),
-            prompt=f"""Evaluate this solution on correctness, efficiency, and readability.
+            system=f"""Evaluate this solution on correctness, efficiency, and readability.
             Reply with either:
             'PASS: [brief reason]' if the solution is correct and very well-implemented
-            'IMPROVE: [specific issues to fix]' if it needs work
-
-            Task: {prompt}
-            Solution: {solution}""",
+            'IMPROVE: [specific issues to fix]' if it needs work""",
+            prompt=f"Task: {prompt} - Solution: {solution}"""
         )
+        evaluation = evaluation_response.content
         print_evaluation(iteration, solution, evaluation)
 
         if evaluation.startswith("PASS"):
             return solution
 
-        # Store failed attempt for context
-        attempts.append(solution)
-
-    return f"Max iterations reached. Best attempt:\n{solution}"
+    return f"Max iterations reached. Best attempt:\n {solution}"

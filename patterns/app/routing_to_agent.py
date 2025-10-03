@@ -76,7 +76,7 @@ async def route(ctx: restate.Context, prompt: Prompt) -> str:
     fn = tool_call.function
     # Route to appropriate support tool
     if fn.name == "billing_support":
-        return await ctx.run_typed(
+        result =await ctx.run_typed(
             "run billing agent",
             llm_call,
             restate.RunOptions(max_attempts=3),
@@ -84,9 +84,10 @@ async def route(ctx: restate.Context, prompt: Prompt) -> str:
             "Acknowledge the billing issue, explain charges clearly, provide next steps with timeline."
             "Keep responses professional but friendly.",
             prompt=prompt.message,
-        ).content
+        )
+        return result.content
     elif fn.name == "account_support":
-        return await ctx.run_typed(
+        result = await ctx.run_typed(
             "run account agent",
             llm_call,
             restate.RunOptions(max_attempts=3),
@@ -94,9 +95,10 @@ async def route(ctx: restate.Context, prompt: Prompt) -> str:
             "Prioritize account security and verification, provide clear recovery steps, include security tips."
             "Maintain a serious, security-focused tone.",
             prompt=prompt.message,
-        ).content
+        )
+        return result.content
     elif fn.name == "product_support":
-        return await ctx.run_typed(
+        result= await ctx.run_typed(
             "run product agent",
             llm_call,
             restate.RunOptions(max_attempts=3),
@@ -104,6 +106,7 @@ async def route(ctx: restate.Context, prompt: Prompt) -> str:
             "Focus on feature education and best practices, include specific examples, suggest related features."
             "Be educational and encouraging in tone.",
             prompt=prompt.message,
-        ).content
+        )
+        return result.content
     else:
         return "Sorry, I couldn't answer your request."

@@ -14,7 +14,7 @@ Task B → [Wait on Results] → Results A, B, C
 Task C ↗
 """
 
-parallelization_svc = restate.Service("ParallelizationService")
+parallelization_svc = restate.Service("ParallelAgentsService")
 
 # Example input text to analyze
 example_prompt = (
@@ -59,4 +59,4 @@ async def analyze_text(ctx: restate.Context, prompt: Prompt) -> list[str]:
     results = await restate.gather(sentiment_task, key_points_task, summary_task)
 
     # Gather and collect results
-    return [await result for result in results]
+    return [(await result).content for result in results]

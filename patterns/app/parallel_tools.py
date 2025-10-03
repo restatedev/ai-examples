@@ -3,15 +3,16 @@ from pydantic import BaseModel
 from restate import Context, RunOptions
 
 from app.util.litellm_call import llm_call
-from app.util.util import fetch_weather, WeatherRequest
+from app.util.util import get_weather, WeatherRequest
 
-manual_loop_agent = restate.Service("ParallelToolAgent")
+parallel_tools_agent = restate.Service("ParallelToolAgent")
 
-get_weather = {
+get_weather_tool= {
     "type": "function",
     "function": {
         "name": "get_weather",
         "description": "Get the current weather in a given location",
+        "parameters": WeatherRequest.model_json_schema(),
     },
 }
 
@@ -20,7 +21,7 @@ class MultiWeatherPrompt(BaseModel):
     message: str = "What is the weather like in New York,  San Francisco, and Boston?"
 
 
-@manual_loop_agent.handler()
+@parallel_tools_agent.handler()
 async def run(ctx: Context, prompt: MultiWeatherPrompt) -> str:
     """Main agent loop with tool calling"""
     messages = [{"role": "user", "content": prompt.message}]
@@ -32,22 +33,20 @@ async def run(ctx: Context, prompt: MultiWeatherPrompt) -> str:
             llm_call,
             RunOptions(max_attempts=3),
             messages=messages,
-            tools=[get_weather],
+            tools=[get_weather_tool],
         )
+        messages.append(response)
 
-        assistant_message = response.choices[0].message
-        messages.append(assistant_message)
-
-        if not assistant_message.tool_calls:
-            return assistant_message.content
+        if not response.tool_calls:
+            return response.content
 
         # start all parallel tool calls with retries and recovery
         tool_output_promises = []
-        for tool_call in assistant_message.tool_calls:
+        for tool_call in response.tool_calls:
             if tool_call.function.name == "get_weather":
                 tool_promise = ctx.run_typed(
                     "Get weather",
-                    fetch_weather,
+                    get_weather,
                     req=WeatherRequest.model_validate_json(
                         tool_call.function.arguments
                     ),
@@ -57,7 +56,7 @@ async def run(ctx: Context, prompt: MultiWeatherPrompt) -> str:
                 )
 
         # wait for all tool calls to complete
-        await restate.gather(*tool_output_promises)
+        await restate.gather(*[promise["promise"] for promise in tool_output_promises])
 
         # gather the results and add to messages
         for tool_output_promise in tool_output_promises:
@@ -67,6 +66,6 @@ async def run(ctx: Context, prompt: MultiWeatherPrompt) -> str:
                 {
                     "role": "tool",
                     "tool_call_id": tool_output_promise["id"],
-                    "content": tool_output,
+                    "content": str(tool_output),
                 }
             )

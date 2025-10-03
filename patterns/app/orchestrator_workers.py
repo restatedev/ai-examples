@@ -1,9 +1,12 @@
 import restate
+from litellm.types.utils import ModelResponse
 
-from pydantic import BaseModel
+from pydantic import BaseModel, RootModel
+from restate import RunOptions
 
 from .util.litellm_call import llm_call
-from .util.util import parse_instructions
+
+import litellm
 
 """
 LLM Orchestrator-Workers
@@ -29,39 +32,50 @@ example_prompt = (
 class Prompt(BaseModel):
     message: str = example_prompt
 
+class Task(BaseModel):
+    task_type: str
+    instruction: str
+
+class TaskList(BaseModel):
+    tasks: list[Task]
 
 @orchestrator_svc.handler()
 async def process_text(ctx: restate.Context, prompt: Prompt) -> list[str]:
     """Orchestrate text analysis breakdown and parallel execution by specialized workers."""
 
-    # Step 1: Orchestrator analyzes and breaks down the text analysis task
-    task_breakdown = await ctx.run_typed(
-        "orchestrator_analysis",
-        llm_call,
-        restate.RunOptions(max_attempts=3),
-        system="""You are an orchestrator breaking down text analysis into specific subtasks.
-        For each task, specify what the worker should focus on:
-        [task_type]: [specific prompt/instructions for worker]""",
-        prompt=f"Text to analyze: {prompt}",
-    )
+    messages = [
+        {"role": "system",
+         "content": "You are an orchestrator that breaks down text analysis tasks into specialized subtasks for workers."},
+        {"role": "user", "content": f"Text to analyze: {prompt.message}"}
+    ]
 
-    # Parse the task breakdown
-    worker_instructions = parse_instructions(task_breakdown)
+    # Step 1: Orchestrator analyzes and breaks down the text analysis task
+    litellm.enable_json_schema_validation = True
+    response = await ctx.run_typed(
+        "orchestrator_analysis",
+        litellm.completion,
+        RunOptions(max_attempts=3, type_hint=ModelResponse),
+        model="gpt-4o",
+        messages=messages,
+        response_format=TaskList
+    )
+    task_list_json = response.choices[0].message.content
+    task_list = TaskList.model_validate_json(task_list_json)
 
     # Step 2: Workers execute their specialized tasks in parallel
     worker_tasks = []
-    for task_type, instruction in worker_instructions.items():
+    for task in task_list.tasks:
         worker_task = ctx.run_typed(
-            f"worker_{task_type.lower()}",
+            task.task_type,
             llm_call,
             restate.RunOptions(max_attempts=3),
-            system=f"You are a {task_type} specialist.",
-            prompt=f"Task: {instruction} - Text to analyze: {prompt}",
+            system=f"You are a {task.task_type} specialist.",
+            prompt=f"Task: {task.instruction} - Text to analyze: {prompt}",
         )
-        worker_tasks.append((task_type, worker_task))
+        worker_tasks.append({"task_type": task.task_type, "task_promise": worker_task})
 
     # Wait for all workers to complete
-    await restate.gather(*[task for _, task in worker_tasks])
+    await restate.gather(*[task["task_promise"] for task in worker_tasks])
 
     # Collect results
-    return [f"{task_type} result: {await task}" for task_type, task in worker_tasks]
+    return [f"{task["task_type"]} result: {await task["task_promise"]}" for task in worker_tasks]

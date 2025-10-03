@@ -158,7 +158,7 @@ class Content(BaseModel):
 def notify_moderator(content: Content, approval_id: str):
     """Notify human moderator about content requiring review."""
     print("\n🔍 CONTENT MODERATION REQUIRED 🔍")
-    print(f"Content: {request.request}")
+    print(f"Content: {content.message}")
     print(f"Awaiting human decision...")
     print("\nTo approve:")
     print(
@@ -174,7 +174,7 @@ class WeatherRequest(BaseModel):
     city: str
 
 
-async def fetch_weather(req: WeatherRequest) -> dict:
+async def get_weather(req: WeatherRequest) -> dict:
     # This is a simulated failure to demo Durable Execution retries.
     try:
         resp = httpx.get(
