@@ -10,7 +10,12 @@ from app.orchestrator_workers import orchestrator_svc
 from app.evaluator_optimizer import evaluator_optimizer
 from app.human_in_the_loop import content_moderator_svc
 from app.chat import chat
-from app.routing_to_agent import billing_agent, product_agent, account_agent
+from app.routing_to_remote_agent import (
+    remote_agent_router_service,
+    billing_agent_svc,
+    product_agent_svc,
+    account_agent_svc,
+)
 
 app = restate.app(
     services=[
@@ -22,9 +27,10 @@ app = restate.app(
         evaluator_optimizer,
         content_moderator_svc,
         chat,
-        billing_agent,
-        account_agent,
-        product_agent,
+        remote_agent_router_service,
+        billing_agent_svc,
+        account_agent_svc,
+        product_agent_svc,
     ]
 )
 

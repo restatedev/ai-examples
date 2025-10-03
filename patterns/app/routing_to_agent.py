@@ -1,6 +1,6 @@
 import restate
-import json
-from util import llm_call
+
+from .util.litellm_call import llm_call
 from pydantic import BaseModel
 
 """
@@ -11,14 +11,6 @@ Each route is handled by a dedicated agent service with domain expertise.
 
 Request → Classifier → Agent A/B/C → Specialized Response
 """
-
-
-# Specialized agent service names
-AGENTS = {
-    "billing": "BillingAgent",
-    "account": "AccountAgent",
-    "product": "ProductAgent",
-}
 
 # Example input text to analyze
 example_prompt = "I can't log into my account. Keep getting invalid password errors."
@@ -39,89 +31,79 @@ class Prompt(BaseModel):
 agent_router_service = restate.Service("AgentRouterService")
 
 
+billing_agent = {
+    "type": "function",
+    "function": {
+        "name": "billing_support",
+        "description": "Handle billing related queries: payments, charges, refunds, plans",
+    },
+}
+
+account_agent = {
+    "type": "function",
+    "function": {
+        "name": "account_support",
+        "description": "Handle account related queries: login, password, security, access",
+    },
+}
+
+product_agent = {
+    "type": "function",
+    "function": {
+        "name": "product_support",
+        "description": "Handle product related queries: features, usage, best practices",
+    },
+}
+
+
 @agent_router_service.handler()
 async def route(ctx: restate.Context, prompt: Prompt) -> str:
     """Classify request and route to appropriate specialized agent."""
 
     # Classify the request
-    route_key = await ctx.run_typed(
-        "classify_request",
+    result = await ctx.run_typed(
+        "handle request",
         llm_call,
         restate.RunOptions(max_attempts=3),
-        prompt=f"""Classify this support request into one category: {AGENTS.keys()}
-
-        billing: payments, charges, refunds, plans
-        account: login, password, security, access
-        product: features, usage, best practices
-
-        Reply with only the category name.
-
-        Request: {prompt.message}""",
-    )
-    category = route_key.strip().lower()
-    agent_service = AGENTS.get(category) or "ProductAgent"
-
-    # Route to specialized agent
-    response = await ctx.generic_call(
-        agent_service,
-        f"get_{category}_support",
-        arg=json.dumps(prompt.message).encode("utf-8"),
+        prompt=prompt.message,
+        tools=[billing_agent, account_agent, product_agent],
     )
 
-    return response.decode("utf-8")
+    if not result.tool_calls:
+        return result.content
 
-
-# SPECIALIZED AGENT SERVICES
-
-# Billing Support Agent
-billing_agent = restate.Service("BillingAgent")
-
-
-@billing_agent.handler()
-async def get_billing_support(ctx: restate.Context, prompt: str) -> str:
-    return await ctx.run_typed(
-        "billing_response",
-        llm_call,
-        restate.RunOptions(max_attempts=3),
-        prompt=f"""You are a billing support specialist.
-        Acknowledge the billing issue, explain charges clearly, provide next steps with timeline.
-        Keep responses professional but friendly.
-
-        Input: {prompt}""",
-    )
-
-
-# Account Security Agent
-account_agent = restate.Service("AccountAgent")
-
-
-@account_agent.handler()
-async def get_account_support(ctx: restate.Context, prompt: str) -> str:
-    return await ctx.run_typed(
-        "account_response",
-        llm_call,
-        restate.RunOptions(max_attempts=3),
-        prompt=f"""You are an account security specialist.
-        Prioritize account security and verification, provide clear recovery steps, include security tips.
-        Maintain a serious, security-focused tone.
-
-        Input: {prompt}""",
-    )
-
-
-# Product Support Agent
-product_agent = restate.Service("ProductAgent")
-
-
-@product_agent.handler()
-async def get_product_support(ctx: restate.Context, prompt: str) -> str:
-    return await ctx.run_typed(
-        "product_response",
-        llm_call,
-        restate.RunOptions(max_attempts=3),
-        prompt=f"""You are a product specialist.
-        Focus on feature education and best practices, include specific examples, suggest related features.
-        Be educational and encouraging in tone.
-
-        Input: {prompt}""",
-    )
+    tool_call = result.tool_calls[0]
+    fn = tool_call.function
+    # Route to appropriate support tool
+    if fn.name == "billing_support":
+        return await ctx.run_typed(
+            "run billing agent",
+            llm_call,
+            restate.RunOptions(max_attempts=3),
+            system="You are a billing support specialist."
+            "Acknowledge the billing issue, explain charges clearly, provide next steps with timeline."
+            "Keep responses professional but friendly.",
+            prompt=prompt.message,
+        ).content
+    elif fn.name == "account_support":
+        return await ctx.run_typed(
+            "run account agent",
+            llm_call,
+            restate.RunOptions(max_attempts=3),
+            system="You are an account security specialist."
+            "Prioritize account security and verification, provide clear recovery steps, include security tips."
+            "Maintain a serious, security-focused tone.",
+            prompt=prompt.message,
+        ).content
+    elif fn.name == "product_support":
+        return await ctx.run_typed(
+            "run product agent",
+            llm_call,
+            restate.RunOptions(max_attempts=3),
+            system="You are a product specialist."
+            "Focus on feature education and best practices, include specific examples, suggest related features."
+            "Be educational and encouraging in tone.",
+            prompt=prompt.message,
+        ).content
+    else:
+        return "Sorry, I couldn't answer your request."

@@ -1,6 +1,7 @@
 import restate
 from pydantic import BaseModel
-from util import llm_call, print_evaluation
+from .util.litellm_call import llm_call
+from .util.util import print_evaluation
 
 """
 LLM Iterative Improvement

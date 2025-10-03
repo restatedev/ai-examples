@@ -1,7 +1,7 @@
 import restate
-from anthropic import BaseModel
+from pydantic import BaseModel
 
-from util import llm_call
+from .util.litellm_call import llm_call
 
 """
 LLM Parallel Processing
@@ -58,4 +58,5 @@ async def analyze_text(ctx: restate.Context, prompt: Prompt) -> list[str]:
     # Wait for all tasks to complete
     results = await restate.gather(sentiment_task, key_points_task, summary_task)
 
+    # Gather and collect results
     return [await result for result in results]

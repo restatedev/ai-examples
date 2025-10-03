@@ -1,7 +1,7 @@
 import restate
 from pydantic import BaseModel
 
-from util import llm_call
+from .util.litellm_call import llm_call
 
 chat = restate.VirtualObject("Chat")
 
@@ -25,7 +25,6 @@ async def message(ctx: restate.ObjectContext, prompt: Prompt) -> str:
         "LLM call",
         llm_call,
         restate.RunOptions(max_attempts=3),
-        prompt=prompt.message,
         messages=memory,
     )
 

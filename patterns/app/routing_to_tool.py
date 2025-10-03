@@ -1,11 +1,14 @@
 import restate
+from litellm.types.utils import Message
 from pydantic import BaseModel
+from restate import RunOptions
 
-from util import (
-    llm_call,
-    fetch_service_status,
+from .util.litellm_call import llm_call
+from .util.util import (
     create_support_ticket,
-    query_user_database,
+    fetch_service_status,
+    query_user_db,
+    SupportTicket,
 )
 
 """
@@ -18,8 +21,35 @@ Support Request → Classifier → Database/API/CRM Tool → Operational Result
 """
 
 
-# Available support tool categories
-TOOLS = ["user_database", "service_status", "ticket_management"]
+# TOOLS
+service_status_tool = {
+    "type": "function",
+    "function": {
+        "name": "fetch_service_status",
+        "description": "Tool for checking service status and outages via internal APIs. "
+        "Call this to get current status of services, incidents, and uptime.",
+    },
+}
+
+create_ticket_tool = {
+    "type": "function",
+    "function": {
+        "name": "create_support_ticket",
+        "description": "Tool for creating tickets in CRM system for bugs, feature requests, escalations. "
+        "Call this to log new issues reported by users.",
+        "parameters": SupportTicket.model_json_schema(),
+    },
+}
+
+user_database_tool = {
+    "type": "function",
+    "function": {
+        "name": "query_user_database",
+        "description": "Get human review for content that may violate policy. "
+        "Call this for queries about account info, subscription details, "
+        "usage limits, billing questions, user profile",
+    },
+}
 
 # Example customer support request
 example_prompt = "My API calls are failing, what's wrong with my account?"
@@ -44,63 +74,54 @@ tool_router_service = restate.Service("ToolRouterService")
 @tool_router_service.handler()
 async def route(ctx: restate.Context, prompt: Prompt) -> str:
     """Classify request and route to appropriate tool function."""
+    messages = [{"role": "user", "content": prompt.message}]
 
     # Classify the customer support request
-    route_key = await ctx.run_typed(
-        "classify_request",
+    result = await ctx.run_typed(
+        "LLM call",
         llm_call,
-        restate.RunOptions(max_attempts=3),
-        prompt=f"""Classify this customer support request into one category: {list(TOOLS)}
-
-        user_database: account info, subscription details, usage limits, billing questions, user profile
-        service_status: outages, downtime, service availability, system status, performance issues
-        ticket_management: bug reports, feature requests, technical issues that need escalation
-
-        Reply with only the category name.
-
-        Request: {prompt.message}""",
+        RunOptions(max_attempts=3, type_hint=Message),
+        messages=messages,
+        tools=[create_ticket_tool, service_status_tool, user_database_tool],
     )
+    messages.append(result)
 
-    tool_category = route_key.strip().lower()
+    if not result.tool_calls:
+        return result.content
 
-    # Route to appropriate support tool
-    if tool_category == "user_database":
-        tool_result = await user_database_tool(ctx, user_id=prompt.user_id)
-    elif tool_category == "service_status":
-        tool_result = await service_status_tool(ctx)
-    elif tool_category == "ticket_management":
-        tool_result = await ticket_management_tool(ctx, prompt)
-    else:
-        tool_result = f"Didn't find info for {tool_category}"
+    for tool_call in result.tool_calls:
+        fn = tool_call.function
+        # Route to appropriate support tool
+        if fn.name == "query_user_database":
+            tool_result = await ctx.run_typed(
+                "Query user DB", query_user_db, user_id=prompt.user_id
+            )
+        elif fn.name == "fetch_service_status":
+            tool_result = await ctx.run_typed(
+                "Get service status", fetch_service_status
+            )
+        elif fn.name == "create_ticket":
+            tool_result = await ctx.run_typed(
+                "create support ticket",
+                create_support_ticket,
+                ticket=SupportTicket.model_validate_json(fn.arguments),
+            )
+        else:
+            tool_result = f"Didn't find tool for {fn.name}"
+        messages.append(
+            {
+                "tool_call_id": tool_call.id,
+                "role": "tool",
+                "name": fn.name,
+                "content": tool_result,
+            }
+        )
 
-    response = await ctx.run_typed(
+    # Final response to user based on tool result
+    return await ctx.run_typed(
         "analyze tool output",
         llm_call,
-        restate.RunOptions(max_attempts=3),
-        prompt=f"Provide a concise, friendly response to the user question {prompt} based on this info: {tool_result}",
-    )
-
-    return response
-
-
-# CUSTOMER SUPPORT TOOL FUNCTIONS
-
-
-async def user_database_tool(ctx: restate.Context, user_id: str) -> str:
-    """Tool for querying user database - subscriptions, usage, billing info."""
-    return await ctx.run_typed("query_user_db", query_user_database, user_id=user_id)
-
-
-async def service_status_tool(ctx: restate.Context) -> str:
-    """Tool for checking service status and outages via internal APIs."""
-    return await ctx.run_typed("check_service_status", fetch_service_status)
-
-
-async def ticket_management_tool(ctx: restate.Context, request: Prompt) -> str:
-    """Tool for creating tickets in CRM system for bugs, feature requests, escalations."""
-    return await ctx.run_typed(
-        "create support ticket",
-        create_support_ticket,
-        request=request.message,
-        user_id=request.user_id,
+        RunOptions(max_attempts=3, type_hint=Message),
+        prompt=f"Provide a concise, friendly response to the user question {prompt.message} based on the tool output.",
+        messages=messages,
     )

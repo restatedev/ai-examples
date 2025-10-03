@@ -1,68 +1,8 @@
 import datetime
-import logging
-import os
-from typing import Optional
 
-import restate
-from openai import OpenAI
-from anthropic import Anthropic
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-
-def llm_call(
-    prompt: str, system: str = "", messages: Optional[list[dict[str, str]]] = None
-) -> str:
-    """
-    Calls the model with the given prompt and returns the response.
-
-    Args:
-        prompt (str): The user prompt to send to the model.
-        system (str, optional): The system prompt to send to the model. Defaults to "".
-        messages (list, optional): Previous messages for context in chat models. Defaults to None.
-
-    Returns:
-        str: The response from the language model.
-    """
-    messages = messages or []
-    if system:
-        messages.append({"role": "system", "content": system})
-    if prompt:
-        messages.append({"role": "user", "content": prompt})
-
-    if os.getenv("OPENAI_API_KEY"):
-        openai_client = OpenAI()
-        openai_response = openai_client.chat.completions.create(
-            model="gpt-4o",
-            max_tokens=4096,
-            messages=messages,
-            temperature=0.1,
-        )
-        content = openai_response.choices[0].message.content
-        if content:
-            return content
-        else:
-            raise RuntimeError("No content in OpenAI response")
-    elif os.getenv("ANTHROPIC_API_KEY"):
-        anthropic_client = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
-        anthropic_response = anthropic_client.messages.create(
-            model="claude-3-5-sonnet-latest",
-            max_tokens=4096,
-            system=system,
-            messages=messages,
-            temperature=0.1,
-        )
-        if anthropic_response.content[0].type == "text":
-            return anthropic_response.content[0].text
-        else:
-            raise RuntimeError(
-                f"Unexpected response type: {anthropic_response.content[0].type}"
-            )
-    else:
-        raise restate.TerminalError(
-            "Missing API key: set either the env var OPENAI_API_KEY or ANTHROPIC_API_KEY"
-        )
+import httpx
+from pydantic import BaseModel
+from restate import TerminalError
 
 
 def print_evaluation(iteration: int, solution: str, evaluation: str):
@@ -120,16 +60,21 @@ def fetch_service_status() -> str:
     )
 
 
-def create_support_ticket(request: str, user_id: str) -> str:
+class SupportTicket(BaseModel):
+    user_id: str
+    message: str
+
+
+def create_support_ticket(ticket: SupportTicket) -> str:
     # Mock ticket creation (would be real API calls to ticketing systems)
     ticket_id = "TICKET-" + str(abs(hash(request)) % 10000)
     return str(
         {
             "ticket_id": ticket_id,
-            "user_id": user_id,
+            "user_id": ticket.user_id,
             "status": "open",
             "created_at": datetime.datetime.now().isoformat(),
-            "details": request,
+            "details": ticket.message,
         }
     )
 
@@ -177,7 +122,7 @@ users_db = {
 }
 
 
-def query_user_database(user_id: str) -> str:
+def query_user_db(user_id: str) -> str:
     content = users_db.get(user_id, None)
     if content:
         return str(content)
@@ -202,10 +147,18 @@ def parse_instructions(task_breakdown: str) -> dict:
     return worker_instructions
 
 
-def notify_moderator(content: str, approval_id: str):
+class HumanReviewRequest(BaseModel):
+    request: str
+
+
+class Content(BaseModel):
+    message: str = "Very explicit content that might violate the policy."
+
+
+def notify_moderator(content: Content, approval_id: str):
     """Notify human moderator about content requiring review."""
     print("\n🔍 CONTENT MODERATION REQUIRED 🔍")
-    print(f"Content: {content}")
+    print(f"Content: {request.request}")
     print(f"Awaiting human decision...")
     print("\nTo approve:")
     print(
@@ -215,3 +168,30 @@ def notify_moderator(content: str, approval_id: str):
     print(
         f"curl http://localhost:8080/restate/awakeables/{approval_id}/resolve --json '\"rejected\"'"
     )
+
+
+class WeatherRequest(BaseModel):
+    city: str
+
+
+async def fetch_weather(req: WeatherRequest) -> dict:
+    # This is a simulated failure to demo Durable Execution retries.
+    try:
+        resp = httpx.get(
+            f"https://wttr.in/{httpx.URL(req.city)}?format=j1", timeout=10.0
+        )
+        resp.raise_for_status()
+
+        if resp.text.startswith("Unknown location"):
+            raise TerminalError(
+                f"Unknown location: {req.city}. Please provide a valid city name."
+            )
+
+        return resp.json()
+    except httpx.HTTPStatusError as e:
+        if e.response.status_code == 404:
+            raise TerminalError(
+                f"City not found: {req.city}. Please provide a valid city name."
+            ) from e
+        else:
+            raise Exception(f"HTTP error occurred: {e}") from e

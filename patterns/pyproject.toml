@@ -9,8 +9,7 @@ dependencies = [
     "hypercorn",
     "restate_sdk[serde]>=0.10.1",
     "pydantic>=2.11.9",
-    "openai",
-    "anthropic",
+    "litellm"
 ]
 
 [dependency-groups]

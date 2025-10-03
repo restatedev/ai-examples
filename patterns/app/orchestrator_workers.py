@@ -2,7 +2,8 @@ import restate
 
 from pydantic import BaseModel
 
-from util import llm_call, parse_instructions
+from .util.litellm_call import llm_call
+from .util.util import parse_instructions
 
 """
 LLM Orchestrator-Workers
