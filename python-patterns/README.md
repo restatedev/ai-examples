@@ -2,10 +2,11 @@
 
 These patterns show how you can use Restate to harden LLM-based routing decisions and tool executions.
 
-They do not implement end-to-end agents, but serve as small self-contained patterns that can be mixed and matched to build more complex workflows.
+These small self-contained patterns can be mixed and matched to build more complex agents or workflows.
 
 The patterns included here:
 - [Chaining LLM calls](app/chaining.py): Refine the results by calling the LLM iteratively with its own output.
+- 
 - [Parallelizing tool calls](app/parallelization.py): Call multiple tools in parallel and wait for their results in a durable way. Tool calls are retried if they fail, and the results are persisted.
 - [Dynamic tool routing based on LLM output](app/routing_to_tool.py): Route the execution to different tools based on the LLM's output. Routing decisions are persisted and can be retried.
 - [Multi-agent routing based on LLM output](app/routing_to_agent.py): Route the execution to specialized agents based on the LLM's output. Routing decisions are persisted and can be retried.
