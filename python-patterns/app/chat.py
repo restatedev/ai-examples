@@ -1,5 +1,6 @@
 import restate
 from pydantic import BaseModel
+from restate import RunOptions
 
 from .util.litellm_call import llm_call
 
@@ -31,7 +32,7 @@ async def message(ctx: restate.ObjectContext, prompt: Prompt) -> str:
     result = await ctx.run_typed(
         "LLM call",
         llm_call,
-        restate.RunOptions(max_attempts=3),
+        RunOptions(max_attempts=3),
         messages=memory,
     )
 

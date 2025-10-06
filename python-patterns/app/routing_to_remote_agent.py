@@ -1,5 +1,8 @@
 import restate
 import json
+
+from restate import RunOptions
+
 from .util.litellm_call import llm_call
 from pydantic import BaseModel
 
@@ -40,7 +43,7 @@ async def route(ctx: restate.Context, prompt: Prompt) -> str:
     result = await ctx.run_typed(
         "handle request",
         llm_call,
-        restate.RunOptions(max_attempts=3),
+        RunOptions(max_attempts=3),
         prompt=prompt.message,
         tools=[billing_agent, account_agent, product_agent],
     )
@@ -80,7 +83,7 @@ async def get_billing_support(ctx: restate.Context, prompt: str) -> str:
     result = await ctx.run_typed(
         "billing_response",
         llm_call,
-        restate.RunOptions(max_attempts=3),
+        RunOptions(max_attempts=3),
         system=f"""You are a billing support specialist.
         Acknowledge the billing issue, explain charges clearly, provide next steps with timeline.
         Keep responses professional but friendly.""",
@@ -106,7 +109,7 @@ async def get_account_support(ctx: restate.Context, prompt: str) -> str:
     result = await ctx.run_typed(
         "account_response",
         llm_call,
-        restate.RunOptions(max_attempts=3),
+        RunOptions(max_attempts=3),
         system=f"""You are an account security specialist.
         Prioritize account security and verification, provide clear recovery steps, include security tips.
         Maintain a serious, security-focused tone.""",
@@ -132,7 +135,7 @@ async def get_product_support(ctx: restate.Context, prompt: str) -> str:
     result = await ctx.run_typed(
         "product_response",
         llm_call,
-        restate.RunOptions(max_attempts=3),
+        RunOptions(max_attempts=3),
         system=f"""You are a product specialist.
         Focus on feature education and best practices, include specific examples, suggest related features.
         Be educational and encouraging in tone.""",

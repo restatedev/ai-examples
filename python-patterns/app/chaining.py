@@ -1,5 +1,6 @@
 import restate
 from pydantic import BaseModel
+from restate import RunOptions
 
 from .util.litellm_call import llm_call
 
@@ -32,7 +33,7 @@ async def run(ctx: restate.Context, prompt: Prompt) -> str:
     result = await ctx.run_typed(
         "Extract metrics",
         llm_call,
-        restate.RunOptions(max_attempts=3),
+        RunOptions(max_attempts=3),
         prompt=f"Extract only the numerical values and their associated metrics from the text. "
         f"Format each as 'metric name: metric' on a new line. Input: {prompt.message}",
     )
@@ -41,7 +42,7 @@ async def run(ctx: restate.Context, prompt: Prompt) -> str:
     result2 = await ctx.run_typed(
         "Sort metrics",
         llm_call,
-        restate.RunOptions(max_attempts=3),
+        RunOptions(max_attempts=3),
         prompt=f"Sort all lines in descending order by numerical value. Input: {result}",
     )
 
@@ -49,7 +50,7 @@ async def run(ctx: restate.Context, prompt: Prompt) -> str:
     result3 = await ctx.run_typed(
         "Format as table",
         llm_call,
-        restate.RunOptions(max_attempts=3),
+        RunOptions(max_attempts=3),
         prompt=f"Format the sorted data as a markdown table with columns 'Metric Name' and 'Value'. Input: {result2}",
     )
 

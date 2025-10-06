@@ -1,5 +1,7 @@
 import restate
 from pydantic import BaseModel
+from restate import RunOptions
+
 from .util.litellm_call import llm_call
 from .util.util import print_evaluation
 
@@ -37,7 +39,7 @@ async def improve_until_good(ctx: restate.Context, prompt: Prompt) -> str:
         solution_response = await ctx.run_typed(
             f"generate_v{iteration+1}",
             llm_call,
-            restate.RunOptions(max_attempts=3),
+            RunOptions(max_attempts=3),
             system="Create a Python function to solve this task. Eagerly return results for review.",
             prompt=f" Previous attempts: {attempts} - Task: {prompt}" "",
         )
@@ -48,7 +50,7 @@ async def improve_until_good(ctx: restate.Context, prompt: Prompt) -> str:
         evaluation_response = await ctx.run_typed(
             f"evaluate_v{iteration+1}",
             llm_call,
-            restate.RunOptions(max_attempts=3),
+            RunOptions(max_attempts=3),
             system=f"""Evaluate this solution on correctness, efficiency, and readability.
             Reply with either:
             'PASS: [brief reason]' if the solution is correct and very well-implemented

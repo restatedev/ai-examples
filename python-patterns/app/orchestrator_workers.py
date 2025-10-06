@@ -68,7 +68,7 @@ async def process_text(ctx: restate.Context, prompt: Prompt) -> list[str]:
         worker_task = ctx.run_typed(
             task.task_type,
             llm_call,
-            restate.RunOptions(max_attempts=3),
+            RunOptions(max_attempts=3),
             system=f"You are a {task.task_type} specialist.",
             prompt=f"Task: {task.instruction} - Text to analyze: {prompt}",
         )
