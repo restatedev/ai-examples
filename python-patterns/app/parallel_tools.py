@@ -5,6 +5,11 @@ from restate import Context, RunOptions
 from app.util.litellm_call import llm_call
 from app.util.util import get_weather, WeatherRequest
 
+"""
+Parallel Tool Execution
+
+Execute multiple tools in parallel with durable results that persist across failures.
+"""
 parallel_tools_agent = restate.Service("ParallelToolAgent")
 
 get_weather_tool= {

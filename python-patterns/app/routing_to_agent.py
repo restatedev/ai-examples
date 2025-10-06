@@ -4,10 +4,10 @@ from .util.litellm_call import llm_call
 from pydantic import BaseModel
 
 """
-LLM Request Routing
+Multi-Agent Routing
 
 Automatically route requests to specialized agents based on content analysis.
-Each route is handled by a dedicated agent service with domain expertise.
+Routing decisions are persisted and can be retried if they fail.
 
 Request → Classifier → Agent A/B/C → Specialized Response
 """

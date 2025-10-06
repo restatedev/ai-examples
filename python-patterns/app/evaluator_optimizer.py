@@ -4,11 +4,10 @@ from .util.litellm_call import llm_call
 from .util.util import print_evaluation
 
 """
-LLM Iterative Improvement
+Evaluator-Optimizer Pattern
 
 Generate → Evaluate → Improve loop until quality criteria are met.
-Restate persists each iteration—if the process fails after 10 iterations,
-it resumes from iteration 10, not from the beginning.
+Restate persists each iteration, resuming from the last completed step on failure.
 
 Generate → Evaluate → [Pass/Improve] → Final Result
 """

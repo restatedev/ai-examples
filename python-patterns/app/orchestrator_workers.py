@@ -9,10 +9,10 @@ from .util.litellm_call import llm_call
 import litellm
 
 """
-LLM Orchestrator-Workers
+Orchestrator-Worker Pattern
 
 Break down complex tasks into specialized subtasks and execute them in parallel.
-If any worker fails, Restate retries only that worker—other completed work is preserved.
+If any worker fails, Restate retries only that worker while preserving other completed work.
 
 Task → Orchestrator → [Worker A, Worker B, Worker C] → Aggregated Results
 """

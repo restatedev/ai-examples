@@ -12,12 +12,11 @@ from .util.util import (
 )
 
 """
-LLM Request Routing to Tools
+Dynamic Tool Routing
 
-Automatically route customer support requests to specialized backend tools.
-Tools handle database queries, service status checks, and ticket management.
-
-Support Request → Classifier → Database/API/CRM Tool → Operational Result
+Implement a custom agent loop that calls external, specialized tools based on LLM instructions.
+All steps are durable and recoverable. 
+The agent keeps calling the LLM and executing tools until a final answer is returned.
 """
 
 
@@ -73,57 +72,46 @@ tool_router_service = restate.Service("ToolRouterService")
 
 @tool_router_service.handler()
 async def route(ctx: restate.Context, prompt: Prompt) -> str:
-    """Classify request and route to appropriate tool function."""
+    """Customer support for questions about account, billing, service status, and issues"""
     messages = [{"role": "user", "content": prompt.message}]
 
-    # Classify the customer support request
-    result = await ctx.run_typed(
-        "LLM call",
-        llm_call,
-        RunOptions(max_attempts=3, type_hint=Message),
-        messages=messages,
-        tools=[create_ticket_tool, service_status_tool, user_database_tool],
-    )
-    messages.append(result)
-
-    if not result.tool_calls:
-        return result.content
-
-    for tool_call in result.tool_calls:
-        fn = tool_call.function
-        # Route to appropriate support tool
-        if fn.name == "query_user_database":
-            tool_result = await ctx.run_typed(
-                "Query user DB", query_user_db, user_id=prompt.user_id
-            )
-        elif fn.name == "fetch_service_status":
-            tool_result = await ctx.run_typed(
-                "Get service status", fetch_service_status
-            )
-        elif fn.name == "create_ticket":
-            tool_result = await ctx.run_typed(
-                "create support ticket",
-                create_support_ticket,
-                ticket=SupportTicket.model_validate_json(fn.arguments),
-            )
-        else:
-            tool_result = f"Didn't find tool for {fn.name}"
-        messages.append(
-            {
-                "tool_call_id": tool_call.id,
-                "role": "tool",
-                "name": fn.name,
-                "content": tool_result,
-            }
+    while True:
+        result = await ctx.run_typed(
+            "LLM call",
+            llm_call,
+            RunOptions(max_attempts=3, type_hint=Message),
+            messages=messages,
+            tools=[create_ticket_tool, service_status_tool, user_database_tool],
         )
+        messages.append(result)
 
-    # Final response to user based on tool result
-    response = await ctx.run_typed(
-        "analyze tool output",
-        llm_call,
-        RunOptions(max_attempts=3, type_hint=Message),
-        prompt=f"Provide a concise, friendly response to the user question {prompt.message} based on the tool output.",
-        messages=messages,
-    )
+        if not result.tool_calls:
+            return result.content
 
-    return response.content
+        for tool_call in result.tool_calls:
+            fn = tool_call.function
+            # Route to appropriate support tool
+            if fn.name == "query_user_database":
+                tool_result = await ctx.run_typed(
+                    "Query user DB", query_user_db, user_id=prompt.user_id
+                )
+            elif fn.name == "fetch_service_status":
+                tool_result = await ctx.run_typed(
+                    "Get service status", fetch_service_status
+                )
+            elif fn.name == "create_ticket":
+                tool_result = await ctx.run_typed(
+                    "create support ticket",
+                    create_support_ticket,
+                    ticket=SupportTicket.model_validate_json(fn.arguments),
+                )
+            else:
+                tool_result = f"Didn't find tool for {fn.name}"
+            messages.append(
+                {
+                    "tool_call_id": tool_call.id,
+                    "role": "tool",
+                    "name": fn.name,
+                    "content": tool_result,
+                }
+            )

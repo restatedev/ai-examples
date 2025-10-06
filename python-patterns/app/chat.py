@@ -1,8 +1,14 @@
 import restate
-from litellm.types.utils import Message
 from pydantic import BaseModel
 
 from .util.litellm_call import llm_call
+
+"""
+Long-lived, Stateful Chat Sessions
+
+Maintains conversation state across multiple requests using Restate's persistent memory.
+Sessions survive failures and can be resumed at any time.
+"""
 
 chat = restate.VirtualObject("Chat")
 

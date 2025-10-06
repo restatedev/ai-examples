@@ -4,10 +4,10 @@ from pydantic import BaseModel
 from .util.litellm_call import llm_call
 
 """
-LLM Parallel Processing
+Parallel Agent Processing
 
-Process multiple inputs simultaneously with the same prompt.
-If any task fails, Restate retries only the failed tasks; completed results are preserved.
+Process multiple inputs simultaneously with specialized agents.
+If any task fails, Restate retries only the failed tasks while preserving completed results.
 
 Task A ↘
 Task B → [Wait on Results] → Results A, B, C

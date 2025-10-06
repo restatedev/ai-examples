@@ -5,17 +5,16 @@ These patterns show how you can use Restate to harden LLM-based routing decision
 These small self-contained patterns can be mixed and matched to build more complex agents or workflows.
 
 The patterns included here:
-- [Chaining LLM calls](app/chaining.py): Refine the results by calling the LLM iteratively with its own output.
-- 
-- [Parallelizing tool calls](app/parallelization.py): Call multiple tools in parallel and wait for their results in a durable way. Tool calls are retried if they fail, and the results are persisted.
-- [Dynamic tool routing based on LLM output](app/routing_to_tool.py): Route the execution to different tools based on the LLM's output. Routing decisions are persisted and can be retried.
-- [Multi-agent routing based on LLM output](app/routing_to_agent.py): Route the execution to specialized agents based on the LLM's output. Routing decisions are persisted and can be retried.
-- [Orchestrator-worker pattern](app/orchestrator_workers.py): A resilient orchestration workflow in which a central LLM dynamically breaks down tasks, delegates them to worker LLMs, and analyzes their results.
-- [Evaluator-optimizer pattern](app/evaluator_optimizer.py): Let the LLM generate a response, and ask another LLM to evaluate the response, and let them iterate on it.
-- [Human-in-the-loop pattern](app/human_in_the_loop.py): An LLM generates a response, and then a human can review and approve the response before the LLM continues with the next step.
-- [Chat sessions](app/chat.py): A chat session where the state is kept across multiple requests, and where a human can provide feedback on the LLM's responses.
-
-A part of these patterns are based on Anthropic's [agents cookbook](https://github.com/anthropics/anthropic-cookbook/tree/main/patterns/agents).
+- [Chaining LLM calls](app/chaining.py): Build fault-tolerant processing pipelines where each step transforms the previous step's output.
+- [Tool routing](app/routing_to_tool.py): Automatically route requests to tools based on LLM outputs.
+- [Parallel tool execution](app/parallel_tools.py): Execute multiple tools in parallel with durable results that persist across failures.
+- [Multi-agent routing](app/routing_to_agent.py): Route requests to specialized agents based on LLM outputs.
+- [Remote agent routing](app/routing_to_remote_agent.py): Route requests to remote agents with resilient communication.
+- [Parallel agent processing](app/parallel_agents.py): Run multiple, specialized agents in parallel and aggregate their results.
+- [Orchestrator-worker pattern](app/orchestrator_workers.py): Break down complex tasks into specialized subtasks and execute them in parallel.
+- [Evaluator-optimizer pattern](app/evaluator_optimizer.py): Generate → Evaluate → Improve loop until quality criteria are met.
+- [Human-in-the-loop pattern](app/human_in_the_loop.py): Implement resilient human approval steps that suspend execution until feedback is received.
+- [Chat sessions](app/chat.py): Long-lived, stateful chat sessions that maintain conversation state across multiple requests.
 
 ## Why Restate?
 
@@ -28,28 +27,12 @@ It persists routing decisions, tool execution outcomes, and deterministically re
 The state can be queried from the outside. Stateful sessions are long-lived and can be resumed at any time.
 - 🎮 **Task control** - Cancel tasks, query status, re-subscribe to ongoing tasks, and track progress across failures, time, and processes.
 
-These benefits are best portrayed in the following patterns:
-
-| Pattern                     | Retries & recovery | Exactly-once execution | Persistent memory | 
-|-----------------------------|--------------------|------------------------|-------------------|
-| Chaining LLM calls          | ✅                  | ✅                      |                   |              
-| Parallelizing tool calls    | ✅                  | ✅                      |                   |              
-| Dynamic routing             | ✅                  | ✅                      |                   |              
-| Orchestrator-worker pattern | ✅                  | ✅                      |                   |              
-| Evaluator-optimizer pattern | ✅                  | ✅                      |                   |              
-| Human-in-the-loop pattern   | ✅                  | ✅                      |                   |              
-| Chat sessions               | ✅                  | ✅                      | ✅                 |              
-
 
 ## Running the examples
 
-1. Export your OpenAI or Anthrophic API key as an environment variable:
+1. Export your OpenAI API key as an environment variable:
     ```shell
     export OPENAI_API_KEY=your_openai_api_key
-    ```
-    or:
-    ```shell
-    export ANTHROPIC_API_KEY=your_anthropic_api_key
     ```
 2. [Start the Restate Server](https://docs.restate.dev/develop/local_dev) in a separate shell:
     ```shell
@@ -67,7 +50,7 @@ These benefits are best portrayed in the following patterns:
 ### Chaining LLM calls
 [<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](app/chaining.py)
 
-Refine the results by calling the LLM iteratively with its own output.
+Build fault-tolerant processing pipelines where each step transforms the previous step's output.
 
 In the UI (`http://localhost:9070`), click on the `run` handler of the `CallChainingService` to open the playground and send a default request:
 <img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/chaining_playground.png" alt="Chaining LLM calls - UI"/>
@@ -76,25 +59,10 @@ You see in the Invocations Tab of the UI how the LLM is called multiple times, a
 
 <img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/chaining.png" alt="Chaining LLM calls - UI"/>
 
-### Parallelizing tool calls
-[<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](app/parallelization.py)
-
-Call multiple tools in parallel and wait for their results in a durable way. Tool calls are retried if they fail, and the results are persisted.
-
-In the UI (`http://localhost:9070`), click on the `analyze_text` handler of the `ParallelizationService` to open the playground and send a default request:
-<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/parallel_playground.png" alt="Parallel LLM calls - UI"/>
-
-
-You see in the UI how the different tasks are executed in parallel: 
-
-<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/parallel.png" alt="Parallel LLM calls - UI"/>
-
-Once all tasks are done, the results are aggregated and returned to the client.
-
-### Dynamic routing to tools based on LLM output
+### Tool routing
 [<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](app/routing_to_tool.py)
 
-Route the execution to different tools based on the LLM's output. Routing decisions are persisted and can be retried.
+Automatically route requests to tools based on LLM outputs. The agent keeps calling the LLM and executing tools until a final answer is returned.
 
 In the UI (`http://localhost:9070`), click on the `route` handler of the `ToolRouterService` to open the playground and send a default request:
 <img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/route-to-tools-playground.png" alt="Dynamic routing LLM calls - UI"/>
@@ -103,22 +71,54 @@ In the UI, you can see how the LLM decides to forward the request to the technic
 
 <img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/route-to-tools.png" alt="Dynamic routing based on LLM output - UI"/>
 
-### Multi-agent routing based on LLM output
+### Parallel tool execution
+[<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](app/parallel_tools.py)
+
+Execute multiple tools in parallel with durable results that persist across failures.
+
+In the UI (`http://localhost:9070`), click on the `run` handler of the `ParallelToolAgent` to open the playground and send a default request:
+<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/parallel_playground.png" alt="Parallel tool calls - UI"/>
+
+You see in the UI how the different tools are executed in parallel:
+
+<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/parallel.png" alt="Parallel tool calls - UI"/>
+
+Once all tools are done, the results are aggregated and returned to the client.
+
+### Multi-agent routing
 [<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](app/routing_to_agent.py)
 
-Route the execution to specialized agents based on the LLM's output. Routing decisions are persisted and can be retried.
+Route requests to specialized agents based on LLM outputs. Routing decisions are persisted and can be retried.
 
 In the UI (`http://localhost:9070`), click on the `route` handler of the `AgentRouterService` to open the playground and send a default request:
-<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/route-to-agent-playground.png" alt="Dynamic routing LLM calls - UI"/>
+<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/route-to-agent-playground.png" alt="Multi-agent routing - UI"/>
 
 In the UI, you can see how the LLM decides to forward the request to the specialized support agents, and how the response is processed:
 
-<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/route-to-agent.png" alt="Dynamic routing based on LLM output - UI"/>
+<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/route-to-agent.png" alt="Multi-agent routing - UI"/>
+
+### Remote agent routing
+[<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](app/routing_to_remote_agent.py)
+
+Route requests to remote agents with resilient communication. 
+Restate proxies requests to remote agents, persisting routing decisions and results. 
+In case of failures, Restate retries failed executions.
+
+### Parallel agent processing
+[<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](app/parallel_agents.py)
+
+Run multiple, specialized agents in parallel and aggregate their results. If any agent fails, Restate retries only the failed agents while preserving completed results.
+
+In the UI (`http://localhost:9070`), click on the `analyze_text` handler of the `ParallelAgentsService` to open the playground and send a default request:
+
+You see in the UI how the different agents are executed in parallel:
+
+Once all agents are done, the results are aggregated and returned to the client.
 
 ### Orchestrator-worker pattern
 [<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](app/orchestrator_workers.py)
 
-A resilient orchestration workflow in which a central LLM dynamically breaks down tasks, delegates them to worker LLMs, and analyzes their results.
+Break down complex tasks into specialized subtasks and execute them in parallel. If any worker fails, Restate retries only that worker while preserving other completed work.
 
 In the UI (`http://localhost:9070`), click on the `process_text` handler of the `Orchestrator` to open the playground and send a default request:
 <img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/orchestrator-playground.png" alt="Orchestrator LLM calls - UI"/>
@@ -129,7 +129,7 @@ In the UI, you can see how the LLM split the task in three parts and how each of
 ### Evaluator-optimizer pattern
 [<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](app/evaluator_optimizer.py)
 
-Let the LLM generate a response, and ask another LLM to evaluate the response, and let them iterate on it.
+Generate → Evaluate → Improve loop until quality criteria are met. Restate persists each iteration, resuming from the last completed step on failure.
 
 In the UI (`http://localhost:9070`), click on the `improve_until_good` handler of the `EvaluatorOptimizer` to open the playground and send a default request:
 <img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/evaluator-playground.png" alt="Evaluator-optimizer pattern - UI"/>
@@ -137,17 +137,10 @@ In the UI (`http://localhost:9070`), click on the `improve_until_good` handler o
 In the UI, you can see how the LLM generates a response, and how the evaluator LLM evaluates it and asks for improvements until the response is satisfactory:
 <img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/evaluator.png" alt="Evaluator-optimizer pattern - UI"/>
 
-
 ### Human-in-the-loop pattern
-
-An LLM generates a response, and then a human can review and approve the response before the LLM continues with the next step.
-
-#### Option 1: `run_with_promise` handler
 [<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](app/human_in_the_loop.py)
 
-This handler gathers human feedback by blocking the generation-evaluation loop on a Promise that gets resolved with human feedback.
-
-This is a **Durable Promise**, meaning that the promise can be recovered across processes and time. The Promise is persisted inside Restate. 
+Implement resilient human approval steps that suspend execution until feedback is received. Durable promises survive crashes and can be recovered across process restarts.
 
 In the UI (`http://localhost:9070`), click on the `moderate` handler of the `HumanInTheLoopService` to open the playground and send a default request:
 <img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/human-in-the-loop-playground.png" alt="Human-in-the-loop pattern - UI"/>
@@ -160,13 +153,10 @@ You can see how the feedback gets incorporated in the Invocations tab in the Res
 
 <img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/human-in-the-loop.png" alt="Human-in-the-loop pattern - UI"/>
 
-
-### Long-lived, stateful Chat sessions
+### Chat sessions
 [<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](app/chat.py)
 
-A chat session where the state is kept across multiple requests, and where a human can provide feedback on the LLM's responses.
-
-Restate keeps the state. 
+Long-lived, stateful chat sessions that maintain conversation state across multiple requests. Sessions survive failures and can be resumed at any time.
 
 In the UI (`http://localhost:9070`), click on the `message` handler of the `Chat` service to open the playground and send a default request:
 

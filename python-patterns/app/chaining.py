@@ -7,7 +7,7 @@ from .util.litellm_call import llm_call
 LLM Prompt Chaining
 
 Build fault-tolerant processing pipelines where each step transforms the previous step's output.
-If any step fails, Restate automatically resumes from that exact point—no lost work.
+If any step fails, Restate automatically resumes from that exact point.
 
 Input → Analysis → Extraction → Summary → Result
 """

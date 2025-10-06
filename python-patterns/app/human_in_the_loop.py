@@ -5,10 +5,10 @@ from .util.litellm_call import llm_call
 from .util.util import notify_moderator, Content
 
 """
-Human-in-the-loop workflows with Restate
+Human-in-the-Loop Pattern
 
 Implement resilient human approval steps that suspend execution until feedback is received.
-These durable promises survive crashes and can be recovered on other processes on retries.
+Durable promises survive crashes and can be recovered across process restarts.
 """
 content_moderator_svc = restate.Service("HumanInTheLoopService")
 
