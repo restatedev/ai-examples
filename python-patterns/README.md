@@ -111,7 +111,7 @@ Run multiple, specialized agents in parallel and aggregate their results. If any
 
 In the UI (`http://localhost:9070`), click on the `analyze_text` handler of the `ParallelAgentsService` to open the playground and send a default request:
 
-You see in the UI how the different agents are executed in parallel:
+You see in the UI how the different agents are executed in parallel.
 
 Once all agents are done, the results are aggregated and returned to the client.
 
