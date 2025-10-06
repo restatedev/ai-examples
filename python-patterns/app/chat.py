@@ -1,7 +1,15 @@
 import restate
 from pydantic import BaseModel
+from restate import RunOptions
 
-from util import llm_call
+from .util.litellm_call import llm_call
+
+"""
+Long-lived, Stateful Chat Sessions
+
+Maintains conversation state across multiple requests using Restate's persistent memory.
+Sessions survive failures and can be resumed at any time.
+"""
 
 chat = restate.VirtualObject("Chat")
 
@@ -18,17 +26,16 @@ class Prompt(BaseModel):
 async def message(ctx: restate.ObjectContext, prompt: Prompt) -> str:
     """A long-lived stateful chat session that allows for ongoing conversation."""
 
-    memory = await ctx.get("memory", type_hint=list[dict[str, str]]) or []
+    memory = await ctx.get("memory", type_hint=list[dict]) or []
     memory.append({"role": "user", "content": prompt.message})
 
     result = await ctx.run_typed(
         "LLM call",
         llm_call,
-        restate.RunOptions(max_attempts=3),
-        prompt=prompt.message,
+        RunOptions(max_attempts=3),
         messages=memory,
     )
 
-    memory.append({"role": "assistant", "content": result})
+    memory.append({"role": "user", "content": result.content})
     ctx.set("memory", memory)
-    return result
+    return result.content

@@ -30,7 +30,7 @@ The Restate approach works **independent of specific SDKs** but **integrates eas
 
 Restate is a flexible general-purpose runtime for what we call _innately resilient application_. It is not limited to agentic workflow use cases and is being used for a variety of other use cases as well, including financial transactions or order processing. These examples show how to build agents directly on Restate's durable execution and state management:
 
-- [Standalone Agent](advanced/restate-native-agent/)
+- **[<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Python Patterns](python-patterns/README.md)** for hardening custom LLM orchestration logic.
 
 
 ## Use Cases
@@ -59,22 +59,19 @@ Restate is a flexible general-purpose runtime for what we call _innately resilie
 2. [**Restate + OpenAI Agents Python SDK**](openai-agents): 
    - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Template](openai-agents/template): A minimal example of how to use Restate with the OpenAI Agents SDK.
    - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Examples](openai-agents/examples): A more advanced example of how to use Restate with the OpenAI Agents SDK.
-2. [**Patterns**](patterns) for hardening custom LLM orchestration logic.
-   - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Chaining LLM calls](patterns#chaining-llm-calls)
-   - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Parallelizing tool calls](patterns#parallelizing-tool-calls)
-   - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Dynamic tool routing based on LLM output](patterns#dynamic-routing-to-tools-based-on-llm-output)
-   - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Multi-agent routing based on LLM output](patterns#multi-agent-routing-based-on-llm-output)
-   - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Orchestrator-worker](patterns#orchestrator-worker-pattern)
-   - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Evaluator-optimizer](patterns#evaluator-optimizer-pattern)
-   - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Human-in-the-loop](patterns#human-in-the-loop-pattern)
-   - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Chat sessions](patterns#long-lived-stateful-chat-sessions)
+2. [**Restate + any AI SDK**](python-patterns): patterns for hardening custom LLM orchestration logic.
+   - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Chaining LLM calls](python-patterns/app/chaining.py): Build fault-tolerant processing pipelines where each step transforms the previous step's output.
+   - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Tool routing](python-patterns/app/routing_to_tool.py): Automatically route requests to tools based on LLM outputs.
+   - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Parallel tool execution](python-patterns/app/parallel_tools.py): Execute multiple tools in parallel with durable results that persist across failures.
+   - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Multi-agent routing](python-patterns/app/routing_to_agent.py): Route requests to specialized agents based on LLM outputs.
+   - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Remote agent routing](python-patterns/app/routing_to_remote_agent.py): Route requests to remote agents with resilient communication.
+   - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Parallel agent processing](python-patterns/app/parallel_agents.py): Run multiple, specialized agents in parallel and aggregate their results.
+   - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Orchestrator-worker pattern](python-patterns/app/orchestrator_workers.py): Break down complex tasks into specialized subtasks and execute them in parallel.
+   - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Evaluator-optimizer pattern](python-patterns/app/evaluator_optimizer.py): Generate → Evaluate → Improve loop until quality criteria are met.
+   - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Human-in-the-loop pattern](python-patterns/app/human_in_the_loop.py): Implement resilient human approval steps that suspend execution until feedback is received.
+   - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Chat sessions](python-patterns/app/chat.py): Long-lived, stateful chat sessions that maintain conversation state across multiple requests.
 3. [**MCP** <img src="https://skillicons.dev/icons?i=ts" width="24" height="24">](mcp): Using Restate for exposing tools and resilient orchestration of tool calls.
 4. [**A2A** <img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> ](a2a): Implement Google's Agent-to-Agent protocol with Restate as resilient, scalable task orchestrator.
-5. [**Advanced examples**](end-to-end-applications): 
-   - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Restate-native agent](advanced/restate-native-agent/README.md): A fully customizable agent implemented with Restate without an Agent SDK. 
-   - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Interruptible agents](advanced/interruptible-agent/README.md): A customized agent with different operational modes to process new inputs: interrupting, incorporating, queueing.
-   - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Insurance claims](advanced/insurance-claims/README.md): Filing insurance claims by parsing PDF receipts with LLMs.
-
 
 Restate currently supports 6 languages:
 
@@ -98,8 +95,5 @@ Join our [Discord](https://discord.gg/skW3AZ6uGd)/[Slack](https://join.slack.com
 
 ## Acknowledgements
 
-- The implementations of the Restate-native agent in this repo are heavily inspired by the [OpenAI Agents SDK](https://github.com/openai/openai-agents-python). We therefore want to give credit to the developers of this SDK for the great work they have done. This repo builds further on their work to make it benefit from Restate's programming model and capabilities.
-
 - The DIY patterns are largely based on Anthropic's [agents cookbook](https://github.com/anthropics/anthropic-cookbook/tree/main/patterns/agents).
-
 - Some of the A2A examples in this repo are based on the examples included in the [Google A2A repo](https://github.com/google/A2A/tree/main).
