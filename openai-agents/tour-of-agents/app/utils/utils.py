@@ -1,3 +1,5 @@
+import json
+
 import httpx
 import restate
 from agents import Runner, Agent, RunConfig, ModelSettings
@@ -49,7 +51,6 @@ async def call_weather_api(city):
 
 
 def parse_weather_data(weather_data: dict) -> WeatherResponse:
-    # weather_json = json.loads(weather_data)
     current = weather_data["current_condition"][0]
     return WeatherResponse(
         temperature=float(current["temp_C"]),
@@ -87,7 +88,7 @@ async def reserve_hotel(booking_id: str, booking: HotelBooking) -> BookingResult
     print(f"🏨 Reserving hotel in {booking.name} for {booking.guests} guests")
     return BookingResult(
         id=booking_id,
-        confirmation=f"Hotel ${booking.name} booked for ${booking.guests} guests on ${booking.dates}",
+        confirmation=f"Hotel {booking.name} booked for {booking.guests} guests on {booking.dates}",
     )
 
 

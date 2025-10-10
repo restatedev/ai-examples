@@ -1,6 +1,6 @@
 import restate
+from agents.run import RunOptions
 from openai.types.chat import ChatCompletion
-from openai.types.responses import Response
 from pydantic import BaseModel
 from restate import Context
 from openai import OpenAI
@@ -23,11 +23,6 @@ TOOLS = [
         }
     }
 ]
-
-
-async def get_weather(restate_context: Context, req: WeatherRequest) -> WeatherResponse:
-    """Get the current weather in a given location"""
-    return await restate_context.run_typed("Get weather", fetch_weather, city=req.city)
 
 
 manual_loop_agent = restate.Service("ManualLoopAgent")
@@ -63,7 +58,8 @@ async def run(ctx: Context, prompt: MultiWeatherPrompt) -> str:
         # Check if we need to call tools
         for tool_call in assistant_message.tool_calls:
             if tool_call.function.name == "get_weather":
-                tool_output = await get_weather(ctx, WeatherRequest(**json.loads(tool_call.function.arguments)))
+                req = WeatherRequest.model_validate_json(tool_call.function.arguments)
+                tool_output = await ctx.run_typed("Get weather", fetch_weather, city=req.city)
 
                 # Add tool response to messages
                 messages.append({

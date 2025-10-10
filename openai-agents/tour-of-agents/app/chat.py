@@ -15,7 +15,7 @@ async def message(restate_context: ObjectContext, chat_message: ChatMessage) -> 
     )
 
     result = await Runner.run(
-        Agent("Assistant", "You are a helpful assistant."),
+        Agent(name="Assistant", instructions="You are a helpful assistant."),
         input=chat_message.message,
         run_config=RunConfig(
             model="gpt-4o",
