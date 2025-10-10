@@ -17,10 +17,8 @@ import {
 } from "../utils";
 
 // <start_here>
-const book = async (ctx: restate.Context, { prompt }: { prompt: string }) => {
+const book = async (ctx: restate.Context, { bookingId, prompt }: { bookingId: string, prompt: string }) => {
   const on_rollback: { (): restate.RestatePromise<any> }[] = [];
-
-  const bookingId = ctx.rand.uuidv4();
 
   const model = wrapLanguageModel({
     model: openai("gpt-4o"),
@@ -31,7 +29,7 @@ const book = async (ctx: restate.Context, { prompt }: { prompt: string }) => {
     const { text } = await generateText({
       model,
       system: `Book a complete travel package with the requirements in the prompt.
-        Use the tools to request booking of hotels and flights.`,
+        Use tools to first book the hotel, then the flight.`,
       prompt,
       tools: {
         bookHotel: tool({
@@ -72,6 +70,6 @@ const book = async (ctx: restate.Context, { prompt }: { prompt: string }) => {
 // <end_here>
 
 export default restate.service({
-  name: "BookingAgent",
+  name: "BookingWithRollbackAgent",
   handlers: { book },
 });
