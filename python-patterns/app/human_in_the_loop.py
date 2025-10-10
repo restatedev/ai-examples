@@ -1,36 +1,43 @@
 import restate
-from pydantic import BaseModel
+from restate import RunOptions
 
-from util import llm_call, notify_moderator
+from .util.litellm_call import llm_call
+from .util.util import notify_moderator, Content
 
 """
-Human-in-the-loop workflows with Restate
+Human-in-the-Loop Pattern
 
 Implement resilient human approval steps that suspend execution until feedback is received.
-These durable promises survive crashes and can be recovered on other processes on retries.
+Durable promises survive crashes and can be recovered across process restarts.
 """
-
 content_moderator_svc = restate.Service("HumanInTheLoopService")
-
-
-class Content(BaseModel):
-    message: str = "Very explicit content that clearly violates policy."
 
 
 @content_moderator_svc.handler()
 async def moderate(ctx: restate.Context, content: Content) -> str:
-    """Restate service handler as the durable entry point for content moderation."""
+    """Moderate content with human-in-the-loop review"""
 
     # Durable step for LLM inference, auto retried & recovered
-    analysis = await ctx.run_typed(
-        "analyze_content",
+    result = await ctx.run_typed(
+        "moderate",
         llm_call,
-        restate.RunOptions(max_attempts=3),
-        prompt=f"Analyze content for policy violations. Return 'needsHumanReview' or your decision: {content}",
+        RunOptions(max_attempts=3),
+        prompt=f"Decide whether content violates the policy."
+        f"Use the human review tool if you are not sure."
+        f"Content: {content}",
+        tools=[
+            {
+                "type": "function",
+                "function": {
+                    "name": "get_human_review",
+                    "description": "Get human review for content that may violate policy.",
+                },
+            }
+        ],
     )
 
-    # Simple parsing - in real implementation you'd use proper JSON parsing
-    if "needsHumanReview" in analysis:
+    # request human review, if ordered by LLM
+    if result.tool_calls and result.tool_calls[0].function.name == "get_human_review":
         # Create a durable promise (awakeable),
         approval_id, approval_promise = ctx.awakeable(type_hint=str)
 
@@ -38,7 +45,7 @@ async def moderate(ctx: restate.Context, content: Content) -> str:
         await ctx.run_typed(
             "notify_moderator",
             notify_moderator,
-            content=content.message,
+            content=content,
             approval_id=approval_id,
         )
 
@@ -48,4 +55,4 @@ async def moderate(ctx: restate.Context, content: Content) -> str:
         # curl http://localhost:8080/restate/awakeables/sign_.../resolve --json '"approved"'
         return await approval_promise
 
-    return analysis
+    return result.content

@@ -1,20 +1,21 @@
 import restate
-from anthropic import BaseModel
+from pydantic import BaseModel
+from restate import RunOptions
 
-from util import llm_call
+from .util.litellm_call import llm_call
 
 """
-LLM Parallel Processing
+Parallel Agent Processing
 
-Process multiple inputs simultaneously with the same prompt.
-If any task fails, Restate retries only the failed tasks; completed results are preserved.
+Process multiple inputs simultaneously with specialized agents.
+If any task fails, Restate retries only the failed tasks while preserving completed results.
 
 Task A ↘
 Task B → [Wait on Results] → Results A, B, C
 Task C ↗
 """
 
-parallelization_svc = restate.Service("ParallelizationService")
+parallelization_svc = restate.Service("ParallelAgentsService")
 
 # Example input text to analyze
 example_prompt = (
@@ -37,25 +38,26 @@ async def analyze_text(ctx: restate.Context, prompt: Prompt) -> list[str]:
     sentiment_task = ctx.run_typed(
         "Analyze sentiment",
         llm_call,
-        restate.RunOptions(max_attempts=3),
+        RunOptions(max_attempts=3),
         prompt=f"Analyze sentiment (positive/negative/neutral): {prompt}",
     )
 
     key_points_task = ctx.run_typed(
         "Extract key points",
         llm_call,
-        restate.RunOptions(max_attempts=3),
+        RunOptions(max_attempts=3),
         prompt=f"Extract 3 key points as bullets: {prompt}",
     )
 
     summary_task = ctx.run_typed(
         "Summarize",
         llm_call,
-        restate.RunOptions(max_attempts=3),
+        RunOptions(max_attempts=3),
         prompt=f"Summarize in one sentence: {prompt}",
     )
 
     # Wait for all tasks to complete
     results = await restate.gather(sentiment_task, key_points_task, summary_task)
 
-    return [await result for result in results]
+    # Gather and collect results
+    return [(await result).content for result in results]
