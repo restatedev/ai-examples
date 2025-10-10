@@ -1,10 +1,10 @@
 import restate
 
-from agents import Agent, RunConfig, Runner, function_tool, RunContextWrapper
+from agents import Agent, RunConfig, Runner, function_tool, RunContextWrapper, ModelSettings
 from pydantic import BaseModel
 
 from a2a.common.a2a.models import AgentInvokeResult, A2AAgent
-from a2a.common.openai.middleware import DurableModelCalls, restate_tool_error_function
+from a2a.common.openai.middleware import DurableModelCalls, raise_restate_errors
 from utils import fetch_weather, parse_weather_data, WeatherResponse
 
 
@@ -14,7 +14,7 @@ class WeatherRequest(BaseModel):
     city: str
 
 
-@function_tool(failure_error_function=restate_tool_error_function)
+@function_tool(failure_error_function=raise_restate_errors)
 async def get_weather(
     wrapper: RunContextWrapper[restate.ObjectContext], req: WeatherRequest
 ) -> WeatherResponse:
@@ -41,11 +41,11 @@ class WeatherAgent(A2AAgent):
         result = await Runner.run(
             weather_agent,
             input=query,
-            # Pass the Restate context to tools to make tool execution steps durable
             context=restate_context,
-            # Choose any model and let Restate persist your calls
             run_config=RunConfig(
-                model="gpt-4o", model_provider=DurableModelCalls(restate_context)
+                model="gpt-4o",
+                model_provider=DurableModelCalls(restate_context),
+                model_settings=ModelSettings(parallel_tool_calls=False),
             ),
         )
         result = result.final_output

@@ -5,7 +5,7 @@ services:
       context: .
     ports:
       - 9081:9081
-    env_file: ".env"
+    env_file: ".env" # Your openAI key `echo "OPENAI_API_KEY=your_api_key_here" >> .env`
     environment:
         - RESTATE_HOST=http://restate:8080
     command: ["/app/.venv/bin/python", "/app/a2a/weather"]
@@ -15,7 +15,7 @@ services:
       context: .
     ports:
       - 9082:9082
-    env_file: ".env"
+    env_file: ".env" # Your openAI key `echo "OPENAI_API_KEY=your_api_key_here" >> .env`
     environment:
         - RESTATE_HOST=http://restate:8080
     command: ["/app/.venv/bin/python", "/app/a2a/reimbursement"]
@@ -28,7 +28,7 @@ services:
     depends_on:
       - weather_agent
       - reimbursement_agent
-    env_file: ".env"
+    env_file: ".env" # Your openAI key `echo "OPENAI_API_KEY=your_api_key_here" >> .env`
     environment:
         - RESTATE_HOST=http://restate:8080
         - REMOTE_AGENTS=http://weather_agent:9081,http://reimbursement_agent:9082

@@ -143,9 +143,7 @@ def _build_services(middleware: AgentMiddleware):
 
             task_send_params: TaskSendParams = request.params
             if not task_send_params.sessionId:
-                session_id = await ctx.run(
-                    "Generate session id", lambda: str(uuid.uuid4().hex)
-                )
+                session_id = str(ctx.uuid())
                 task_send_params.sessionId = session_id
 
             # Store this invocation ID so it can be cancelled by someone else
@@ -210,14 +208,13 @@ def _build_services(middleware: AgentMiddleware):
                 logger.error("Task %s not found for updating the task", task_id)
                 raise restate.exceptions.TerminalError(f"Task {task_id} not found")
 
-            new_task_status = await ctx.run(
+            new_task_status = await ctx.run_typed(
                 "task status",
                 lambda task_state=state: TaskStatus(
                     state=task_state,
                     timestamp=datetime.now(),
                     message=status_message,
-                ),
-                type_hint=TaskStatus,
+                )
             )
             prev_status = task.status
             if prev_status.message is not None:
@@ -252,7 +249,7 @@ def _build_services(middleware: AgentMiddleware):
 
             task_state = await ctx.get(TASK, type_hint=Task)
             if task_state is None:
-                task_state = await ctx.run(
+                task_state = await ctx.run_typed(
                     "Create task",
                     lambda run_params=task_send_params: Task(
                         id=run_params.id,
@@ -262,7 +259,6 @@ def _build_services(middleware: AgentMiddleware):
                         ),
                         history=[run_params.message] if run_params.message else [],
                     ),
-                    type_hint=Task,
                 )
             else:
                 task_state.history.append(task_send_params.message)

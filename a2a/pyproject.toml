@@ -7,12 +7,12 @@ requires-python = ">=3.12"
 dependencies = [
     "httpx>=0.28.1",
     "hypercorn",
-    "restate_sdk[serde]>=0.7.3",
-    "pydantic>=2.10.6",
+    "restate_sdk[serde]>=0.10.2",
+    "pydantic>=2.11.9",
     "openai",
     "fastapi[standard]",
     "python-dotenv>=1.1.0",
-    "openai-agents==0.0.17",
+    "openai-agents==0.3.2",
 ]
 
 [tool.hatch.build.targets.wheel]

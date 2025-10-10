@@ -32,6 +32,7 @@ This example shows how to run multiple agents and use the A2A protocol to commun
 Make sure you have no other Restate server/services running. Then bring up the multi-agent example:
 
 ```shell
+echo "OPENAI_API_KEY=your_api_key_here" >> .env
 docker compose up
 ```
 
