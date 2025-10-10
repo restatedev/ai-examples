@@ -1,15 +1,22 @@
+import asyncio
 import restate
 
 from agents import (
     Usage,
     Model,
-    TResponseInputItem,
+    default_tool_error_function,
+    RunContextWrapper,
+    AgentsException,
 )
 from agents.models.multi_provider import MultiProvider
 from agents.items import TResponseStreamEvent, TResponseOutputItem
+from agents.memory.session import SessionABC
+from agents.items import TResponseInputItem
+from typing import List, Any
 from typing import AsyncIterator
 
 from pydantic import BaseModel
+from restate.vm import SuspendedException
 
 
 # The OpenAI ModelResponse class is a dataclass with Pydantic fields.
@@ -37,12 +44,15 @@ class DurableModelCalls(MultiProvider):
     A Restate model provider that wraps the OpenAI SDK's default MultiProvider.
     """
 
-    def __init__(self, ctx: restate.Context):
+    def __init__(self, ctx: restate.Context, max_retries: int | None = 3):
         super().__init__()
         self.ctx = ctx
+        self.max_retries = max_retries
 
     def get_model(self, model_name: str | None) -> Model:
-        return RestateModelWrapper(self.ctx, super().get_model(model_name or None))
+        return RestateModelWrapper(
+            self.ctx, super().get_model(model_name or None), self.max_retries
+        )
 
 
 class RestateModelWrapper(Model):
@@ -50,10 +60,11 @@ class RestateModelWrapper(Model):
     A wrapper around the OpenAI SDK's Model that persists LLM calls in the Restate journal.
     """
 
-    def __init__(self, ctx: restate.Context, model: Model):
+    def __init__(self, ctx: restate.Context, model: Model, max_retries: int | None = 3):
         self.ctx = ctx
         self.model = model
         self.model_name = f"RestateModelWrapper"
+        self.max_retries = max_retries
 
     async def get_response(self, *args, **kwargs) -> RestateModelResponse:
         async def call_llm() -> RestateModelResponse:
@@ -64,9 +75,109 @@ class RestateModelWrapper(Model):
                 response_id=resp.response_id,
             )
 
-        return await self.ctx.run("call LLM", call_llm, max_attempts=3)
+        return await self.ctx.run_typed(
+            "call LLM", call_llm, restate.RunOptions(max_attempts=self.max_retries)
+        )
 
     def stream_response(self, *args, **kwargs) -> AsyncIterator[TResponseStreamEvent]:
         raise restate.TerminalError(
             "Streaming is not supported in Restate. Use `get_response` instead."
         )
+
+
+class RestateSession(SessionABC):
+    """Restate session implementation following the Session protocol."""
+
+    def __init__(
+        self,
+        session_id: str,
+        ctx: (
+            restate.ObjectContext
+            | restate.ObjectSharedContext
+            | restate.WorkflowContext
+            | restate.WorkflowSharedContext
+        ),
+        current_items: List[TResponseInputItem],
+    ):
+        self.session_id = session_id
+        self.ctx = ctx
+        self.current_items = current_items
+
+    @classmethod
+    async def create(
+        cls,
+        session_id: str,
+        ctx: (
+            restate.ObjectContext
+            | restate.ObjectSharedContext
+            | restate.WorkflowContext
+            | restate.WorkflowSharedContext
+        ),
+    ):
+        current_items = await ctx.get("items", type_hint=List[TResponseInputItem]) or []
+        return cls(session_id, ctx, current_items)
+
+    async def get_items(self, limit: int | None = None) -> List[TResponseInputItem]:
+        """Retrieve conversation history for this session."""
+        if limit is not None:
+            return self.current_items[-limit:]
+        return self.current_items
+
+    async def add_items(self, items: List[TResponseInputItem]) -> None:
+        """Store new items for this session."""
+        # Your implementation here
+        self.ctx.set("items", self.current_items + items)
+
+    async def pop_item(self) -> TResponseInputItem | None:
+        """Remove and return the most recent item from this session."""
+        if self.current_items:
+            item = self.current_items.pop()
+            self.ctx.set("items", self.current_items)
+            return item
+        return None
+
+    async def clear_session(self) -> None:
+        """Clear all items for this session."""
+        self.current_items = []
+        self.ctx.clear("items")
+
+
+class AgentsTerminalException(AgentsException, restate.TerminalError):
+    """Exception that is both an AgentsException and a restate.TerminalError."""
+
+    def __init__(self, *args: object) -> None:
+        super().__init__(*args)
+
+
+class AgentsSuspension(AgentsException, SuspendedException):
+    """Exception that is both an AgentsException and a restate.TerminalError."""
+
+    def __init__(self, *args: object) -> None:
+        super().__init__(*args)
+
+
+class AgentsAsyncioSuspension(AgentsException, asyncio.CancelledError):
+    """Exception that is both an AgentsException and a restate.TerminalError."""
+
+    def __init__(self, *args: object) -> None:
+        super().__init__(*args)
+
+
+def raise_restate_errors(context: RunContextWrapper[Any], error: Exception) -> str:
+    """A custom function to provide a user-friendly error message."""
+    # Raise terminal errors and cancellations
+    if isinstance(error, restate.TerminalError):
+        # For the agent SDK it needs to be an AgentsException, for restate it needs to be a TerminalError
+        # so we create a new exception that inherits from both
+        raise AgentsTerminalException(error.message)
+
+    # Raise suspensions
+    if isinstance(error, SuspendedException):
+        raise AgentsSuspension(error)
+
+    # Next Python SDK release will use CancelledError for suspensions
+    if isinstance(error, asyncio.CancelledError):
+        raise AgentsAsyncioSuspension(error)
+
+    # Feed all other errors back to the agent
+    return default_tool_error_function(context, error)
