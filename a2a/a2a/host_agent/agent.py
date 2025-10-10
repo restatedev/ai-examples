@@ -1,7 +1,7 @@
 import logging
 import restate
 
-from agents import Agent, Runner, RunConfig
+from agents import Agent, Runner, RunConfig, ModelSettings
 
 from a2a.common.openai.middleware import DurableModelCalls
 from a2a.host_agent.utils import init_remote_agents
@@ -42,6 +42,9 @@ async def handle_message(restate_context: restate.ObjectContext, message: str) -
         host_agent,
         input=message,
         context=restate_context,
-        run_config=RunConfig(model_provider=DurableModelCalls(restate_context)),
+        run_config=RunConfig(
+            model_provider=DurableModelCalls(restate_context),
+            model_settings=ModelSettings(parallel_tool_calls=False),
+        ),
     )
     return agent_response.final_output

@@ -30,6 +30,7 @@ export default restate.service({
             description: "Calculate claim metrics.",
             inputSchema: InsuranceClaimSchema,
             execute: async (claim: InsuranceClaim) => {
+              // Execute each calculation as a parallel durable step
               return RestatePromise.all([
                 ctx.run("eligibility", () => checkEligibility(claim)),
                 ctx.run("cost", () => compareToStandardRates(claim)),

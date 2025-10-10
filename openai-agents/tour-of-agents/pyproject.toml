@@ -1,0 +1,20 @@
+[project]
+name = "tour-of-agents"
+version = "0.1.0"
+description = "Tour of OpenAI agents using Restate for durability"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "httpx",
+    "hypercorn",
+    "restate_sdk[serde]>=0.10.2",
+    "pydantic>=2.11.9",
+    "openai-agents>=0.3.2",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

@@ -26,7 +26,7 @@ export default restate.service({
           "You are a claim approval engine. Analyze the claim and use your tools to decide whether to approve.",
         tools: {
           analyzeEligibility: tool({
-            description: "Analyze eligibility result.",
+            description: "Analyze claim eligibility.",
             inputSchema: InsuranceClaimSchema,
             execute: async (claim: InsuranceClaim) =>
               ctx.serviceClient(eligibilityAgent).run(claim),

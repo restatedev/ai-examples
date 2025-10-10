@@ -24,7 +24,7 @@ The Restate approach works **independent of specific SDKs** but **integrates eas
 ### Restate + OpenAI Agent SDK
 
 - **[<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Template](openai-agents/template)**
-- [More examples (including handoffs, memory, etc.)](openai-agents/examples).
+- [Tour of Agents: Restate + OpenAI Agents SDK](openai-agents/tour-of-agents): A step-by-step tutorial showing how to build resilient agents with Restate and the Vercel AI SDK.
 
 ### Roll your own Loop? AI-enriched workflows?
 
@@ -58,7 +58,7 @@ Restate is a flexible general-purpose runtime for what we call _innately resilie
    - [<img src="https://skillicons.dev/icons?i=ts" width="24" height="24"> Examples](vercel-ai/examples): A more advanced example of how to use Restate with the Vercel AI SDK that can be deployed as a Next.js app on Vercel.
 2. [**Restate + OpenAI Agents Python SDK**](openai-agents): 
    - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Template](openai-agents/template): A minimal example of how to use Restate with the OpenAI Agents SDK.
-   - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Examples](openai-agents/examples): A more advanced example of how to use Restate with the OpenAI Agents SDK.
+   - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Tour of Agents: Restate + OpenAI Agents SDK.](openai-agents/tour-of-agents): A step-by-step tutorial showing how to build resilient agents with Restate and the OpenAI Agents SDK.
 2. [**Restate + any AI SDK**](python-patterns): patterns for hardening custom LLM orchestration logic.
    - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Chaining LLM calls](python-patterns/app/chaining.py): Build fault-tolerant processing pipelines where each step transforms the previous step's output.
    - [<img src="https://skillicons.dev/icons?i=python&theme=light" width="24" height="24"> Tool routing](python-patterns/app/routing_to_tool.py): Automatically route requests to tools based on LLM outputs.
@@ -88,7 +88,7 @@ Join our [Discord](https://discord.gg/skW3AZ6uGd)/[Slack](https://join.slack.com
 ## Learn more
 - [Documentation](https://docs.restate.dev/)
 - [Quickstart](https://docs.restate.dev/get_started/quickstart)
-- [Tour of Agents: a tutorial including the most important features](https://docs.restate.dev/tour/ai-agents)
+- Tour of Agents: a tutorial including the most important features: [Vercel AI SDK](https://docs.restate.dev/tour/vercel-ai-agents), [OpenAI Agents SDK](https://docs.restate.dev/tour/openai-agents) 
 - [Examples on workflows, microservice orchestration, async tasks, event processing](https://github.com/restatedev/examples)
 - [Restate Cloud](https://restate.dev/cloud/)
 - [Discord](https://discord.gg/skW3AZ6uGd) / [Slack](https://join.slack.com/t/restatecommunity/shared_invite/zt-2v9gl005c-WBpr167o5XJZI1l7HWKImA)

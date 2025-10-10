@@ -19,6 +19,7 @@ from a2a.common.a2a.models import (
     JSONRPCRequest,
     SendTaskResponse,
 )
+from a2a.common.openai.middleware import raise_restate_errors
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +27,7 @@ REMOTE_AGENT_URLS = os.getenv("REMOTE_AGENTS", "http://localhost:9081").split(",
 
 
 def agent_as_tool(name: str, description: str, url: str):
-    @function_tool(name_override=name, description_override=description)
+    @function_tool(name_override=name, description_override=description, failure_error_function=raise_restate_errors)
     async def agent_tool(
         wrapper: RunContextWrapper[restate.ObjectContext], query: str
     ) -> Task | None:
@@ -52,7 +53,7 @@ def init_remote_agents():
 async def call_remote_agent(
     ctx: restate.ObjectContext, name: str, url: str, message: str
 ) -> Task | None:
-    request = await ctx.run(
+    request = await ctx.run_typed(
         "Generate send request",
         lambda: SendTaskRequest(
             id=uuid.uuid4().hex,
@@ -62,12 +63,11 @@ async def call_remote_agent(
                 message=Message(role="user", parts=[TextPart(text=message)]),
             ),
         ),
-        type_hint=SendTaskRequest,
     )
     logger.info(
         f"Sending request to {name} at {url} with request payload: {request.model_dump()}"
     )
-    response = await ctx.run("Call Agent", send_request, args=(url, request))
+    response = await ctx.run_typed("Call Agent", send_request, url=url, request=request)
     logger.info(f"Received response from {name}: {response.result.model_dump_json()}")
 
     match response.result.status.state:

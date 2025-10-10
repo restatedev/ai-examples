@@ -8,10 +8,10 @@ from typing import Optional
 from datetime import datetime, timedelta
 from pydantic import BaseModel, ConfigDict
 
-from agents import Agent, function_tool, Runner, RunConfig, RunContextWrapper
+from agents import Agent, function_tool, Runner, RunConfig, RunContextWrapper, ModelSettings
 
 from a2a.common.a2a.models import A2AAgent, AgentInvokeResult
-from a2a.common.openai.middleware import DurableModelCalls, restate_tool_error_function
+from a2a.common.openai.middleware import DurableModelCalls, raise_restate_errors
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +65,7 @@ class FormData(BaseModel):
 # TOOLS
 
 
-@function_tool(failure_error_function=restate_tool_error_function)
+@function_tool(failure_error_function=raise_restate_errors)
 async def create_request_form(
     wrapper: RunContextWrapper[restate.ObjectContext], req: ReimbursementRequest
 ) -> Reimbursement:
@@ -97,7 +97,7 @@ async def create_request_form(
     return reimbursement
 
 
-@function_tool(failure_error_function=restate_tool_error_function)
+@function_tool(failure_error_function=raise_restate_errors)
 async def return_form(req: FormData) -> str:
     """
     Returns a structured json object indicating a form to complete.
@@ -119,7 +119,7 @@ async def return_form(req: FormData) -> str:
     return json.dumps(form_dict)
 
 
-@function_tool(failure_error_function=restate_tool_error_function)
+@function_tool(failure_error_function=raise_restate_errors)
 async def reimburse(
     wrapper: RunContextWrapper[restate.ObjectContext], req: Reimbursement
 ) -> dict[str, str]:
@@ -204,8 +204,10 @@ async def invoke(restate_context: restate.ObjectContext, query: str) -> AgentInv
         context=restate_context,
         # Choose any model and let Restate persist your calls
         run_config=RunConfig(
-            model="gpt-4o", model_provider=DurableModelCalls(restate_context)
-        ),
+            model="gpt-4o",
+            model_provider=DurableModelCalls(restate_context),
+            model_settings = ModelSettings(parallel_tool_calls=False),
+            ),
     )
     final_output = result.final_output
 

@@ -21,30 +21,30 @@ import {
 } from "./utils";
 
 restate.serve({
-    services: [
-        // Durable execution examples
-        weatherAgent,
-        // Human-in-the-loop examples
-        humanClaimApprovalAgent,
-        humanClaimApprovalWithTimeoutsAgent,
-        // Chat example
-        chatAgent,
-        // Orchestration examples
-        subWorkflowClaimApprovalAgent,
-        humanApprovalWorfklow,
-        multiAgentClaimApproval,
-        // Parallel execution examples
-        parallelToolClaimAgent,
-        parallelAgentClaimApproval,
-        // Error handling examples
-        stopOnTerminalErrorAgent,
-        failOnTerminalErrorAgent,
-        // Advanced examples
-        bookingWithRollbackAgent,
-        manualLoopAgent,
-        // Utils and sub-agents
-        eligibilityAgent,
-        fraudCheckAgent,
-        rateComparisonAgent,
-    ]
+  services: [
+    // Durable execution examples
+    weatherAgent,
+    // Human-in-the-loop examples
+    humanClaimApprovalAgent,
+    humanClaimApprovalWithTimeoutsAgent,
+    // Chat example
+    chatAgent,
+    // Orchestration examples
+    subWorkflowClaimApprovalAgent,
+    humanApprovalWorfklow,
+    multiAgentClaimApproval,
+    // Parallel execution examples
+    parallelToolClaimAgent,
+    parallelAgentClaimApproval,
+    // Error handling examples
+    stopOnTerminalErrorAgent,
+    failOnTerminalErrorAgent,
+    // Advanced examples
+    bookingWithRollbackAgent,
+    manualLoopAgent,
+    // Utils and sub-agents
+    eligibilityAgent,
+    fraudCheckAgent,
+    rateComparisonAgent,
+  ],
 });
