@@ -2,7 +2,7 @@
 
 Learn how to implement resilient agents with durable execution, human-in-the-loop, multi-agent communication, and parallel execution.
 
-[Learn more](https://docs.restate.dev/tour/ai-agents)
+[Learn more](https://docs.restate.dev/tour/vercel-ai-agents)
 
 To run:
 
