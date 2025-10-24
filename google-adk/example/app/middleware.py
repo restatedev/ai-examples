@@ -15,7 +15,7 @@ def durable_model_calls(ctx: restate.Context, model: BaseLlm):
 
             if stream:
                 raise restate.TerminalError(
-                    "Streaming is not supported in Restate."
+                    "Streaming is not supported in Restate. Set StreamingMode to NONE."
                 )
 
             async def call_llm() -> LlmResponse:
@@ -27,4 +27,5 @@ def durable_model_calls(ctx: restate.Context, model: BaseLlm):
                 "call LLM", call_llm, restate.RunOptions(max_attempts=3)
             )
 
-    return RestateModel
+    # Copy the model's attributes to create an instance with the same configuration
+    return RestateModel(**model.__dict__)
