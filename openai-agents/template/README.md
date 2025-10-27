@@ -31,7 +31,7 @@ The example is an agent that can search for the weather in certain city.
 5. Send requests to your agent:
 
     ```shell
-    curl localhost:8080/Agent/run --json '"What is the weather in Detroit?"'
+    curl localhost:8080/agent/run --json '"What is the weather in Detroit?"'
     ```
     
     Returns: `The weather in Detroit is currently 22°C and sunny.`
