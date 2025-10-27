@@ -16,23 +16,12 @@ create_release_zip() {
   echo "Zip for $1 in $OUT_DIR/$2.zip"
 }
 
-# Advanced examples
-create_release_zip advanced/insurance-claims python-advanced-insurance-claims
-create_release_zip advanced/interruptible-agent python-advanced-interruptible-agent
-create_release_zip advanced/restate-native-agent python-advanced-restate-native-agent
-
-# A2A examples
-create_release_zip a2a/a2a python-a2a
-
-# MCP examples
-create_release_zip mcp/restate-mcp typescript-restate-mcp
-
 # OpenAI agents examples
-create_release_zip openai-agents/examples python-openai-agents-examples
+create_release_zip openai-agents/tour-of-agents python-openai-agents-tour-of-agents
 create_release_zip openai-agents/template python-openai-agents-template
 
 # Pattern examples
-create_release_zip patterns python-patterns
+create_release_zip python-patterns python-patterns
 
 # Vercel AI examples
 create_release_zip vercel-ai/examples typescript-vercel-ai-examples

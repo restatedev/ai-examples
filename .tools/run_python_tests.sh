@@ -23,17 +23,12 @@ function python_mypi_lint() {
   fi
 }
 
-# Advanced Python examples
-pushd $PROJECT_ROOT/advanced/insurance-claims && python_mypi_lint && popd
-pushd $PROJECT_ROOT/advanced/interruptible-agent && python_mypi_lint && popd
-pushd $PROJECT_ROOT/advanced/restate-native-agent && python_mypi_lint && popd
-
 # A2A Python examples
 pushd $PROJECT_ROOT/a2a && python_mypi_lint && popd
 
 # OpenAI agents Python examples
-pushd $PROJECT_ROOT/openai-agents/examples && python_mypi_lint && popd
 pushd $PROJECT_ROOT/openai-agents/template && python_mypi_lint && popd
+pushd $PROJECT_ROOT/openai-agents/tour-of-agents && python_mypi_lint && popd
 
 # Pattern Python examples
-pushd $PROJECT_ROOT/patterns && python_mypi_lint && popd
+pushd $PROJECT_ROOT/python-patterns && python_mypi_lint && popd

@@ -20,17 +20,12 @@ function search_and_replace_version() {
   popd
 }
 
-# Advanced Python examples
-search_and_replace_version $PROJECT_ROOT/advanced/insurance-claims
-search_and_replace_version $PROJECT_ROOT/advanced/interruptible-agent
-search_and_replace_version $PROJECT_ROOT/advanced/restate-native-agent
-
 # A2A Python examples
 search_and_replace_version $PROJECT_ROOT/a2a
 
 # OpenAI agents Python examples
-search_and_replace_version $PROJECT_ROOT/openai-agents/examples
+search_and_replace_version $PROJECT_ROOT/openai-agents/tour-of-agents
 search_and_replace_version $PROJECT_ROOT/openai-agents/template
 
 # Pattern Python examples
-search_and_replace_version $PROJECT_ROOT/patterns
+search_and_replace_version $PROJECT_ROOT/python-patterns
