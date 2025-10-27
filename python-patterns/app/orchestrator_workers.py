@@ -40,7 +40,7 @@ class TaskList(BaseModel):
     tasks: list[Task]
 
 @orchestrator_svc.handler()
-async def process_text(ctx: restate.Context, prompt: Prompt) -> list[str]:
+async def process_text(ctx: restate.Context, prompt: Prompt) -> str:
     """Orchestrate text analysis breakdown and parallel execution by specialized workers."""
 
     messages = [
@@ -53,17 +53,21 @@ async def process_text(ctx: restate.Context, prompt: Prompt) -> list[str]:
     litellm.enable_json_schema_validation = True
     response = await ctx.run_typed(
         "orchestrator_analysis",
-        litellm.completion,
+        litellm.acompletion,
         RunOptions(max_attempts=3, type_hint=ModelResponse),
         model="gpt-4o",
         messages=messages,
         response_format=TaskList
     )
+    if not hasattr(response.choices[0], "message") or not response.choices[0].message.content:
+        return "Orchestrator failed to produce a task list."
     task_list_json = response.choices[0].message.content
+
+
     task_list = TaskList.model_validate_json(task_list_json)
 
     # Step 2: Workers execute their specialized tasks in parallel
-    worker_tasks = []
+    task_promises = []
     for task in task_list.tasks:
         worker_task = ctx.run_typed(
             task.task_type,
@@ -72,10 +76,11 @@ async def process_text(ctx: restate.Context, prompt: Prompt) -> list[str]:
             system=f"You are a {task.task_type} specialist.",
             prompt=f"Task: {task.instruction} - Text to analyze: {prompt}",
         )
-        worker_tasks.append({"task_type": task.task_type, "task_promise": worker_task})
+        task_promises.append(worker_task)
 
     # Wait for all workers to complete
-    await restate.gather(*[task["task_promise"] for task in worker_tasks])
+    await restate.gather(*task_promises)
 
     # Collect results
-    return [f"{task["task_type"]} result: {await task["task_promise"]}" for task in worker_tasks]
+    results = [f"{task.task_type} result: {await task_promise}" for task, task_promise in zip(task_list.tasks, task_promises)]
+    return '--'.join(results)

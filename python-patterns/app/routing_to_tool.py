@@ -83,10 +83,10 @@ async def route(ctx: restate.Context, prompt: Prompt) -> str:
             messages=messages,
             tools=[create_ticket_tool, service_status_tool, user_database_tool],
         )
-        messages.append(result)
+        messages.append(result.dict())
 
         if not result.tool_calls:
-            return result.content
+            return result.content or "No response from LLM"
 
         for tool_call in result.tool_calls:
             fn = tool_call.function
@@ -111,7 +111,7 @@ async def route(ctx: restate.Context, prompt: Prompt) -> str:
                 {
                     "tool_call_id": tool_call.id,
                     "role": "tool",
-                    "name": fn.name,
+                    "name": fn.name or "",
                     "content": tool_result,
                 }
             )

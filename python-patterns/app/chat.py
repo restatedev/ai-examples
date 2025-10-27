@@ -23,7 +23,7 @@ class Prompt(BaseModel):
 
 
 @chat.handler()
-async def message(ctx: restate.ObjectContext, prompt: Prompt) -> str:
+async def message(ctx: restate.ObjectContext, prompt: Prompt) -> str | None:
     """A long-lived stateful chat session that allows for ongoing conversation."""
 
     memory = await ctx.get("memory", type_hint=list[dict]) or []

@@ -5,9 +5,9 @@ from litellm.types.utils import Message
 from restate import TerminalError
 
 
-def llm_call(
-    prompt: str = None,
-    system: str = None,
+async def llm_call(
+    prompt: Optional[str] = None,
+    system: Optional[str] = None,
     messages: Optional[list[dict[str, str]]] = None,
     tools: Optional[List] = None,
 ) -> Message:
@@ -32,11 +32,8 @@ def llm_call(
         messages.append({"role": "system", "content": system})
     if prompt:
         messages.append({"role": "user", "content": prompt})
-    content = (
-        litellm.completion(model="gpt-4o", messages=messages, tools=tools)
-        .choices[0]
-        .message
-    )
+    response = await litellm.acompletion(model="gpt-4o", messages=messages, tools=tools)
+    content = response.choices[0].message
 
     if content:
         return content

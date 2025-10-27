@@ -27,13 +27,13 @@ class Prompt(BaseModel):
 
 
 @evaluator_optimizer.handler()
-async def improve_until_good(ctx: restate.Context, prompt: Prompt) -> str:
+async def improve_until_good(ctx: restate.Context, prompt: Prompt) -> str | None:
     """Iteratively improve a solution until it meets quality standards."""
 
     max_iterations = 5
 
-    solution = ""
-    attempts = []
+    solution: str | None = None
+    attempts: list[str] = []
     for iteration in range(max_iterations):
         # Generate solution (with context from previous attempts)
         solution_response = await ctx.run_typed(
@@ -41,10 +41,11 @@ async def improve_until_good(ctx: restate.Context, prompt: Prompt) -> str:
             llm_call,
             RunOptions(max_attempts=3),
             system="Create a Python function to solve this task. Eagerly return results for review.",
-            prompt=f" Previous attempts: {attempts} - Task: {prompt}" "",
+            prompt=f"Previous attempts: {attempts} - Task: {prompt}"
         )
         solution = solution_response.content
-        attempts.append(solution)
+        if solution is not None:
+            attempts.append(solution)
 
         # Evaluate the solution
         evaluation_response = await ctx.run_typed(
@@ -60,7 +61,7 @@ async def improve_until_good(ctx: restate.Context, prompt: Prompt) -> str:
         evaluation = evaluation_response.content
         print_evaluation(iteration, solution, evaluation)
 
-        if evaluation.startswith("PASS"):
+        if evaluation and evaluation.startswith("PASS"):
             return solution
 
     return f"Max iterations reached. Best attempt:\n {solution}"
