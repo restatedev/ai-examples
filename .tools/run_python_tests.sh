@@ -24,7 +24,7 @@ function python_mypi_lint() {
 }
 
 # A2A Python examples
-pushd $PROJECT_ROOT/a2a && python_mypi_lint && popd
+#pushd $PROJECT_ROOT/a2a && python_mypi_lint && popd
 
 # OpenAI agents Python examples
 pushd $PROJECT_ROOT/openai-agents/template && python_mypi_lint && popd

@@ -1,8 +1,7 @@
-import json
-
 import httpx
 import restate
 from agents import Runner, Agent, RunConfig, ModelSettings
+from openai.types.chat import ChatCompletionMessage, ChatCompletionAssistantMessageParam
 from restate import TerminalError
 
 from app.utils.middleware import DurableModelCalls
@@ -175,3 +174,14 @@ async def run_fraud_agent(
         ),
     )
     return result.final_output
+
+
+def as_chat_completion_param(msg: ChatCompletionMessage):
+    return ChatCompletionAssistantMessageParam(
+            role="assistant",
+            content=msg.content,
+            tool_calls=[
+                {"id": tc.id, "type": tc.type, "function": tc.function} # type: ignore
+                for tc in (msg.tool_calls or [])
+            ] or None,
+        )
