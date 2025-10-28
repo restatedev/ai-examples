@@ -40,8 +40,6 @@ jobs:
         run: ./.tools/run_node_tests.sh
 
       # Bump Python SDK
-      - uses: actions/checkout@v3
-        if: github.event.inputs.sdkPythonVersion != ''
       - uses: actions/setup-python@v5
         if: github.event.inputs.sdkPythonVersion != ''
         with:
