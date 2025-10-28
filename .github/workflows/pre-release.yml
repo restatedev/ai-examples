@@ -3,10 +3,6 @@ name: Pre-release updates
 on:
   workflow_dispatch:
     inputs:
-      restateVersion:
-        description: "Restate runtime version (without prepending v). Leave empty if you do not want to update it."
-        required: false
-        type: string
       sdkTypescriptVersion:
         description: "sdk-typescript version (without prepending v). Leave empty if you do not want to update it."
         required: false
@@ -29,10 +25,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-
-      - name: Bump Restate
-        if: github.event.inputs.restateVersion != ''
-        run: ./.tools/update_restate.sh ${{ inputs.restateVersion }}
 
       # Bump Typescript SDK
       - uses: actions/setup-node@v3
