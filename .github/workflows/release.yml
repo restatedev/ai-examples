@@ -1,0 +1,33 @@
+name: Create new release
+
+on:
+  push:
+    tags:
+      - v**
+
+jobs:
+  publish-release:
+    # prevent from running on forks
+    if: github.repository_owner == 'restatedev'
+    name: Publish release
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Prepare zip files
+        run: ./.tools/prepare_release_zip.sh
+
+      - name: Create release
+        uses: softprops/action-gh-release@v1
+        with:
+          # create a draft release which needs manual approval
+          draft: true
+          files: |
+                  python-openai-agents-tour-of-agents.zip
+                  python-openai-agents-template.zip
+                  python-patterns.zip
+                  typescript-vercel-ai-examples.zip
+                  typescript-vercel-ai-template.zip
+                  typescript-vercel-ai-template-nextjs.zip
+                  typescript-vercel-ai-tour-of-agents.zip

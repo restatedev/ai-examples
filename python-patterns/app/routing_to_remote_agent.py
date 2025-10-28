@@ -36,7 +36,7 @@ remote_agent_router_service = restate.Service("RemoteAgentRouterService")
 
 
 @remote_agent_router_service.handler()
-async def route(ctx: restate.Context, prompt: Prompt) -> str:
+async def route(ctx: restate.Context, prompt: Prompt) -> str | None:
     """Classify request and route to appropriate specialized agent."""
 
     # Classify the request
@@ -54,6 +54,9 @@ async def route(ctx: restate.Context, prompt: Prompt) -> str:
     tool_call = result.tool_calls[0]
 
     # We use a generic call to route to the specialized agent service
+    if (tool_call.function.name is None or
+            tool_call.function.name not in ["BillingAgent", "AccountAgent", "ProductAgent"]):
+        return "We cannot help you with this request."
     # Generic calls let us call agents by string name and method
     response = await ctx.generic_call(
         tool_call.function.name,
@@ -79,7 +82,7 @@ billing_agent_svc = restate.Service("BillingAgent")
 
 
 @billing_agent_svc.handler("run")
-async def get_billing_support(ctx: restate.Context, prompt: str) -> str:
+async def get_billing_support(ctx: restate.Context, prompt: str) -> str | None:
     result = await ctx.run_typed(
         "billing_response",
         llm_call,
@@ -105,7 +108,7 @@ account_agent_svc = restate.Service("AccountAgent")
 
 
 @account_agent_svc.handler("run")
-async def get_account_support(ctx: restate.Context, prompt: str) -> str:
+async def get_account_support(ctx: restate.Context, prompt: str) -> str | None:
     result = await ctx.run_typed(
         "account_response",
         llm_call,
@@ -131,7 +134,7 @@ product_agent_svc = restate.Service("ProductAgent")
 
 
 @product_agent_svc.handler("run")
-async def get_product_support(ctx: restate.Context, prompt: str) -> str:
+async def get_product_support(ctx: restate.Context, prompt: str) -> str | None:
     result = await ctx.run_typed(
         "product_response",
         llm_call,

@@ -14,7 +14,7 @@ content_moderator_svc = restate.Service("HumanInTheLoopService")
 
 
 @content_moderator_svc.handler()
-async def moderate(ctx: restate.Context, content: Content) -> str:
+async def moderate(ctx: restate.Context, content: Content) -> str | None:
     """Moderate content with human-in-the-loop review"""
 
     # Durable step for LLM inference, auto retried & recovered

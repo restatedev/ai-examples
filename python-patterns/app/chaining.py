@@ -26,7 +26,7 @@ class Prompt(BaseModel):
 
 
 @call_chaining_svc.handler()
-async def run(ctx: restate.Context, prompt: Prompt) -> str:
+async def run(ctx: restate.Context, prompt: Prompt) -> str | None:
     """Chains multiple LLM calls sequentially, where each step processes the previous step's output."""
 
     # Step 1: Process the initial input with the first prompt

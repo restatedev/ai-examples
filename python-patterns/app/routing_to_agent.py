@@ -58,7 +58,7 @@ product_agent = {
 
 
 @agent_router_service.handler()
-async def route(ctx: restate.Context, prompt: Prompt) -> str:
+async def route(ctx: restate.Context, prompt: Prompt) -> str | None:
     """Classify request and route to appropriate specialized agent."""
 
     # Classify the request

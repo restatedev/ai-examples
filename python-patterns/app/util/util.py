@@ -1,14 +1,15 @@
 import datetime
+import uuid
 
 import httpx
 from pydantic import BaseModel
 from restate import TerminalError
 
 
-def print_evaluation(iteration: int, solution: str, evaluation: str):
+def print_evaluation(iteration: int, solution: str | None, evaluation: str | None):
     print(f"Iteration {iteration + 1}:")
-    print(f"Solution: {solution[:100]}...")
-    print(f"Evaluation: {evaluation}")
+    print(f"Solution: {(solution or "not available")[:100]}...")
+    print(f"Evaluation: {evaluation or "not available"}")
     print("-" * 50)
 
 
@@ -67,7 +68,7 @@ class SupportTicket(BaseModel):
 
 def create_support_ticket(ticket: SupportTicket) -> str:
     # Mock ticket creation (would be real API calls to ticketing systems)
-    ticket_id = "TICKET-" + str(abs(hash(request)) % 10000)
+    ticket_id = str(uuid.uuid4())
     return str(
         {
             "ticket_id": ticket_id,

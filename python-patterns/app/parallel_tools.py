@@ -27,7 +27,7 @@ class MultiWeatherPrompt(BaseModel):
 
 
 @parallel_tools_agent.handler()
-async def run(ctx: Context, prompt: MultiWeatherPrompt) -> str:
+async def run(ctx: Context, prompt: MultiWeatherPrompt) -> str | None:
     """Main agent loop with tool calling"""
     messages = [{"role": "user", "content": prompt.message}]
 
@@ -40,13 +40,14 @@ async def run(ctx: Context, prompt: MultiWeatherPrompt) -> str:
             messages=messages,
             tools=[get_weather_tool],
         )
-        messages.append(response)
+        messages.append(response.dict())
 
         if not response.tool_calls:
             return response.content
 
         # start all parallel tool calls with retries and recovery
-        tool_output_promises = []
+        tool_output_promises = {}
+
         for tool_call in response.tool_calls:
             if tool_call.function.name == "get_weather":
                 tool_promise = ctx.run_typed(
@@ -56,21 +57,19 @@ async def run(ctx: Context, prompt: MultiWeatherPrompt) -> str:
                         tool_call.function.arguments
                     ),
                 )
-                tool_output_promises.append(
-                    {"id": tool_call.id, "promise": tool_promise}
-                )
+                tool_output_promises[tool_call.id] = tool_promise
 
         # wait for all tool calls to complete
-        await restate.gather(*[promise["promise"] for promise in tool_output_promises])
+        await restate.gather(*tool_output_promises.values())
 
         # gather the results and add to messages
-        for tool_output_promise in tool_output_promises:
-            tool_output = await tool_output_promise["promise"]
+        for tool_id, promise in tool_output_promises.items():
+            tool_output = await promise
             # Add tool response to messages
             messages.append(
                 {
                     "role": "tool",
-                    "tool_call_id": tool_output_promise["id"],
+                    "tool_call_id": tool_id,
                     "content": str(tool_output),
                 }
             )

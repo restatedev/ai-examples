@@ -9,7 +9,7 @@ from agents import (
     AgentsException,
 )
 from agents.models.multi_provider import MultiProvider
-from agents.items import TResponseStreamEvent, TResponseOutputItem
+from agents.items import TResponseStreamEvent, TResponseOutputItem, ModelResponse
 from agents.memory.session import SessionABC
 from agents.items import TResponseInputItem
 from typing import List, Any
@@ -66,17 +66,24 @@ class RestateModelWrapper(Model):
         self.model_name = f"RestateModelWrapper"
         self.max_retries = max_retries
 
-    async def get_response(self, *args, **kwargs) -> RestateModelResponse:
+    async def get_response(self, *args, **kwargs) -> ModelResponse:
         async def call_llm() -> RestateModelResponse:
             resp = await self.model.get_response(*args, **kwargs)
+            # convert to pydantic model to be serializable by Restate SDK
             return RestateModelResponse(
                 output=resp.output,
                 usage=resp.usage,
                 response_id=resp.response_id,
             )
 
-        return await self.ctx.run_typed(
+        result = await self.ctx.run_typed(
             "call LLM", call_llm, restate.RunOptions(max_attempts=self.max_retries)
+        )
+        # convert back to original ModelResponse
+        return ModelResponse(
+            output=result.output,
+            usage=result.usage,
+            response_id=result.response_id,
         )
 
     def stream_response(self, *args, **kwargs) -> AsyncIterator[TResponseStreamEvent]:
@@ -91,12 +98,7 @@ class RestateSession(SessionABC):
     def __init__(
         self,
         session_id: str,
-        ctx: (
-            restate.ObjectContext
-            | restate.ObjectSharedContext
-            | restate.WorkflowContext
-            | restate.WorkflowSharedContext
-        ),
+        ctx: restate.ObjectContext | restate.WorkflowContext,
         current_items: List[TResponseInputItem],
     ):
         self.session_id = session_id
@@ -107,12 +109,7 @@ class RestateSession(SessionABC):
     async def create(
         cls,
         session_id: str,
-        ctx: (
-            restate.ObjectContext
-            | restate.ObjectSharedContext
-            | restate.WorkflowContext
-            | restate.WorkflowSharedContext
-        ),
+        ctx: restate.ObjectContext | restate.WorkflowContext,
     ):
         current_items = await ctx.get("items", type_hint=List[TResponseInputItem]) or []
         return cls(session_id, ctx, current_items)

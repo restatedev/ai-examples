@@ -7,7 +7,7 @@ The example is an agent that can search for the weather in certain city.
 
 <img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/get-started-openai/invocation_ui.png" alt="Using Agent SDK - journal" width="1200px"/>
 
-> Also check out the other examples with [the OpenAI Agents SDK + Restate](../../openai-agents/examples) 
+> Also check out the Tour of Agents with [the OpenAI Agents SDK + Restate](../tour-of-agents) 
 
 ## Running the example
 
@@ -31,7 +31,7 @@ The example is an agent that can search for the weather in certain city.
 5. Send requests to your agent:
 
     ```shell
-    curl localhost:8080/Agent/run --json '"What is the weather in Detroit?"'
+    curl localhost:8080/agent/run --json '"What is the weather in Detroit?"'
     ```
     
     Returns: `The weather in Detroit is currently 22°C and sunny.`

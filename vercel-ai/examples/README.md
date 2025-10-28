@@ -10,6 +10,8 @@ A set of examples illustrating how to use [Restate](https://restate.dev/) ([Gith
 npx @restatedev/restate-server@latest
 ```
 
+```bash
+
 ### Starting the Agents NextJS app
 
 The project is a basic Next.js project, bootstrapped form the standard template.
@@ -22,11 +24,11 @@ The entry point is in the [restate/v1](app/restate/v1/[[...services]]/route.ts) 
 
 ### Register the AI SDK agents at Restate
 
-```bash
+```shell
 npx @restatedev/restate deployments register http://localhost:3000/restate/v1 --use-http1.1
 ```
 
-Or use the UI on [localhost:9070](http://localhost:9070) to register the services.
+Or use the UI on `localhost:9070` to register the services.
 
 ## An Example Walkthrough
 
@@ -77,7 +79,7 @@ Invoke it via http:
 curl localhost:8080/tools/message --json '{ "prompt": "A taxi driver earns $9461 per 1-hour of work. If he works 12 hours a day and in 1 hour he uses 12 liters of petrol with a price of $134 for 1 liter. How much money does he earn in one day?" }'
 ```
 
-Or use the UI playground in the UI on [localhost:9070](http://localhost:9070)
+Or use the UI playground in the UI on `localhost:9070`
 ![Restate's UI Service Playground](doc/img/playground.png)
 
 
