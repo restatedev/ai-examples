@@ -37,9 +37,3 @@ bump_restate_sdk_deps $PROJECT_ROOT/vercel-ai/examples
 bump_restate_sdk_deps $PROJECT_ROOT/vercel-ai/template
 bump_restate_sdk_deps $PROJECT_ROOT/vercel-ai/template_nextjs
 bump_restate_sdk_deps $PROJECT_ROOT/vercel-ai/tour-of-agents
-
-# deno bump - it doesn't use a package.json, only import strings
-# -i works differently in gnu sed and mac (bsd) sed - best avoided
-tmp=$(mktemp)
-sed "s#\"npm:@restatedev/restate-sdk@^.*/fetch\"#\"npm:@restatedev/restate-sdk@^${NEW_VERSION}/fetch\"#g" $PROJECT_ROOT/typescript/templates/deno/main.ts > $tmp
-mv $tmp $PROJECT_ROOT/typescript/templates/deno/main.ts
