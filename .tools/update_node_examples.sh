@@ -32,10 +32,6 @@ function bump_restate_sdk_deps() {
     done
 }
 
-# MCP TypeScript examples
-bump_restate_sdk_deps $PROJECT_ROOT/mcp/restate-mcp
-bump_restate_sdk_deps $PROJECT_ROOT/mcp/tools
-
 # Vercel AI TypeScript examples
 bump_restate_sdk_deps $PROJECT_ROOT/vercel-ai/examples
 bump_restate_sdk_deps $PROJECT_ROOT/vercel-ai/template
