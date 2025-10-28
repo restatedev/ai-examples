@@ -16,7 +16,6 @@ from typing import List, Any
 from typing import AsyncIterator
 
 from pydantic import BaseModel
-from restate.vm import SuspendedException
 
 
 # The OpenAI ModelResponse class is a dataclass with Pydantic fields.
@@ -146,13 +145,6 @@ class AgentsTerminalException(AgentsException, restate.TerminalError):
         super().__init__(*args)
 
 
-class AgentsSuspension(AgentsException, SuspendedException):
-    """Exception that is both an AgentsException and a restate.TerminalError."""
-
-    def __init__(self, *args: object) -> None:
-        super().__init__(*args)
-
-
 class AgentsAsyncioSuspension(AgentsException, asyncio.CancelledError):
     """Exception that is both an AgentsException and a restate.TerminalError."""
 
@@ -169,10 +161,6 @@ def raise_restate_errors(context: RunContextWrapper[Any], error: Exception) -> s
         raise AgentsTerminalException(error.message)
 
     # Raise suspensions
-    if isinstance(error, SuspendedException):
-        raise AgentsSuspension(error)
-
-    # Next Python SDK release will use CancelledError for suspensions
     if isinstance(error, asyncio.CancelledError):
         raise AgentsAsyncioSuspension(error)
 
