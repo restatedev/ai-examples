@@ -36,7 +36,7 @@ Start Restate:
 restate-server
 ```
 
-Open the UI on http://localhost:9070 and register your deployment running at `http://localhost:9080`, or do:
+Open the UI on `http://localhost:9070` and register your deployment running at `http://localhost:9080`, or do:
 
 ```shell
 restate -y deployments register localhost:9080 --force

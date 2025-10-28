@@ -38,7 +38,7 @@ docker compose up
 
 (It will take a while before all the services are up and running and you will see a few retries for the registration.)
 
-Go to the Restate UI ([`http://localhost:9070`](`http://localhost:9070`)). You see here the overview of the services that are running:
+Go to the Restate UI (`http://localhost:9070`). You see here the overview of the services that are running:
 
 <img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/a2a/multi_agent_overview.png" alt="Restate UI" width="1000"/>
 
@@ -219,7 +219,7 @@ curl localhost:8080/restate/awakeables/sign_1oqmHpDF_RJQBltjnf48zszmfmRr4w9izAAA
 
 Approve the reimbursement. 
 
-You can have a look at the Restate UI at http://localhost:9070/ui/invocations to see the end-to-end flow:
+You can have a look at the Restate UI at `http://localhost:9070/ui/invocations` to see the end-to-end flow:
 
 <img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/a2a/long-running-task.png" alt="Restate UI" width="1200"/>
 
@@ -284,7 +284,7 @@ curl localhost:8080/ReimbursementAgentA2AServer/process_request \
 </details>
 
 The Durable Task Object stores the Task data in Restate's embedded K/V store.
-We can query the K/V store via the UI. Have a look at the task progress in the Restate UI at http://localhost:9070/ui/state:
+We can query the K/V store via the UI. Have a look at the task progress in the Restate UI at `http://localhost:9070/ui/state`:
 
 <img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/a2a/restate_ui_task_state.png" alt="Restate UI" width="1000"/>
 
