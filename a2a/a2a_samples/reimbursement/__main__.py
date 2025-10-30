@@ -6,7 +6,7 @@ import os
 from fastapi import FastAPI
 from dotenv import load_dotenv
 
-from .adk_restate_agent import ADKAgentFactory
+from a2a_samples.reimbursement.agent import ReimbursementAgent, reimbursement_service
 from a2a_samples.common.a2a.a2a_middleware import RestateA2AMiddleware
 from a2a.types import AgentCard, AgentCapabilities, AgentSkill
 load_dotenv()
@@ -32,9 +32,6 @@ if __name__ == '__main__':
                     'Either OPENAI_API_KEY or GEMINI_API_KEY must be set, '
                     'or GOOGLE_GENAI_USE_VERTEXAI must be TRUE.'
                 )
-
-        # Create the ADK agent with Restate integration
-        adk_agent = ADKAgentFactory.create_reimbursement_agent()
 
         # Define the agent card for A2A protocol
         agent_card = AgentCard(
@@ -85,7 +82,7 @@ if __name__ == '__main__':
         )
 
         # Get hybrid middleware
-        middleware = RestateA2AMiddleware(agent_card, adk_agent)
+        middleware = RestateA2AMiddleware(agent_card, ReimbursementAgent())
 
         app = FastAPI()
 
@@ -95,7 +92,7 @@ if __name__ == '__main__':
             return agent_card
 
         # Mount both A2A SDK endpoints and Restate endpoints
-        app.mount("/restate/v1", restate.app(middleware))
+        app.mount("/restate/v1", restate.app([*middleware, reimbursement_service]))
 
         conf = hypercorn.Config()
         host = "localhost"

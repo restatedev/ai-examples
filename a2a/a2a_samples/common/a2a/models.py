@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 import restate
 from a2a.types import Part
+from pydantic import BaseModel
 
 class A2AAgent(ABC):
     """Agent interface that works with A2A SDK types."""
@@ -13,10 +14,8 @@ class A2AAgent(ABC):
         pass
 
 
-class AgentInvokeResult:
+class AgentInvokeResult(BaseModel):
     """Result of agent invocation using A2A SDK types."""
-
-    def __init__(self, parts: list[Part], require_user_input: bool = False, is_task_complete: bool = True):
-        self.parts = parts
-        self.require_user_input = require_user_input
-        self.is_task_complete = is_task_complete
+    parts: list[Part]
+    require_user_input: bool = False
+    is_task_complete: bool = True

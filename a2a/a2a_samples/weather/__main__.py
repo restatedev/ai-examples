@@ -5,7 +5,7 @@ import restate
 from fastapi import FastAPI
 
 from a2a_samples.common.a2a.a2a_middleware import RestateA2AMiddleware
-from agent import WeatherAgent, weather_agent
+from agent import ADKWeatherAgent, agent_service
 from a2a.types import (
     AgentCard,
     AgentCapabilities,
@@ -21,26 +21,27 @@ logger = logging.getLogger(__name__)
 RESTATE_HOST = os.getenv("RESTATE_HOST", "http://localhost:8080")
 
 AGENT_CARD = AgentCard(
-    name=weather_agent.name,
-    description=weather_agent.handoff_description,
+    name="weather_time_agent",
+    description="Agent to answer questions about the time and weather in a city.",
     url=RESTATE_HOST,
     version="1.0.0",
-    capabilities=AgentCapabilities(streaming=False),
+    capabilities=AgentCapabilities(streaming=False, push_notifications=False),
     skills=[
         AgentSkill(
-            id=tool.name,
-            name=tool.name,
-            description=tool.description,
+            id="get_weather",
+            name="Fetch weather",
+            description="Retrieves the current weather report for a specified city.",
             tags=["weather"],
         )
-        for tool in weather_agent.tools
     ],
+    default_input_modes=['text', 'text/plain'],
+    default_output_modes=['text', 'text/plain'],
 )
 
 
 WEATHER_AGENT = RestateA2AMiddleware(
     AGENT_CARD,
-    WeatherAgent(),
+    ADKWeatherAgent(),
 )
 
 app = FastAPI()
@@ -52,7 +53,7 @@ async def agent_json():
     return WEATHER_AGENT.agent_card_json
 
 
-app.mount("/restate/v1", restate.app(WEATHER_AGENT))
+app.mount("/restate/v1", restate.app([*WEATHER_AGENT, agent_service]))
 
 
 def main():
