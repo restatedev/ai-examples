@@ -1,5 +1,5 @@
 # pylint: disable=C0116
-"""Main entry point for hybrid reimbursement agent."""
+"""Main entry point for reimbursement agent."""
 
 import logging
 import os
@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from dotenv import load_dotenv
 
 from .adk_restate_agent import ADKAgentFactory
-from a2a_samples.common.a2a.hybrid_middleware import RestateAgentMiddleware
+from a2a_samples.common.a2a.a2a_middleware import RestateA2AMiddleware
 from a2a.types import AgentCard, AgentCapabilities, AgentSkill
 load_dotenv()
 
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 if __name__ == '__main__':
-    """Run the hybrid reimbursement agent in different modes."""
+    """Run the reimbursement agent."""
     import restate
     import asyncio
     import hypercorn.asyncio
@@ -33,20 +33,19 @@ if __name__ == '__main__':
                     'or GOOGLE_GENAI_USE_VERTEXAI must be TRUE.'
                 )
 
-        # Create the hybrid agent
         # Create the ADK agent with Restate integration
         adk_agent = ADKAgentFactory.create_reimbursement_agent()
 
         # Define the agent card for A2A protocol
         agent_card = AgentCard(
-            name="HybridReimbursementAgent",
+            name="ReimbursementAgent",
             description="Advanced reimbursement agent with Google ADK intelligence and Restate durability",
             url=os.getenv("RESTATE_HOST", "http://localhost:8080"),
             version="1.0.0",
             capabilities=AgentCapabilities(
                 streaming=False,
                 push_notifications=False,
-                state_transition_history=True,  # Enabled by Restate
+                state_transition_history=True,
             ),
             skills=[
                 AgentSkill(
@@ -85,10 +84,8 @@ if __name__ == '__main__':
             default_output_modes=['text', 'text/plain'],
         )
 
-        logger.info("Starting in HYBRID mode (Google ADK + Restate)")
-
         # Get hybrid middleware
-        middleware = RestateAgentMiddleware(agent_card, adk_agent)
+        middleware = RestateA2AMiddleware(agent_card, adk_agent)
 
         app = FastAPI()
 

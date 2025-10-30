@@ -251,9 +251,9 @@ class ADKAgentFactory:
         # Build the ADK agent
         agent = LlmAgent(
             model=LiteLlm(model=litellm_model),
-            name='reimbursement_agent_hybrid',
+            name='reimbursement_agent',
             description=(
-                'Hybrid agent that handles reimbursement process with Restate durability'
+                'Agent that handles reimbursement process with Restate durability'
             ),
             instruction="""
     You are an agent who handles the reimbursement process for employees.
