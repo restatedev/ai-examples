@@ -1,16 +1,15 @@
 # pylint: disable=C0116
 """Bridge between Google ADK agents and Restate durable execution."""
 
-import asyncio
 import logging
-from typing import Any, AsyncIterable, Dict, List, Optional
+from typing import Any, AsyncIterable, Dict, List
 
 import restate
 from google.adk.agents.llm_agent import LlmAgent
 from google.adk.runners import Runner
 from google.genai import types
 
-from .models import A2AAgent, AgentInvokeResult
+from a2a_samples.common.a2a.models import A2AAgent, AgentInvokeResult
 from a2a.types import Part, TextPart, DataPart
 
 logger = logging.getLogger(__name__)

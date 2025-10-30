@@ -88,14 +88,14 @@ if __name__ == '__main__':
         logger.info("Starting in HYBRID mode (Google ADK + Restate)")
 
         # Get hybrid middleware
-        middleware = HybridAgentMiddleware(agent_card_json, agent)
+        middleware = HybridAgentMiddleware(agent_card, adk_agent)
 
         app = FastAPI()
 
         @app.get("/.well-known/agent.json")
         async def agent_json():
             """Serve the agent card in A2A SDK format"""
-            return agent_card_json
+            return agent_card
 
         # Mount both A2A SDK endpoints and Restate endpoints
         app.mount("/restate/v1", restate.app(middleware))
