@@ -12,6 +12,7 @@ from google.genai import types
 from a2a_samples.common.a2a.models import A2AAgent, AgentInvokeResult
 from a2a.types import Part, TextPart, DataPart
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -283,40 +284,6 @@ class ADKAgentFactory:
         )
 
         # Build the runner
-        runner = Runner(
-            app_name=agent.name,
-            agent=agent,
-            artifact_service=InMemoryArtifactService(),
-            session_service=InMemorySessionService(),
-            memory_service=InMemoryMemoryService(),
-        )
-
-        return ADKRestateAgent(agent, runner)
-
-    @staticmethod
-    def create_custom_adk_agent(
-        name: str,
-        description: str,
-        instructions: str,
-        tools: List[Any],
-        model_name: str = 'gemini/gemini-2.0-flash-001'
-    ) -> ADKRestateAgent:
-        """Create a custom ADK agent with Restate integration."""
-        from google.adk.agents.llm_agent import LlmAgent
-        from google.adk.models.lite_llm import LiteLlm
-        from google.adk.artifacts import InMemoryArtifactService
-        from google.adk.memory.in_memory_memory_service import InMemoryMemoryService
-        from google.adk.runners import Runner
-        from google.adk.sessions import InMemorySessionService
-
-        agent = LlmAgent(
-            model=LiteLlm(model=model_name),
-            name=name,
-            description=description,
-            instruction=instructions,
-            tools=tools,
-        )
-
         runner = Runner(
             app_name=agent.name,
             agent=agent,

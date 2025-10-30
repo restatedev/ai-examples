@@ -6,8 +6,8 @@ import os
 from fastapi import FastAPI
 from dotenv import load_dotenv
 
-from a2a_samples.common.a2a.adk_restate_agent import ADKAgentFactory
-from a2a_samples.common.a2a.hybrid_middleware import HybridAgentMiddleware
+from .adk_restate_agent import ADKAgentFactory
+from a2a_samples.common.a2a.hybrid_middleware import RestateAgentMiddleware
 from a2a.types import AgentCard, AgentCapabilities, AgentSkill
 load_dotenv()
 
@@ -88,7 +88,7 @@ if __name__ == '__main__':
         logger.info("Starting in HYBRID mode (Google ADK + Restate)")
 
         # Get hybrid middleware
-        middleware = HybridAgentMiddleware(agent_card, adk_agent)
+        middleware = RestateAgentMiddleware(agent_card, adk_agent)
 
         app = FastAPI()
 

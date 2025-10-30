@@ -75,7 +75,7 @@ class RestateAgentExecutor(AgentExecutor):
         return None
 
 
-class HybridAgentMiddleware(Iterable[restate.Service | restate.VirtualObject]):
+class RestateAgentMiddleware(Iterable[restate.Service | restate.VirtualObject]):
     """Simplified hybrid middleware that combines Google A2A SDK with Restate durability."""
 
     def __init__(self, agent_card: AgentCard, agent: A2AAgent):
@@ -109,18 +109,6 @@ class HybridAgentMiddleware(Iterable[restate.Service | restate.VirtualObject]):
     def services(self) -> Iterable[restate.Service | restate.VirtualObject]:
         """Return the services that define the agent's a2a server and task object."""
         return self.restate_services
-
-    def create_a2a_application(self, host: str = "localhost", port: int = 8080) -> A2AStarletteApplication:
-        """Create an A2A Starlette application using the Google SDK."""
-        request_handler = DefaultRequestHandler(
-            agent_executor=self.agent_executor,
-            task_store=self.task_store,
-        )
-
-        return A2AStarletteApplication(
-            agent_card=self.agent_card,
-            http_handler=request_handler,
-        )
 
     def _build_services(self):
         """Creates services for Restate integration with A2A SDK compatibility."""
@@ -206,7 +194,7 @@ class HybridAgentMiddleware(Iterable[restate.Service | restate.VirtualObject]):
                         updated_task = await TaskObject.update_store(
                             ctx,
                             state=TaskState.COMPLETED,
-                            artifacts=[Artifact(parts=result.parts)],
+                            artifacts=[Artifact(artifact_id=str(ctx.uuid()), parts=result.parts)],
                         )
 
                     ctx.clear(INVOCATION_ID)
