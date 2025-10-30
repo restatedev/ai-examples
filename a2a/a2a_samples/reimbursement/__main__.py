@@ -3,9 +3,9 @@ import restate
 import logging
 from fastapi import FastAPI
 
-from a2a.common.a2a.a2a_middleware import AgentMiddleware
+from a2a_samples.common.a2a.a2a_middleware import AgentMiddleware
 from agent import reimbursement_agent, reimbursement_service, ReimbursementAgent
-from a2a.common.a2a.models import (
+from a2a_samples.common.a2a.models import (
     MissingAPIKeyError,
     AgentCard,
     AgentSkill,

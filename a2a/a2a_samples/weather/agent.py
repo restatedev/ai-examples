@@ -3,8 +3,8 @@ import restate
 from agents import Agent, RunConfig, Runner, function_tool, RunContextWrapper, ModelSettings
 from pydantic import BaseModel
 
-from a2a.common.a2a.models import AgentInvokeResult, A2AAgent
-from a2a.common.openai.middleware import DurableModelCalls, raise_restate_errors
+from a2a_samples.common.a2a.models import AgentInvokeResult, A2AAgent
+from a2a_samples.common.openai.middleware import DurableModelCalls, raise_restate_errors
 from utils import fetch_weather, parse_weather_data, WeatherResponse
 
 

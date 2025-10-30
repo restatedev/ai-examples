@@ -8,7 +8,7 @@ import httpx
 
 from agents import function_tool, RunContextWrapper
 
-from a2a.common.a2a.models import (
+from a2a_samples.common.a2a.models import (
     AgentCard,
     SendTaskRequest,
     TaskSendParams,
@@ -19,7 +19,7 @@ from a2a.common.a2a.models import (
     JSONRPCRequest,
     SendTaskResponse,
 )
-from a2a.common.openai.middleware import raise_restate_errors
+from a2a_samples.common.openai.middleware import raise_restate_errors
 
 logger = logging.getLogger(__name__)
 

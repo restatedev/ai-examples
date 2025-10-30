@@ -10,8 +10,8 @@ from pydantic import BaseModel, ConfigDict
 
 from agents import Agent, function_tool, Runner, RunConfig, RunContextWrapper, ModelSettings
 
-from a2a.common.a2a.models import A2AAgent, AgentInvokeResult
-from a2a.common.openai.middleware import DurableModelCalls, raise_restate_errors
+from a2a_samples.common.a2a.models import A2AAgent, AgentInvokeResult
+from a2a_samples.common.openai.middleware import DurableModelCalls, raise_restate_errors
 
 logger = logging.getLogger(__name__)
 

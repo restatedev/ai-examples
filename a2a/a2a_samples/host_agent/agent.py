@@ -3,8 +3,8 @@ import restate
 
 from agents import Agent, Runner, RunConfig, ModelSettings
 
-from a2a.common.openai.middleware import DurableModelCalls
-from a2a.host_agent.utils import init_remote_agents
+from a2a_samples.common.openai.middleware import DurableModelCalls
+from a2a_samples.host_agent.utils import init_remote_agents
 
 logger = logging.getLogger(__name__)
 
