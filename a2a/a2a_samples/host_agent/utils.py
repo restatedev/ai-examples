@@ -60,7 +60,7 @@ async def call_remote_agent(
             params=TaskSendParams(
                 id=uuid.uuid4().hex,
                 sessionId=ctx.key(),
-                message=Message(role="user", parts=[TextPart(text=message)]),
+                message=Message(message_id=str(ctx.uuid()), role="user", parts=[TextPart(text=message)]),
             ),
         ),
     )

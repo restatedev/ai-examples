@@ -17,6 +17,8 @@ class TaskState(str, Enum):
     COMPLETED = "completed"
     CANCELED = "canceled"
     FAILED = "failed"
+    REJECTED = "rejected"
+    AUTH_REQUIRED = "auth-required"
     UNKNOWN = "unknown"
 
 
@@ -59,6 +61,7 @@ Part = Annotated[Union[TextPart, FilePart, DataPart], Field(discriminator="type"
 
 
 class Message(BaseModel):
+    message_id: str
     role: Literal["user", "agent"]
     parts: List[Part]
     metadata: dict[str, Any] | None = None

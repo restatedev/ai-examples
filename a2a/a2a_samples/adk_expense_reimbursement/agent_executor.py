@@ -47,7 +47,7 @@ class ReimbursementAgentExecutor(AgentExecutor):
             artifacts = None
             if not is_task_complete:
                 await updater.update_status(
-                    TaskState.working,
+                    TaskState.WORKING,
                     new_agent_text_message(
                         item['updates'], task.context_id, task.id
                     ),
@@ -62,7 +62,7 @@ class ReimbursementAgentExecutor(AgentExecutor):
                 ):
                     data = json.loads(item['content']['response']['result'])
                     await updater.update_status(
-                        TaskState.input_required,
+                        TaskState.INPUT_REQUIRED,
                         new_agent_parts_message(
                             [Part(root=DataPart(data=data))],
                             task.context_id,
@@ -72,7 +72,7 @@ class ReimbursementAgentExecutor(AgentExecutor):
                     )
                     continue
                 await updater.update_status(
-                    TaskState.failed,
+                    TaskState.FAILED,
                     new_agent_text_message(
                         'Reaching an unexpected state',
                         task.context_id,

@@ -163,7 +163,7 @@ def _build_services(middleware: AgentMiddleware):
                     updated_task = await TaskObject.update_store(
                         ctx,
                         state=TaskState.INPUT_REQUIRED,
-                        status_message=Message(role="agent", parts=result.parts),
+                        status_message=Message(message_id=str(ctx.uuid()), role="agent", parts=result.parts),
                     )
                 else:
                     updated_task = await TaskObject.update_store(
