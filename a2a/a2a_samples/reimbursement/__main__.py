@@ -5,12 +5,7 @@ from fastapi import FastAPI
 
 from a2a_samples.common.a2a.a2a_middleware import AgentMiddleware
 from agent import reimbursement_agent, reimbursement_service, ReimbursementAgent
-from a2a_samples.common.a2a.models import (
-    MissingAPIKeyError,
-    AgentCard,
-    AgentSkill,
-    AgentCapabilities,
-)
+from a2a.types import AgentCard, AgentSkill, AgentCapabilities
 from dotenv import load_dotenv
 
 
@@ -63,9 +58,6 @@ def main():
     """Serve the agent at a specified port using hypercorn."""
     import asyncio
     import hypercorn.asyncio
-
-    if not os.getenv("OPENAI_API_KEY"):
-        raise MissingAPIKeyError("OPENAI_API_KEY environment variable not set.")
 
     port = os.getenv("AGENT_PORT", "9082")
     conf = hypercorn.Config()

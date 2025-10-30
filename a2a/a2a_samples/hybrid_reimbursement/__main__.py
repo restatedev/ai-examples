@@ -3,13 +3,12 @@
 
 import logging
 import os
-import click
 from fastapi import FastAPI
 from dotenv import load_dotenv
 
-from agent import HybridReimbursementAgent
-from a2a_samples.common.a2a.models import MissingAPIKeyError
-
+from a2a_samples.common.a2a.adk_restate_agent import ADKAgentFactory
+from a2a_samples.common.a2a.hybrid_middleware import HybridAgentMiddleware
+from a2a.types import AgentCard, AgentCapabilities, AgentSkill
 load_dotenv()
 
 logging.basicConfig(
@@ -19,120 +18,98 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-@click.command()
-@click.option('--host', default='localhost', help='Host to bind the server to')
-@click.option('--port', default=9083, help='Port to bind the server to')
-@click.option(
-    '--mode',
-    type=click.Choice(['traditional', 'hybrid', 'pure-a2a']),
-    default='hybrid',
-    help='Server mode: traditional (Restate only), hybrid (ADK+Restate), pure-a2a (SDK only)'
-)
-def main(host: str, port: int, mode: str):
+if __name__ == '__main__':
     """Run the hybrid reimbursement agent in different modes."""
+    import restate
+    import asyncio
+    import hypercorn.asyncio
+
     try:
         # Check for required API keys
         if not os.getenv('OPENAI_API_KEY') and not os.getenv('GEMINI_API_KEY'):
             if not os.getenv('GOOGLE_GENAI_USE_VERTEXAI') == 'TRUE':
-                raise MissingAPIKeyError(
+                raise Exception(
                     'Either OPENAI_API_KEY or GEMINI_API_KEY must be set, '
                     'or GOOGLE_GENAI_USE_VERTEXAI must be TRUE.'
                 )
 
         # Create the hybrid agent
-        hybrid_agent = HybridReimbursementAgent()
+        # Create the ADK agent with Restate integration
+        adk_agent = ADKAgentFactory.create_reimbursement_agent()
 
-        if mode == 'traditional':
-            logger.info("Starting in TRADITIONAL mode (Restate A2A middleware)")
-            run_traditional_mode(hybrid_agent, host, port)
+        # Define the agent card for A2A protocol
+        agent_card = AgentCard(
+            name="HybridReimbursementAgent",
+            description="Advanced reimbursement agent with Google ADK intelligence and Restate durability",
+            url=os.getenv("RESTATE_HOST", "http://localhost:8080"),
+            version="1.0.0",
+            capabilities=AgentCapabilities(
+                streaming=False,
+                push_notifications=False,
+                state_transition_history=True,  # Enabled by Restate
+            ),
+            skills=[
+                AgentSkill(
+                    id="process_reimbursement",
+                    name="Process Reimbursement",
+                    description="Handle employee reimbursement requests with workflow management",
+                    tags=["reimbursement", "finance", "workflow"],
+                    examples=[
+                        "Can you reimburse me $50 for client lunch on Dec 1st?",
+                        "I need to submit a reimbursement for travel expenses",
+                        "Process my $200 conference registration fee reimbursement",
+                    ],
+                ),
+                AgentSkill(
+                    id="form_management",
+                    name="Form Management",
+                    description="Create and manage reimbursement forms with validation",
+                    tags=["forms", "validation", "data"],
+                    examples=[
+                        "Create a new reimbursement form",
+                        "Validate submitted expense data",
+                    ],
+                ),
+                AgentSkill(
+                    id="approval_workflow",
+                    name="Approval Workflow",
+                    description="Handle approval workflows for large expenses",
+                    tags=["approval", "workflow", "management"],
+                    examples=[
+                        "Route expense for manager approval",
+                        "Check approval status",
+                    ],
+                ),
+            ],
+            default_input_modes=['text', 'text/plain'],
+            default_output_modes=['text', 'text/plain'],
+        )
 
-        elif mode == 'hybrid':
-            logger.info("Starting in HYBRID mode (Google ADK + Restate)")
-            run_hybrid_mode(hybrid_agent, host, port)
+        logger.info("Starting in HYBRID mode (Google ADK + Restate)")
 
-        elif mode == 'pure-a2a':
-            logger.info("Starting in PURE A2A mode (Google SDK only)")
-            run_pure_a2a_mode(hybrid_agent, host, port)
+        # Get hybrid middleware
+        middleware = HybridAgentMiddleware(agent_card_json, agent)
 
-    except MissingAPIKeyError as e:
-        logger.error(f'Error: {e}')
-        exit(1)
+        app = FastAPI()
+
+        @app.get("/.well-known/agent.json")
+        async def agent_json():
+            """Serve the agent card in A2A SDK format"""
+            return agent_card_json
+
+        # Mount both A2A SDK endpoints and Restate endpoints
+        app.mount("/restate/v1", restate.app(middleware))
+
+        conf = hypercorn.Config()
+        host = "localhost"
+        port = 9083
+        conf.bind = [f"{host}:{port}"]
+        logger.info(f"Server running at http://{host}:{port}")
+        logger.info("Available endpoints:")
+        logger.info(f"  - Agent card: http://{host}:{port}/.well-known/agent.json")
+        logger.info(f"  - Restate services: http://{host}:{port}/restate/v1/")
+        asyncio.run(hypercorn.asyncio.serve(app, conf))
+
     except Exception as e:
         logger.error(f'An error occurred during server startup: {e}')
         exit(1)
-
-
-def run_traditional_mode(hybrid_agent: HybridReimbursementAgent, host: str, port: int):
-    """Run using traditional Restate A2A middleware."""
-    import restate
-    import asyncio
-    import hypercorn.asyncio
-
-    # Get traditional middleware
-    middleware = hybrid_agent.get_traditional_middleware()
-
-    app = FastAPI()
-
-    @app.get("/.well-known/agent.json")
-    async def agent_json():
-        """Serve the agent card"""
-        return middleware.agent_card_json
-
-    app.mount("/restate/v1", restate.app(middleware))
-
-    conf = hypercorn.Config()
-    conf.bind = [f"{host}:{port}"]
-    logger.info(f"Traditional mode server running at http://{host}:{port}")
-    asyncio.run(hypercorn.asyncio.serve(app, conf))
-
-
-def run_hybrid_mode(hybrid_agent: HybridReimbursementAgent, host: str, port: int):
-    """Run using hybrid middleware (A2A SDK + Restate)."""
-    import restate
-    import asyncio
-    import hypercorn.asyncio
-
-    # Get hybrid middleware
-    middleware = hybrid_agent.get_hybrid_middleware()
-
-    app = FastAPI()
-
-    @app.get("/.well-known/agent.json")
-    async def agent_json():
-        """Serve the agent card in A2A SDK format"""
-        return middleware.agent_card_json
-
-    # Mount both A2A SDK endpoints and Restate endpoints
-    app.mount("/restate/v1", restate.app(middleware))
-
-    # You could also mount A2A SDK application here if needed
-    # a2a_app = middleware.create_a2a_application(host, port)
-    # app.mount("/a2a", a2a_app.build())
-
-    conf = hypercorn.Config()
-    conf.bind = [f"{host}:{port}"]
-    logger.info(f"Hybrid mode server running at http://{host}:{port}")
-    logger.info("Available endpoints:")
-    logger.info(f"  - Agent card: http://{host}:{port}/.well-known/agent.json")
-    logger.info(f"  - Restate services: http://{host}:{port}/restate/v1/")
-    asyncio.run(hypercorn.asyncio.serve(app, conf))
-
-
-def run_pure_a2a_mode(hybrid_agent: HybridReimbursementAgent, host: str, port: int):
-    """Run using pure A2A SDK (no Restate durability)."""
-    import uvicorn
-
-    # Get pure A2A application
-    a2a_app = hybrid_agent.get_pure_a2a_app(host, port)
-
-    logger.info(f"Pure A2A mode server running at http://{host}:{port}")
-    logger.info("Note: This mode does not include Restate durability features")
-    logger.info("Available endpoints:")
-    logger.info(f"  - Agent card: http://{host}:{port}/.well-known/agent.json")
-    logger.info(f"  - A2A endpoints: http://{host}:{port}/")
-
-    uvicorn.run(a2a_app.build(), host=host, port=port)
-
-
-if __name__ == '__main__':
-    main()

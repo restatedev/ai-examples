@@ -1,5 +1,5 @@
 # pylint: disable=C0116
-"""Hybrid middleware that combines Google A2A SDK with Restate durability."""
+"""Simplified hybrid middleware that combines Google A2A SDK with Restate durability."""
 
 import logging
 from collections.abc import AsyncIterable, Iterable
@@ -9,25 +9,28 @@ from typing import Any, Dict, Optional
 import restate
 from a2a.server.apps import A2AStarletteApplication
 from a2a.server.context import ServerCallContext
-from a2a.server.request_handlers import RequestHandler
+from a2a.server.request_handlers import RequestHandler, DefaultRequestHandler
 from a2a.server.agent_execution import AgentExecutor, RequestContext
 from a2a.server.events import EventQueue
 from a2a.server.tasks import TaskStore, TaskUpdater
-from a2a.types import Task as A2ATask, TaskState as A2ATaskState
-from pydantic import ValidationError
-from restate.serde import PydanticJsonSerde
-
-from .models import (
-    A2AAgent,
-    AgentCard,
+from a2a.types import (
     Task,
     TaskState,
     TaskStatus,
+    AgentCard,
     Message,
     Part,
     TextPart,
+    Artifact,
+    Role,
+    JSONRPCRequest,
+    JSONRPCResponse,
+    JSONRPCError,
 )
-from .sdk_adapter import A2ASDKAdapter, A2ASDKRestateWrapper
+from pydantic import ValidationError
+from restate.serde import PydanticJsonSerde
+
+from .a2a_middleware import A2AAgent, AgentInvokeResult
 
 logger = logging.getLogger(__name__)
 
@@ -39,22 +42,20 @@ INVOCATION_ID = "invocation-id"
 class RestateTaskStore(TaskStore):
     """Task store implementation that uses Restate for persistence."""
 
+    def __init__(self, task_object_name: str):
+        self.task_object_name = task_object_name
+
     async def save(self, task: Task, context: ServerCallContext | None = None) -> None:
-        """Create task in Restate storage."""
-        # Similar to get_task, this needs a Restate context
+        """Save task to Restate storage - not directly implemented as it's handled by virtual object."""
         pass
 
     async def get(self, task_id: str, context: ServerCallContext | None = None) -> Task | None:
-        """Get task from Restate storage in A2A SDK format."""
-        # This would need a Restate context, so we'll implement this differently
-        # For now, return None - the actual implementation will be in the handler
+        """Get task from Restate storage - not directly implemented as it's handled by virtual object."""
         return None
 
     async def delete(self, task_id: str, context: ServerCallContext | None = None) -> None:
         """Delete task from Restate storage."""
-        return None
-
-
+        pass
 
 
 class RestateAgentExecutor(AgentExecutor):
@@ -66,26 +67,22 @@ class RestateAgentExecutor(AgentExecutor):
 
     async def execute(self, context: RequestContext, event_queue: EventQueue) -> None:
         """Execute agent with Restate durability."""
-        # This will be implemented to bridge A2A SDK context with Restate context
-        raise NotImplementedError("Use RestateHybridAgentExecutor instead")
+        logger.info("Hybrid executor delegating to Restate handlers")
 
-    async def cancel(self, context: RequestContext, event_queue: EventQueue) -> Optional[A2ATask]:
+    async def cancel(self, context: RequestContext, event_queue: EventQueue) -> Optional[Task]:
         """Cancel task execution."""
-        # Implementation will delegate to Restate's cancellation mechanism
-        raise NotImplementedError("Use RestateHybridAgentExecutor instead")
+        logger.info("Hybrid executor delegating cancellation to Restate")
+        return None
 
 
 class HybridAgentMiddleware(Iterable[restate.Service | restate.VirtualObject]):
-    """Hybrid middleware that combines Google A2A SDK with Restate durability."""
+    """Simplified hybrid middleware that combines Google A2A SDK with Restate durability."""
 
     def __init__(self, agent_card: AgentCard, agent: A2AAgent):
         self.agent_card = agent_card.model_copy()
         self.agent = agent
         self.a2a_server_name = f"{self.agent_card.name}A2AServer"
         self.task_object_name = f"{self.agent_card.name}TaskObject"
-
-        # Create SDK wrapper
-        self.sdk_wrapper = A2ASDKRestateWrapper(self.agent_card)
 
         # Replace the base url with the exact url of the process_request handler
         restate_base_url = self.agent_card.url
@@ -96,7 +93,7 @@ class HybridAgentMiddleware(Iterable[restate.Service | restate.VirtualObject]):
         self._build_services()
 
         # Set up A2A SDK components
-        self.task_store = RestateTaskStore()
+        self.task_store = RestateTaskStore(self.task_object_name)
         self.agent_executor = RestateAgentExecutor(agent, self.task_object_name)
 
     def __iter__(self):
@@ -106,7 +103,7 @@ class HybridAgentMiddleware(Iterable[restate.Service | restate.VirtualObject]):
     @property
     def agent_card_json(self):
         """Return the agent card in A2A SDK compatible format."""
-        return self.sdk_wrapper.get_agent_card().model_dump()
+        return self.agent_card.model_dump()
 
     @property
     def services(self) -> Iterable[restate.Service | restate.VirtualObject]:
@@ -115,15 +112,13 @@ class HybridAgentMiddleware(Iterable[restate.Service | restate.VirtualObject]):
 
     def create_a2a_application(self, host: str = "localhost", port: int = 8080) -> A2AStarletteApplication:
         """Create an A2A Starlette application using the Google SDK."""
-        from a2a.server.request_handlers import DefaultRequestHandler
-
         request_handler = DefaultRequestHandler(
-            agent_executor=RestateHybridAgentExecutor(self.agent, self.task_object_name),
+            agent_executor=self.agent_executor,
             task_store=self.task_store,
         )
 
         return A2AStarletteApplication(
-            agent_card=self.sdk_wrapper.get_agent_card(),
+            agent_card=self.agent_card,
             http_handler=request_handler,
         )
 
@@ -143,7 +138,6 @@ class HybridAgentMiddleware(Iterable[restate.Service | restate.VirtualObject]):
         self.restate_services.append(task_object)
 
         agent = self.agent
-        sdk_wrapper = self.sdk_wrapper
 
         class TaskObject:
             """TaskObject with A2A SDK compatibility."""
@@ -164,20 +158,6 @@ class HybridAgentMiddleware(Iterable[restate.Service | restate.VirtualObject]):
 
             @staticmethod
             @task_object.handler()
-            async def get_task_sdk_format(ctx: restate.ObjectSharedContext) -> Dict[str, Any] | None:
-                """Get task in A2A SDK format."""
-                task_id = ctx.key()
-                logger.info("Getting task %s in SDK format", task_id)
-                restate_task = await ctx.get(TASK, type_hint=Task)
-                if restate_task is None:
-                    return None
-
-                # Convert to SDK format
-                sdk_task = await sdk_wrapper.convert_task_to_sdk(restate_task)
-                return sdk_task.model_dump()
-
-            @staticmethod
-            @task_object.handler()
             async def handle_send_task_request_hybrid(
                 ctx: restate.ObjectContext, request_data: Dict[str, Any]
             ) -> Dict[str, Any]:
@@ -193,46 +173,36 @@ class HybridAgentMiddleware(Iterable[restate.Service | restate.VirtualObject]):
                 # Store invocation ID for cancellation
                 await TaskObject.set_invocation_id(ctx, ctx.request().id)
 
-                # Create initial task in Restate format
-                from .models import TaskSendParams
-
+                # Create message from request data
+                message_data = request_data["params"]["message"]
                 message = Message(
-                    role=request_data["params"]["message"].get("role") or "user",
-                    parts=request_data["params"]["message"].get("parts") or [],
-                    message_id=request_data["params"]["message"].get("message_id") or str(ctx.uuid()),
+                    role=Role(message_data.get("role", "user")),
+                    parts=message_data.get("parts", []),
+                    message_id=message_data.get("message_id", str(ctx.uuid())),
                 )
 
-                task_send_params = TaskSendParams(
-                    id=request_data["params"].get("id"),
-                    sessionId=request_data["params"].get("sessionId"),
-                    message=message,
-                    acceptedOutputModes=request_data["params"].get("acceptedOutputModes"),
-                    pushNotification=request_data["params"].get("pushNotification"),
-                    historyLength=request_data["params"].get("historyLength"),
-                    metadata=request_data["params"].get("metadata")
-                )
-                if not task_send_params.sessionId:
-                    task_send_params.sessionId = session_id
-
-                # Store task
-                await TaskObject.upsert_task(ctx, task_send_params)
+                # Create initial task
+                task = await TaskObject.upsert_task(ctx, task_id, session_id, message)
 
                 try:
                     # Invoke agent with durability
                     result = await agent.invoke(
                         ctx,
-                        query=_get_user_query(task_send_params),
-                        session_id=task_send_params.sessionId,
+                        query=_get_user_query_from_message(message),
+                        session_id=session_id,
                     )
 
                     if result.require_user_input:
                         updated_task = await TaskObject.update_store(
                             ctx,
                             state=TaskState.INPUT_REQUIRED,
-                            status_message=Message(message_id=str(ctx.uuid()), role="agent", parts=result.parts),
+                            status_message=Message(
+                                message_id=str(ctx.uuid()),
+                                role=Role.agent,
+                                parts=result.parts
+                            ),
                         )
                     else:
-                        from .models import Artifact
                         updated_task = await TaskObject.update_store(
                             ctx,
                             state=TaskState.COMPLETED,
@@ -241,12 +211,10 @@ class HybridAgentMiddleware(Iterable[restate.Service | restate.VirtualObject]):
 
                     ctx.clear(INVOCATION_ID)
 
-                    # Convert to SDK format for response
-                    sdk_task = await sdk_wrapper.convert_task_to_sdk(updated_task)
                     return {
                         "jsonrpc": "2.0",
                         "id": request_data["id"],
-                        "result": sdk_task.model_dump(),
+                        "result": updated_task.model_dump(),
                     }
 
                 except restate.exceptions.TerminalError as e:
@@ -256,21 +224,19 @@ class HybridAgentMiddleware(Iterable[restate.Service | restate.VirtualObject]):
                             ctx, state=TaskState.CANCELED
                         )
                         ctx.clear(INVOCATION_ID)
-                        sdk_task = await sdk_wrapper.convert_task_to_sdk(cancelled_task)
                         return {
                             "jsonrpc": "2.0",
                             "id": request_data["id"],
-                            "result": sdk_task.model_dump(),
+                            "result": cancelled_task.model_dump(),
                         }
 
                     logger.error("Error processing task %s: %s", task_id, e)
                     failed_task = await TaskObject.update_store(ctx, state=TaskState.FAILED)
                     ctx.clear(INVOCATION_ID)
-                    sdk_task = await sdk_wrapper.convert_task_to_sdk(failed_task)
                     return {
                         "jsonrpc": "2.0",
                         "id": request_data["id"],
-                        "result": sdk_task.model_dump(),
+                        "result": failed_task.model_dump(),
                     }
 
             @staticmethod
@@ -278,9 +244,9 @@ class HybridAgentMiddleware(Iterable[restate.Service | restate.VirtualObject]):
                 ctx: restate.ObjectContext,
                 state: TaskState | None,
                 status_message: Message | None = None,
-                artifacts: list | None = None,
+                artifacts: list[Artifact] | None = None,
             ) -> Task:
-                """Update task store (same as original implementation)."""
+                """Update task store using A2A SDK types."""
                 task_id = ctx.key()
                 logger.info("Updating status task %s to %s", task_id, state)
 
@@ -293,10 +259,10 @@ class HybridAgentMiddleware(Iterable[restate.Service | restate.VirtualObject]):
                     "task status",
                     lambda task_state=state: TaskStatus(
                         state=task_state,
-                        timestamp=datetime.now(),
+                        timestamp=datetime.now().isoformat(),
                         message=status_message,
                     ),
-                    restate.RunOptions(type_hint=TaskStatus)
+                    restate.RunOptions(type_hint=TaskStatus),
                 )
                 prev_status = task.status
                 if prev_status.message is not None:
@@ -324,27 +290,27 @@ class HybridAgentMiddleware(Iterable[restate.Service | restate.VirtualObject]):
                 ctx.set(INVOCATION_ID, invocation_id)
 
             @staticmethod
-            async def upsert_task(ctx: restate.ObjectContext, task_send_params) -> Task:
-                """Upsert task with type compatibility."""
-                task_id = ctx.key()
+            async def upsert_task(ctx: restate.ObjectContext, task_id: str, session_id: str, message: Message) -> Task:
+                """Upsert task using A2A SDK types."""
                 logger.info("Upserting task %s", task_id)
 
                 task_state = await ctx.get(TASK, type_hint=Task)
                 if task_state is None:
                     task_state = await ctx.run_typed(
                         "Create task",
-                        lambda run_params=task_send_params: Task(
-                            id=run_params.id,
-                            sessionId=run_params.sessionId,
+                        lambda: Task(
+                            id=task_id,
+                            context_id=session_id,
                             status=TaskStatus(
-                                state=TaskState.SUBMITTED, timestamp=datetime.now()
+                                state=TaskState.SUBMITTED,
+                                timestamp=datetime.now().isoformat()
                             ),
-                            history=[run_params.message] if run_params.message else [],
+                            history=[message] if message else [],
                         ),
                         restate.RunOptions(type_hint=Task)
                     )
                 else:
-                    task_state.history.append(task_send_params.message)
+                    task_state.history.append(message)
 
                 ctx.set(TASK, task_state)
                 return task_state
@@ -354,7 +320,7 @@ class HybridAgentMiddleware(Iterable[restate.Service | restate.VirtualObject]):
 
             @a2a_service.handler()
             @staticmethod
-            async def process_request_hybrid(ctx: restate.Context, request_data: Dict[str, Any]) -> Dict[str, Any]:
+            async def process_request(ctx: restate.Context, request_data: Dict[str, Any]) -> Dict[str, Any]:
                 """Process A2A request using hybrid approach."""
                 try:
                     method = request_data.get("method")
@@ -367,12 +333,12 @@ class HybridAgentMiddleware(Iterable[restate.Service | restate.VirtualObject]):
                             idempotency_key=str(request_data["id"]),
                         )
                     elif method == "tasks/get":
-                        task_data = await ctx.object_call(
-                            TaskObject.get_task_sdk_format,
+                        task = await ctx.object_call(
+                            TaskObject.get_task,
                             key=request_data["params"]["id"],
                             arg=None,
                         )
-                        if task_data is None:
+                        if task is None:
                             return {
                                 "jsonrpc": "2.0",
                                 "id": request_data["id"],
@@ -384,7 +350,7 @@ class HybridAgentMiddleware(Iterable[restate.Service | restate.VirtualObject]):
                         return {
                             "jsonrpc": "2.0",
                             "id": request_data["id"],
-                            "result": task_data,
+                            "result": task.model_dump(),
                         }
                     else:
                         return {
@@ -410,28 +376,13 @@ class HybridAgentMiddleware(Iterable[restate.Service | restate.VirtualObject]):
         return a2a_service, task_object
 
 
-class RestateHybridAgentExecutor(AgentExecutor):
-    """Hybrid agent executor that bridges A2A SDK and Restate."""
+def _get_user_query_from_message(message: Message) -> str:
+    """Extract user query from A2A SDK Message."""
+    if not message.parts:
+        raise restate.exceptions.TerminalError("Message has no parts")
 
-    def __init__(self, agent: A2AAgent, task_object_name: str):
-        self.agent = agent
-        self.task_object_name = task_object_name
+    part = message.parts[0]
 
-    async def execute(self, context: RequestContext, event_queue: EventQueue) -> None:
-        """Execute using A2A SDK context but delegate to Restate for durability."""
-        # This will create a bridge between A2A SDK RequestContext and Restate
-        # For now, we'll use the direct Restate approach via the service calls
-        logger.info("Hybrid executor - delegating to Restate handlers")
-
-    async def cancel(self, context: RequestContext, event_queue: EventQueue) -> Optional[A2ATask]:
-        """Cancel task using Restate's cancellation mechanism."""
-        logger.info("Hybrid executor - delegating cancellation to Restate")
-        return None
-
-
-def _get_user_query(task_send_params) -> str:
-    """Extract user query from task parameters."""
-    part = task_send_params.message.parts[0]
-    if not isinstance(part, TextPart):
+    if not isinstance(part.root, TextPart):
         raise restate.exceptions.TerminalError("Only text parts are supported")
-    return part.text
+    return part.root.text

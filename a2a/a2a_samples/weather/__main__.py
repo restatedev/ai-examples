@@ -6,12 +6,7 @@ from fastapi import FastAPI
 
 from agent import WeatherAgent, weather_agent
 from a2a_samples.common.a2a.a2a_middleware import AgentMiddleware
-from a2a_samples.common.a2a.models import (
-    MissingAPIKeyError,
-    AgentCard,
-    AgentCapabilities,
-    AgentSkill,
-)
+from a2a.types import AgentCard, AgentCapabilities, AgentSkill
 
 logging.basicConfig(
     level=logging.INFO,
@@ -62,7 +57,7 @@ def main():
     import hypercorn.asyncio
 
     if not os.getenv("OPENAI_API_KEY"):
-        raise MissingAPIKeyError("OPENAI_API_KEY environment variable not set.")
+        raise Exception("OPENAI_API_KEY environment variable not set.")
 
     port = os.getenv("AGENT_PORT", "9081")
     conf = hypercorn.Config()

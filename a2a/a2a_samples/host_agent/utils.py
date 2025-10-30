@@ -8,7 +8,7 @@ import httpx
 
 from agents import function_tool, RunContextWrapper
 
-from a2a_samples.common.a2a.models import (
+from a2a.types import (
     AgentCard,
     SendTaskRequest,
     TaskSendParams,

@@ -10,8 +10,8 @@ from google.adk.agents.llm_agent import LlmAgent
 from google.adk.runners import Runner
 from google.genai import types
 
-from .models import A2AAgent, AgentInvokeResult, Part, TextPart, DataPart
-from .sdk_adapter import A2ASDKAdapter
+from .models import A2AAgent, AgentInvokeResult
+from a2a.types import Part, TextPart, DataPart
 
 logger = logging.getLogger(__name__)
 
@@ -327,57 +327,3 @@ class ADKAgentFactory:
         )
 
         return ADKRestateAgent(agent, runner)
-
-
-class RestateADKBridge:
-    """Bridge that provides both A2A SDK and Restate capabilities."""
-
-    def __init__(self, adk_agent: ADKRestateAgent, agent_card):
-        self.adk_agent = adk_agent
-        self.agent_card = agent_card
-
-    def get_a2a_middleware(self):
-        """Get traditional A2A middleware for Restate-only workflows."""
-        from .a2a_middleware import AgentMiddleware
-        return AgentMiddleware(self.agent_card, self.adk_agent)
-
-    def get_hybrid_middleware(self):
-        """Get hybrid middleware for A2A SDK + Restate workflows."""
-        from .hybrid_middleware import HybridAgentMiddleware
-        return HybridAgentMiddleware(self.agent_card, self.adk_agent)
-
-    def get_pure_a2a_application(self, host: str = "localhost", port: int = 8080):
-        """Get pure A2A SDK application (loses Restate durability)."""
-        from a2a.server.apps import A2AStarletteApplication
-        from a2a.server.request_handlers import DefaultRequestHandler
-        from a2a.server.tasks import InMemoryTaskStore
-        from a2a.server.agent_execution import AgentExecutor
-        from .sdk_adapter import A2ASDKAdapter
-
-        # Convert to A2A SDK format
-        sdk_agent_card = A2ASDKAdapter.agent_card_to_sdk(self.agent_card)
-
-        # Create a simple executor that wraps the ADK agent
-        class SimpleADKExecutor(AgentExecutor):
-            def __init__(self, adk_agent):
-                self.adk_agent = adk_agent
-
-            async def execute(self, context, event_queue):
-                # This would need proper implementation to bridge ADK with A2A SDK
-                logger.warning("Pure A2A mode not fully implemented - use hybrid mode instead")
-                pass
-
-            async def cancel(self, context, event_queue):
-                # Simple cancellation
-                return None
-
-        executor = SimpleADKExecutor(self.adk_agent)
-        request_handler = DefaultRequestHandler(
-            agent_executor=executor,
-            task_store=InMemoryTaskStore(),
-        )
-
-        return A2AStarletteApplication(
-            agent_card=sdk_agent_card,
-            http_handler=request_handler,
-        )

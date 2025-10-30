@@ -18,10 +18,6 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-class MissingAPIKeyError(Exception):
-    """Exception for missing API key."""
-
-
 @click.command()
 @click.option('--host', default='localhost')
 @click.option('--port', default=10002)
@@ -30,7 +26,7 @@ def main(host, port):
         # Check for API key only if Vertex AI is not configured
         if not os.getenv('GOOGLE_GENAI_USE_VERTEXAI') == 'TRUE':
             if not os.getenv('GEMINI_API_KEY'):
-                raise MissingAPIKeyError(
+                raise Exception(
                     'GEMINI_API_KEY environment variable not set and GOOGLE_GENAI_USE_VERTEXAI is not TRUE.'
                 )
 
@@ -65,9 +61,6 @@ def main(host, port):
         import uvicorn
 
         uvicorn.run(server.build(), host=host, port=port)
-    except MissingAPIKeyError as e:
-        logger.error(f'Error: {e}')
-        exit(1)
     except Exception as e:
         logger.error(f'An error occurred during server startup: {e}')
         exit(1)

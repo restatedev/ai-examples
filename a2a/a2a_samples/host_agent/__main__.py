@@ -2,8 +2,6 @@ import os
 import logging
 import restate
 
-from a2a_samples.common.a2a.models import MissingAPIKeyError
-
 from agent import host_agent_object
 from dotenv import load_dotenv
 
@@ -26,7 +24,7 @@ def main():
     import hypercorn.asyncio
 
     if not os.getenv("OPENAI_API_KEY"):
-        raise MissingAPIKeyError("OPENAI_API_KEY environment variable not set.")
+        raise Exception("OPENAI_API_KEY environment variable not set.")
 
     app = restate.app(services=[host_agent_object])
 
