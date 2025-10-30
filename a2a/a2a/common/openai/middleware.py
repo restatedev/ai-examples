@@ -9,13 +9,13 @@ from agents import (
     AgentsException,
 )
 from agents.models.multi_provider import MultiProvider
-from agents.items import TResponseStreamEvent, TResponseOutputItem
+from agents.items import TResponseStreamEvent, TResponseOutputItem, ModelResponse
+from agents.memory.session import SessionABC
 from agents.items import TResponseInputItem
 from typing import List, Any
 from typing import AsyncIterator
 
 from pydantic import BaseModel
-from restate.vm import SuspendedException
 
 
 # The OpenAI ModelResponse class is a dataclass with Pydantic fields.
@@ -65,17 +65,24 @@ class RestateModelWrapper(Model):
         self.model_name = f"RestateModelWrapper"
         self.max_retries = max_retries
 
-    async def get_response(self, *args, **kwargs) -> RestateModelResponse:
+    async def get_response(self, *args, **kwargs) -> ModelResponse:
         async def call_llm() -> RestateModelResponse:
             resp = await self.model.get_response(*args, **kwargs)
+            # convert to pydantic model to be serializable by Restate SDK
             return RestateModelResponse(
                 output=resp.output,
                 usage=resp.usage,
                 response_id=resp.response_id,
             )
 
-        return await self.ctx.run_typed(
+        result = await self.ctx.run_typed(
             "call LLM", call_llm, restate.RunOptions(max_attempts=self.max_retries)
+        )
+        # convert back to original ModelResponse
+        return ModelResponse(
+            output=result.output,
+            usage=result.usage,
+            response_id=result.response_id,
         )
 
     def stream_response(self, *args, **kwargs) -> AsyncIterator[TResponseStreamEvent]:
@@ -84,14 +91,54 @@ class RestateModelWrapper(Model):
         )
 
 
+class RestateSession(SessionABC):
+    """Restate session implementation following the Session protocol."""
+
+    def __init__(
+        self,
+        session_id: str,
+        ctx: restate.ObjectContext | restate.WorkflowContext,
+        current_items: List[TResponseInputItem],
+    ):
+        self.session_id = session_id
+        self.ctx = ctx
+        self.current_items = current_items
+
+    @classmethod
+    async def create(
+        cls,
+        session_id: str,
+        ctx: restate.ObjectContext | restate.WorkflowContext,
+    ):
+        current_items = await ctx.get("items", type_hint=List[TResponseInputItem]) or []
+        return cls(session_id, ctx, current_items)
+
+    async def get_items(self, limit: int | None = None) -> List[TResponseInputItem]:
+        """Retrieve conversation history for this session."""
+        if limit is not None:
+            return self.current_items[-limit:]
+        return self.current_items
+
+    async def add_items(self, items: List[TResponseInputItem]) -> None:
+        """Store new items for this session."""
+        # Your implementation here
+        self.ctx.set("items", self.current_items + items)
+
+    async def pop_item(self) -> TResponseInputItem | None:
+        """Remove and return the most recent item from this session."""
+        if self.current_items:
+            item = self.current_items.pop()
+            self.ctx.set("items", self.current_items)
+            return item
+        return None
+
+    async def clear_session(self) -> None:
+        """Clear all items for this session."""
+        self.current_items = []
+        self.ctx.clear("items")
+
+
 class AgentsTerminalException(AgentsException, restate.TerminalError):
-    """Exception that is both an AgentsException and a restate.TerminalError."""
-
-    def __init__(self, *args: object) -> None:
-        super().__init__(*args)
-
-
-class AgentsSuspension(AgentsException, SuspendedException):
     """Exception that is both an AgentsException and a restate.TerminalError."""
 
     def __init__(self, *args: object) -> None:
@@ -114,10 +161,6 @@ def raise_restate_errors(context: RunContextWrapper[Any], error: Exception) -> s
         raise AgentsTerminalException(error.message)
 
     # Raise suspensions
-    if isinstance(error, SuspendedException):
-        raise AgentsSuspension(error)
-
-    # Next Python SDK release will use CancelledError for suspensions
     if isinstance(error, asyncio.CancelledError):
         raise AgentsAsyncioSuspension(error)
 
