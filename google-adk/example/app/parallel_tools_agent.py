@@ -33,14 +33,25 @@ async def get_weather(tool_context: ToolContext, city: str) -> dict:
     return await restate_context.run_typed("get weather", lambda: get_weather())
 
 
+async def get_current_time(tool_context: ToolContext, city: str) -> dict:
+    """Returns the current time in a specified city."""
+    restate_context: restate.ObjectContext = tool_context.session.state["restate_context"]
+
+    # session needs to be Restate
+    sec = await restate_context.time()
+    dt_object = datetime.fromtimestamp(sec)
+
+    # Convert to readable string
+    time_string = dt_object.strftime("%Y-%m-%d %H:%M:%S")
+    return {"status": "success", "city": city, "time": time_string}
 
 class Prompt(BaseModel):
     msg: str = "What's the current time in New York?"
 
-agent_service = restate.VirtualObject("agent")
+parallel_tools_agent_service = restate.VirtualObject("agent")
 
 
-@agent_service.handler()
+@parallel_tools_agent_service.handler()
 async def run(ctx: restate.ObjectContext, prompt: Prompt) -> str:
     user_id = "test_user"
 
@@ -49,12 +60,13 @@ async def run(ctx: restate.ObjectContext, prompt: Prompt) -> str:
         app_name=APP_NAME, user_id=user_id, session_id=ctx.key()
     )
 
+    # TODO fix this; this breaks on the parallel calls to the two tools
     agent = Agent(
         model=durable_model_calls(ctx, 'gemini-2.5-flash'),
         name='weather_time_agent',
-        description="Agent to answer questions about the weather in a city.",
-        instruction="You are a helpful agent who can answer user questions about the weather in a city.",
-        tools=[get_weather],
+        description="Agent to answer questions about the time and weather in a city.",
+        instruction="You are a helpful agent who can answer user questions about the time and weather in a city.",
+        tools=[get_weather, get_current_time],
     )
 
     runner = Runner(agent=agent, app_name=APP_NAME, session_service=session_service)

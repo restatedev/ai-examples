@@ -1,5 +1,6 @@
 import restate
 from google.adk.agents.callback_context import CallbackContext
+from google.adk.models.lite_llm import LiteLlm
 from google.genai import types
 from google.adk.agents.llm_agent import Agent
 from google.adk.runners import Runner
@@ -23,7 +24,7 @@ from typing import Dict, Any
 
 # From https://github.com/GoogleCloudPlatform/devrel-demos/blob/main/ai-ml/python-tutor
 
-APP_NAME = "agent_app"
+APP_NAME = "agents"
 
 # Note - bracket {} syntax grabs variables from session state.
 # https://google.github.io/adk-docs/sessions/state/#using-key-templating
@@ -149,7 +150,7 @@ async def run(ctx: restate.ObjectContext, prompt: Prompt) -> str:
 
 
     root_agent = Agent(
-        model=durable_model_calls(ctx, Gemini()),
+        model=durable_model_calls(ctx, LiteLlm(model="openai/gpt-4o")),
         name="python_tutor_short_term",
         instruction=BASE_PROMPT + QUIZ_INSTRUCTIONS,
         tools=quiz_tools,

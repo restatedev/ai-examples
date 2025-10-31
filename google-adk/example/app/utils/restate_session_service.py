@@ -15,15 +15,18 @@ class RestateSessionService(BaseSessionService):
 
     async def create_session(self, app_name: str, user_id: str, state: Optional[dict[str, Any]] = None,
                              session_id: Optional[str] = None) -> Session:
+
         if session_id is None:
             session_id = self.ctx.uuid()
 
         ongoing_session = await self.ctx.get(f'session:{session_id}', type_hint=Session)
 
         if ongoing_session is not None:
+            print(f"ongoing session found for id {session_id}")
             ongoing_session.state["restate_context"] = self.ctx
             return ongoing_session
 
+        print(f"creating session for id {session_id}")
         session = Session(
             app_name=app_name,
             user_id=user_id,
@@ -37,9 +40,11 @@ class RestateSessionService(BaseSessionService):
 
     async def get_session(self, *, app_name: str, user_id: str, session_id: str,
                           config: Optional[GetSessionConfig] = None) -> Optional[Session]:
+        print(f"getting session for id {session_id}")
         session_data = await self.ctx.get(f'session:{session_id}', type_hint=Session)
 
         if session_data is None:
+            print(f"no session found for id {session_id}")
             return None
 
         session_data.state["restate_context"] = self.ctx
@@ -59,30 +64,22 @@ class RestateSessionService(BaseSessionService):
         return ListSessionsResponse(sessions=sessions)
 
     async def delete_session(self, *, app_name: str, user_id: str, session_id: str) -> None:
+        print(f"deleting session for id {session_id}")
         self.ctx.clear(f'session:{session_id}')
 
 
     @override
     async def append_event(self, session: Session, event: Event) -> Event:
       """Appends an event to a session object."""
+      print(f"appending event to session for id {session.id}")
       if event.partial:
         return event
       # For now, we also store temp state
-      # event = self._trim_temp_delta_state(event)
+      event = self._trim_temp_delta_state(event)
       self._update_session_state(session, event)
       session.events.append(event)
+
+      session_to_store = session.model_copy()
+      session_to_store.state.pop("restate_context", None)
+      self.ctx.set(f'session:{session.id}', session_to_store)
       return event
-
-    def _update_session_state(self, session: Session, event: Event) -> None:
-        """Updates the session state based on the event."""
-        if not event.actions or not event.actions.state_delta:
-          return
-        for key, value in event.actions.state_delta.items():
-          # For now, we also store temp state
-          # if key.startswith(State.TEMP_PREFIX):
-          #   continue
-          session.state.update({key: value})
-
-        session_to_store = session
-        session_to_store.state.pop("restate_context", None)
-        self.ctx.set(f'session:{session.id}', session_to_store)

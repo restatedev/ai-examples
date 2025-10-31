@@ -3,6 +3,7 @@ import asyncio
 import restate
 
 from app.agent import agent_service
+from app.parallel_tools_agent import parallel_tools_agent_service
 from app.quiz_agent import quiz_agent_service
 
 
