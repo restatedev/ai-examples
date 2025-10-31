@@ -1,22 +1,13 @@
 # pylint: disable=C0116
-"""Simplified middleware that combines Google A2A SDK with Restate durability."""
-
+import json
 import logging
 from collections.abc import Iterable
 from datetime import datetime
-from typing import Any, Dict
+from typing import AsyncIterable
 
 import restate
-from a2a.types import (
-    Task,
-    TaskState,
-    TaskStatus,
-    AgentCard,
-    Message,
-    TextPart,
-    Artifact,
-    Role,
-)
+from a2a.types import *
+from pydantic_core._pydantic_core import ValidationError
 from restate.serde import PydanticJsonSerde
 
 from .models import A2AAgent
@@ -27,8 +18,28 @@ logger = logging.getLogger(__name__)
 TASK = "task"
 INVOCATION_ID = "invocation-id"
 
+# Method-to-model mapping for centralized routing
+A2ARequestModel = (
+        SendMessageRequest
+        | SendStreamingMessageRequest
+        | GetTaskRequest
+        | CancelTaskRequest
+        | SetTaskPushNotificationConfigRequest
+        | GetTaskPushNotificationConfigRequest
+        | ListTaskPushNotificationConfigRequest
+        | DeleteTaskPushNotificationConfigRequest
+        | TaskResubscriptionRequest
+        | GetAuthenticatedExtendedCardRequest
+)
+
+METHOD_TO_MODEL: dict[str, type[A2ARequestModel]] = {
+    model.model_fields['method'].default: model
+    for model in A2ARequestModel.__args__
+}
+
+
 class RestateA2AMiddleware(Iterable[restate.Service | restate.VirtualObject]):
-    """Simplified middleware that combines Google A2A SDK with Restate durability."""
+    """Middleware for the agent to handle task processing and state management."""
 
     def __init__(self, agent_card: AgentCard, agent: A2AAgent):
         self.agent_card = agent_card.model_copy()
@@ -36,9 +47,11 @@ class RestateA2AMiddleware(Iterable[restate.Service | restate.VirtualObject]):
         self.a2a_server_name = f"{self.agent_card.name}A2AServer"
         self.task_object_name = f"{self.agent_card.name}TaskObject"
 
-        # Replace the base url with the exact url of the process_request handler
+        # replace the base url with the exact url of the process_request handler.
         restate_base_url = self.agent_card.url
-        process_request_url = f"{restate_base_url}/{self.a2a_server_name}/process_request"
+        process_request_url = (
+            f"{restate_base_url}/{self.a2a_server_name}/process_request"
+        )
         self.agent_card.url = process_request_url
 
         self.restate_services = []
@@ -51,7 +64,7 @@ class RestateA2AMiddleware(Iterable[restate.Service | restate.VirtualObject]):
 
     @property
     def agent_card_json(self):
-        """Return the agent card in A2A SDK compatible format."""
+        """Return the agent card"""
         return self.agent_card.model_dump()
 
     @property
@@ -60,7 +73,7 @@ class RestateA2AMiddleware(Iterable[restate.Service | restate.VirtualObject]):
         return self.restate_services
 
     def _build_services(self):
-        """Creates services for Restate integration with A2A SDK compatibility."""
+        """Creates an A2A server for reimbursement processing with customizable name and description."""
         a2a_service = restate.Service(
             self.a2a_server_name,
             description=self.agent_card.description,
@@ -77,67 +90,73 @@ class RestateA2AMiddleware(Iterable[restate.Service | restate.VirtualObject]):
         agent = self.agent
 
         class TaskObject:
-            """TaskObject with A2A SDK compatibility."""
+            """TaskObject is a virtual object that handles task processing and state management."""
 
             @staticmethod
             @task_object.handler(kind="shared")
-            async def get_invocation_id(ctx: restate.ObjectSharedContext) -> str | None:
+            async def get_invocation_id(
+                ctx: restate.ObjectSharedContext,
+            ) -> str | None:
                 task_id = ctx.key()
                 logger.info("Getting invocation id for task %s", task_id)
                 return await ctx.get(INVOCATION_ID) or None
 
             @staticmethod
             @task_object.handler(output_serde=PydanticJsonSerde(Task), kind="shared")
-            async def get_task(ctx: restate.ObjectSharedContext) -> Task | None:
+            async def get_task(
+                ctx: restate.ObjectSharedContext,
+            ) -> Task | None:
                 task_id = ctx.key()
                 logger.info("Getting task %s", task_id)
                 return await ctx.get(TASK, type_hint=Task) or None
 
             @staticmethod
             @task_object.handler()
-            async def handle_send_task_request(
-                ctx: restate.ObjectContext, request_data: Dict[str, Any]
-            ) -> Dict[str, Any]:
-                """Handle task request with A2A SDK + Restate approach."""
-                logger.info("Starting task execution for request %s", request_data.get("id"))
+            async def cancel_task(
+                ctx: restate.ObjectContext, request: CancelTaskRequest
+            ) -> CancelTaskResponse:
+                cancelled_task = await TaskObject.update_store(
+                    ctx, state=TaskState.CANCELED
+                )
+                success_response = CancelTaskSuccessResponse(
+                    id=request.id, result=cancelled_task
+                )
+                return CancelTaskResponse(root=success_response)
 
-                # Extract task parameters
-                task_id = request_data["params"]["id"]
-                session_id = request_data["params"].get("sessionId")
-                if not session_id:
-                    session_id = str(ctx.uuid())
-
-                # Store invocation ID for cancellation
-                await TaskObject.set_invocation_id(ctx, ctx.request().id)
-
-                # Create message from request data
-                message_data = request_data["params"]["message"]
-                message = Message(
-                    role=Role(message_data.get("role", "user")),
-                    parts=message_data.get("parts", []),
-                    message_id=message_data.get("message_id", str(ctx.uuid())),
+            @staticmethod
+            @task_object.handler()
+            async def handle_send_message_request(
+                ctx: restate.ObjectContext, request: SendMessageRequest
+            ) -> SendMessageResponse:
+                logger.info(
+                    "Starting task execution workflow %s for task %s",
+                    request.id,
+                    request.params.message.task_id,
                 )
 
-                # Create initial task
-                task = await TaskObject.upsert_task(ctx, task_id, session_id, message)
+                message_send_params: MessageSendParams = request.params
+                if not message_send_params.message.context_id:
+                    context_id = str(ctx.uuid())
+                    message_send_params.message.context_id = context_id
+
+                # Store this invocation ID so it can be cancelled by someone else
+                await TaskObject.set_invocation_id(ctx, ctx.request().id)
+
+                # Persist the request data
+                await TaskObject.upsert_task(ctx, message_send_params)
 
                 try:
-                    # Invoke agent with durability
+                    # Forward the request to the agent
                     result = await agent.invoke(
                         ctx,
-                        query=_get_user_query_from_message(message),
-                        session_id=session_id,
+                        query=_get_user_query_from_message(message_send_params.message),
+                        session_id=message_send_params.message.context_id,
                     )
-
                     if result.require_user_input:
                         updated_task = await TaskObject.update_store(
                             ctx,
                             state=TaskState.INPUT_REQUIRED,
-                            status_message=Message(
-                                message_id=str(ctx.uuid()),
-                                role=Role.agent,
-                                parts=result.parts
-                            ),
+                            status_message=Message(role="agent", parts=result.parts),
                         )
                     else:
                         updated_task = await TaskObject.update_store(
@@ -147,34 +166,25 @@ class RestateA2AMiddleware(Iterable[restate.Service | restate.VirtualObject]):
                         )
 
                     ctx.clear(INVOCATION_ID)
-
-                    return {
-                        "jsonrpc": "2.0",
-                        "id": request_data["id"],
-                        "result": updated_task.model_dump(),
-                    }
-
+                    return SendMessageResponse(root=SendMessageSuccessResponse(id=request.id, result=updated_task))
                 except restate.exceptions.TerminalError as e:
                     if e.status_code == 409 and e.message == "cancelled":
-                        logger.info("Task %s was cancelled", task_id)
+                        logger.info("Task %s was cancelled", message_send_params.id)
                         cancelled_task = await TaskObject.update_store(
                             ctx, state=TaskState.CANCELED
                         )
                         ctx.clear(INVOCATION_ID)
-                        return {
-                            "jsonrpc": "2.0",
-                            "id": request_data["id"],
-                            "result": cancelled_task.model_dump(),
-                        }
+                        return SendMessageResponse(root=SendMessageSuccessResponse(id=request.id, result=cancelled_task))
 
-                    logger.error("Error processing task %s: %s", task_id, e)
+                    logger.error(
+                        "Error while processing task %s: %s - %s",
+                        message_send_params.message.message_id,
+                        e.status_code,
+                        e.message,
+                    )
                     failed_task = await TaskObject.update_store(ctx, state=TaskState.FAILED)
                     ctx.clear(INVOCATION_ID)
-                    return {
-                        "jsonrpc": "2.0",
-                        "id": request_data["id"],
-                        "result": failed_task.model_dump(),
-                    }
+                    return SendMessageResponse(root=JSONRPCErrorResponse(id=request.id, error=JSONRPCError(code=e.status_code,message=e.message)))
 
             @staticmethod
             async def update_store(
@@ -216,7 +226,7 @@ class RestateA2AMiddleware(Iterable[restate.Service | restate.VirtualObject]):
 
             @staticmethod
             async def set_invocation_id(ctx: restate.ObjectContext, invocation_id: str):
-                """Set invocation ID for cancellation."""
+                """Set invocation ID."""
                 task_id = ctx.key()
                 logger.info("Adding invocation id %s for task %s", invocation_id, task_id)
                 current_invocation_id = await ctx.get(INVOCATION_ID)
@@ -227,8 +237,10 @@ class RestateA2AMiddleware(Iterable[restate.Service | restate.VirtualObject]):
                 ctx.set(INVOCATION_ID, invocation_id)
 
             @staticmethod
-            async def upsert_task(ctx: restate.ObjectContext, task_id: str, session_id: str, message: Message) -> Task:
-                """Upsert task using A2A SDK types."""
+            async def upsert_task(
+                ctx: restate.ObjectContext, message_send_params: MessageSendParams
+            ) -> Task:
+                task_id = ctx.key()
                 logger.info("Upserting task %s", task_id)
 
                 task_state = await ctx.get(TASK, type_hint=Task)
@@ -236,79 +248,184 @@ class RestateA2AMiddleware(Iterable[restate.Service | restate.VirtualObject]):
                     task_state = await ctx.run_typed(
                         "Create task",
                         lambda: Task(
-                            id=task_id,
-                            context_id=session_id,
+                            id=message_send_params.message.message_id,
+                            context_id=message_send_params.message.context_id,
                             status=TaskStatus(
                                 state=TaskState.SUBMITTED,
                                 timestamp=datetime.now().isoformat()
                             ),
-                            history=[message] if message else [],
+                            history=[message_send_params.message] if message_send_params.message else [],
                         ),
                         restate.RunOptions(type_hint=Task)
                     )
                 else:
-                    task_state.history.append(message)
+                    task_state.history.append(message_send_params.message)
 
                 ctx.set(TASK, task_state)
                 return task_state
 
         class A2aService:
-            """A2A Service with SDK compatibility."""
 
             @a2a_service.handler()
             @staticmethod
-            async def process_request(ctx: restate.Context, request_data: Dict[str, Any]) -> Dict[str, Any]:
-                """Process A2A request."""
+            async def process_request(
+                ctx: restate.Context, req: JSONRPCRequest
+            ) -> JSONRPCResponse:
+                methods = {
+                    SendMessageRequest: A2aService.on_send_message_request,
+                    SendStreamingMessageRequest: A2aService.on_send_streaming_message_request,
+                    GetTaskRequest: A2aService.on_get_task,
+                    CancelTaskRequest: A2aService.on_cancel_task,
+                    TaskResubscriptionRequest: A2aService.on_resubscribe_to_task,
+                    SetTaskPushNotificationConfigRequest: A2aService.on_set_task_push_notification,
+                    GetTaskPushNotificationConfigRequest: A2aService.on_get_task_push_notification,
+                    ListTaskPushNotificationConfigRequest: A2aService.on_list_task_push_notification,
+                    DeleteTaskPushNotificationConfigRequest: A2aService.on_delete_task_push_notification,
+                    GetAuthenticatedExtendedCardRequest: A2aService.on_get_authenticated_extended_card_request
+                }
+
+                method = req.method
+
+                model_class = METHOD_TO_MODEL.get(method)
+                if not model_class:
+                    return JSONRPCResponse(root=JSONRPCErrorResponse(
+                        id=req.id, error=MethodNotFoundError()
+                    ))
                 try:
-                    method = request_data.get("method")
+                    json_rpc_request = model_class.model_validate_json(req.model_dump_json())
+                except ValidationError as e:
+                    logger.exception('Failed to validate base JSON-RPC request')
+                    return JSONRPCResponse(root=JSONRPCErrorResponse(
+                        id=req.id, error=InvalidParamsError(data=json.loads(e.json()))
+                    ))
 
-                    if method == "tasks/send":
-                        return await ctx.object_call(
-                            TaskObject.handle_send_task_request,
-                            key=request_data["params"]["id"],
-                            arg=request_data,
-                            idempotency_key=str(request_data["id"]),
-                        )
-                    elif method == "tasks/get":
-                        task = await ctx.object_call(
-                            TaskObject.get_task,
-                            key=request_data["params"]["id"],
-                            arg=None,
-                        )
-                        if task is None:
-                            return {
-                                "jsonrpc": "2.0",
-                                "id": request_data["id"],
-                                "error": {
-                                    "code": -32001,
-                                    "message": "Task not found",
-                                },
-                            }
-                        return {
-                            "jsonrpc": "2.0",
-                            "id": request_data["id"],
-                            "result": task.model_dump(),
-                        }
-                    else:
-                        return {
-                            "jsonrpc": "2.0",
-                            "id": request_data["id"],
-                            "error": {
-                                "code": -32601,
-                                "message": "Method not found",
-                            },
-                        }
-
-                except Exception as e:
+                fn = methods.get(type(json_rpc_request), None)
+                if not fn:
+                    return JSONRPCResponse(root=JSONRPCErrorResponse(
+                        id=req.id,
+                        error=MethodNotFoundError(message="Method not found"),
+                    ))
+                try:
+                    return await fn(ctx, json_rpc_request)
+                except restate.exceptions.TerminalError as e:
                     logger.error("Error processing request: %s", e)
-                    return {
-                        "jsonrpc": "2.0",
-                        "id": request_data.get("id"),
-                        "error": {
-                            "code": -32603,
-                            "message": str(e),
-                        },
-                    }
+                    return JSONRPCResponse(root=JSONRPCErrorResponse(
+                        id=req.id,
+                        error=JSONRPCError(code=e.status_code, message=e.message),
+                    ))
+
+            @staticmethod
+            async def on_send_message_request(
+                ctx: restate.Context, request: SendMessageRequest
+            ) -> SendMessageResponse:
+                task_id = request.params.message.task_id
+                logger.info("Processing send message request with id %s for task id %s", request.id, task_id)
+
+                if task_id is not None and not (isinstance(task_id, str) and task_id):
+                    raise restate.TerminalError('Task ID must be a non-empty string')
+                return await ctx.object_call(
+                    TaskObject.handle_send_message_request,
+                    key=task_id or str(ctx.uuid()),
+                    arg=request,
+                    idempotency_key=str(request.id),
+                )
+
+            @staticmethod
+            async def on_send_streaming_message_request(
+                    ctx: restate.Context, request: SendStreamingMessageRequest
+            ) -> SendStreamingMessageResponse:
+                raise restate.exceptions.TerminalError(f"Not implemented: {request.method}")
+
+
+            @staticmethod
+            async def on_get_task(
+                ctx: restate.Context, request: GetTaskRequest
+            ) -> GetTaskResponse:
+                logger.info("Getting task %s", request.params.id)
+                task_query_params: TaskQueryParams = request.params
+
+                task = await ctx.object_call(
+                    TaskObject.get_task, key=task_query_params.id, arg=None
+                )
+                if task is None:
+                    return GetTaskResponse(root=JSONRPCErrorResponse(id=request.id, error=TaskNotFoundError()))
+
+                task_result = task.model_copy()
+                history_length = task_query_params.historyLength
+                if history_length is not None and history_length > 0:
+                    task_result.history = task.history[-history_length:]
+                else:
+                    # Default is no history
+                    task_result.history = []
+                return GetTaskResponse(root=GetTaskSuccessResponse(id=request.id, result=task_result))
+
+            @staticmethod
+            async def on_cancel_task(
+                ctx: restate.Context, request: CancelTaskRequest
+            ) -> CancelTaskResponse:
+                logger.info("Cancelling task %s", request.params.id)
+                task_id_params: TaskIdParams = request.params
+
+                task = await ctx.object_call(
+                    TaskObject.get_task, key=task_id_params.id, arg=None
+                )
+                if task is None:
+                    return CancelTaskResponse(root=JSONRPCErrorResponse(id=request.id, error=TaskNotFoundError()))
+                invocation_id = await ctx.object_call(
+                    TaskObject.get_invocation_id, key=task_id_params.id, arg=None
+                )
+                if invocation_id is None:
+                    # Task either doesn't exist or is already completed
+                    return await ctx.object_call(
+                        TaskObject.cancel_task, key=task_id_params.id, arg=request
+                    )
+
+                # Cancel the invocation
+                ctx.cancel_invocation(invocation_id)
+                # Wait for cancellation to complete and for the cancelled task info
+                canceled_task_info = await ctx.attach_invocation(
+                    invocation_id, type_hint=SendMessageResponse
+                )
+                return CancelTaskResponse(root=CancelTaskSuccessResponse(
+                    id=request.id,
+                    result=canceled_task_info.result,
+                ))
+
+            @staticmethod
+            async def on_set_task_push_notification(
+                ctx: restate.Context, request: SetTaskPushNotificationConfigRequest
+            ) -> SetTaskPushNotificationConfigResponse:
+                return SetTaskPushNotificationConfigResponse(root=JSONRPCErrorResponse(id=request.id, error=PushNotificationNotSupportedError()))
+
+            @staticmethod
+            async def on_get_task_push_notification(
+                ctx: restate.Context, request: GetTaskPushNotificationConfigRequest
+            ) -> GetTaskPushNotificationConfigResponse:
+                return GetTaskPushNotificationConfigResponse(root=JSONRPCErrorResponse(id=request.id, error=PushNotificationNotSupportedError()))
+
+            @staticmethod
+            async def on_list_task_push_notification(
+                ctx: restate.Context, request: ListTaskPushNotificationConfigRequest
+            ) -> ListTaskPushNotificationConfigResponse:
+                return ListTaskPushNotificationConfigResponse(root=JSONRPCErrorResponse(id=request.id, error=PushNotificationNotSupportedError()))
+
+            @staticmethod
+            async def on_delete_task_push_notification(
+                ctx: restate.Context, request: DeleteTaskPushNotificationConfigRequest
+            ) -> DeleteTaskPushNotificationConfigResponse:
+                return DeleteTaskPushNotificationConfigResponse(root=JSONRPCErrorResponse(id=request.id, error=PushNotificationNotSupportedError()))
+
+            @staticmethod
+            async def on_resubscribe_to_task(
+                ctx: restate.Context, request: TaskResubscriptionRequest
+            ) -> AsyncIterable[SendMessageResponse] | JSONRPCResponse:
+                return JSONRPCResponse(root=JSONRPCErrorResponse(id=request.id, error=UnsupportedOperationError()))
+
+            @staticmethod
+            async def on_get_authenticated_extended_card_request(
+                ctx: restate.Context, request: GetAuthenticatedExtendedCardRequest
+            ) -> GetAuthenticatedExtendedCardResponse:
+                return GetAuthenticatedExtendedCardResponse(root=JSONRPCErrorResponse(id=request.id, error=AuthenticatedExtendedCardNotConfiguredError()))
 
         return a2a_service, task_object
 
