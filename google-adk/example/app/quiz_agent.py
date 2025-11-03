@@ -10,6 +10,7 @@ from typing import Optional
 from pydantic import BaseModel
 
 from app.utils.middleware import durable_model_calls
+from app.utils.restate_runner import RestateRunner
 from app.utils.restate_session_service import RestateSessionService
 from app.tools import (
     get_quiz_questions,
@@ -157,7 +158,7 @@ async def run(ctx: restate.ObjectContext, prompt: Prompt) -> str:
         before_agent_callback=before_agent_callback,
     )
 
-    runner = Runner(agent=root_agent, app_name=APP_NAME, session_service=session_service)
+    runner = RestateRunner(restate_context=ctx, agent=root_agent, app_name=APP_NAME, session_service=session_service)
 
     events = runner.run_async(
         user_id=user_id,

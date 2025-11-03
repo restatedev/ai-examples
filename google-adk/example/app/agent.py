@@ -7,6 +7,7 @@ from google.genai import types as genai_types
 from pydantic import BaseModel
 
 from app.utils.middleware import durable_model_calls
+from app.utils.restate_runner import RestateRunner
 from app.utils.restate_session_service import RestateSessionService
 
 APP_NAME = "agents"
@@ -15,7 +16,7 @@ async def get_weather(tool_context: ToolContext, city: str) -> dict:
     """Retrieves the current weather report for a specified city."""
     restate_context: restate.ObjectContext = tool_context.session.state["restate_context"]
 
-    def get_weather():
+    def call_weather_api():
         if city.lower() == "new york":
             return {
                 "status": "success",
@@ -30,7 +31,7 @@ async def get_weather(tool_context: ToolContext, city: str) -> dict:
                 "error_message": f"Weather information for '{city}' is not available.",
             }
 
-    return await restate_context.run_typed("get weather", lambda: get_weather())
+    return await restate_context.run_typed("get weather", lambda: call_weather_api())
 
 
 
@@ -57,7 +58,7 @@ async def run(ctx: restate.ObjectContext, prompt: Prompt) -> str:
         tools=[get_weather],
     )
 
-    runner = Runner(agent=agent, app_name=APP_NAME, session_service=session_service)
+    runner = RestateRunner(restate_context=ctx, agent=agent, app_name=APP_NAME, session_service=session_service)
 
     events = runner.run_async(
         user_id=user_id,

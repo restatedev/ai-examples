@@ -1308,7 +1308,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "google-adk", specifier = ">=1.8.0" },
+    { name = "google-adk", specifier = ">=1.17.0" },
     { name = "hypercorn", specifier = ">=0.17.3" },
     { name = "litellm" },
     { name = "pydantic", specifier = ">=2.10.6" },

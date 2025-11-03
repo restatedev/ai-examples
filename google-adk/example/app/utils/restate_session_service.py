@@ -17,7 +17,7 @@ class RestateSessionService(BaseSessionService):
                              session_id: Optional[str] = None) -> Session:
 
         if session_id is None:
-            session_id = self.ctx.uuid()
+            raise restate.TerminalError("No session ID provided.")
 
         ongoing_session = await self.ctx.get(f'session:{session_id}', type_hint=Session)
 
@@ -40,15 +40,14 @@ class RestateSessionService(BaseSessionService):
 
     async def get_session(self, *, app_name: str, user_id: str, session_id: str,
                           config: Optional[GetSessionConfig] = None) -> Optional[Session]:
-        print(f"getting session for id {session_id}")
-        session_data = await self.ctx.get(f'session:{session_id}', type_hint=Session)
+        session = await self.ctx.get(f'session:{session_id}', type_hint=Session)
 
-        if session_data is None:
+        if session is None:
             print(f"no session found for id {session_id}")
             return None
 
-        session_data.state["restate_context"] = self.ctx
-        return session_data
+        session.state["restate_context"] = self.ctx
+        return session
 
     async def list_sessions(self, *, app_name: str, user_id: Optional[str] = None) -> ListSessionsResponse:
         sessions = []
@@ -64,14 +63,16 @@ class RestateSessionService(BaseSessionService):
         return ListSessionsResponse(sessions=sessions)
 
     async def delete_session(self, *, app_name: str, user_id: str, session_id: str) -> None:
-        print(f"deleting session for id {session_id}")
         self.ctx.clear(f'session:{session_id}')
 
 
     @override
     async def append_event(self, session: Session, event: Event) -> Event:
       """Appends an event to a session object."""
-      print(f"appending event to session for id {session.id}")
+
+      # The event has an ID and timestamp that need to be persisted to avoid non-determinism
+      # TODO is there a better solution?
+      event = await self.ctx.run_typed("persist event", lambda: event, restate.RunOptions(type_hint=Event))
       if event.partial:
         return event
       # For now, we also store temp state
@@ -82,4 +83,6 @@ class RestateSessionService(BaseSessionService):
       session_to_store = session.model_copy()
       session_to_store.state.pop("restate_context", None)
       self.ctx.set(f'session:{session.id}', session_to_store)
+
+      session.state["restate_context"] = self.ctx
       return event
