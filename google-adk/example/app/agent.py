@@ -8,13 +8,14 @@ from pydantic import BaseModel
 
 from app.utils.middleware import durable_model_calls
 from app.utils.restate_runner import RestateRunner
-from app.utils.restate_session_service import RestateSessionService
+from app.utils.restate_session_service import RestateSessionService, get_restate_context
+from app.utils.restate_tools import restate_tools
 
 APP_NAME = "agents"
 
 async def get_weather(tool_context: ToolContext, city: str) -> dict:
     """Retrieves the current weather report for a specified city."""
-    restate_context: restate.ObjectContext = tool_context.session.state["restate_context"]
+    restate_context = get_restate_context(tool_context)
 
     def call_weather_api():
         if city.lower() == "new york":
@@ -45,17 +46,17 @@ agent_service = restate.VirtualObject("agent")
 async def run(ctx: restate.ObjectContext, prompt: Prompt) -> str:
     user_id = "test_user"
 
-    session_service = RestateSessionService(ctx)
-    await session_service.create_session(
-        app_name=APP_NAME, user_id=user_id, session_id=ctx.key()
-    )
-
     agent = Agent(
         model=durable_model_calls(ctx, 'gemini-2.5-flash'),
         name='weather_time_agent',
         description="Agent to answer questions about the weather in a city.",
         instruction="You are a helpful agent who can answer user questions about the weather in a city.",
-        tools=[get_weather],
+        tools=restate_tools(get_weather),
+    )
+
+    session_service = RestateSessionService(ctx)
+    await session_service.create_session(
+        app_name=APP_NAME, user_id=user_id, session_id=ctx.key()
     )
 
     runner = RestateRunner(restate_context=ctx, agent=agent, app_name=APP_NAME, session_service=session_service)

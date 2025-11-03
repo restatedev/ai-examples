@@ -5,18 +5,18 @@ from google.adk.tools.tool_context import ToolContext
 from google.genai import types as genai_types
 from pydantic import BaseModel
 
-from app.utils.middleware import durable_model_calls
-from app.utils.restate_runner import RestateRunner
-from app.utils.restate_session_service import RestateSessionService
-from app.utils.sequential_tools import restate_tools
+from middleware.middleware import durable_model_calls
+from middleware.restate_runner import RestateRunner
+from middleware.restate_session_service import RestateSessionService, get_restate_context
+from middleware.restate_tools import restate_tools
 
 APP_NAME = "agents"
 
 async def get_weather(tool_context: ToolContext, city: str) -> dict:
     """Retrieves the current weather report for a specified city."""
-    restate_context: restate.ObjectContext = tool_context.session.state["restate_context"]
+    restate_context = get_restate_context(tool_context)
 
-    def get_weather():
+    def fetch_weather_from_api():
         if city.lower() == "new york":
             return {
                 "status": "success",
@@ -31,14 +31,14 @@ async def get_weather(tool_context: ToolContext, city: str) -> dict:
                 "error_message": f"Weather information for '{city}' is not available.",
             }
 
-    weather = await restate_context.run_typed("get weather", lambda: get_weather())
+    weather = await restate_context.run_typed("get weather", lambda: fetch_weather_from_api())
     await restate_context.sleep(timedelta(seconds=3))
 
     return weather
 
 async def get_current_time(tool_context: ToolContext, city: str) -> dict:
     """Returns the current time in a specified city."""
-    restate_context: restate.ObjectContext = tool_context.session.state["restate_context"]
+    restate_context = get_restate_context(tool_context)
 
     # session needs to be Restate
     sec = await restate_context.time()
