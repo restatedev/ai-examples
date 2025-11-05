@@ -88,7 +88,6 @@ class RestateSessionService(BaseSessionService):
         """Appends an event to a session object."""
 
         # The event has a timestamp that need to be persisted to avoid non-determinism
-        # TODO is there a better solution?
         event = await self.ctx.run_typed(
             "persist event", lambda: event, restate.RunOptions(type_hint=Event)
         )
