@@ -3,8 +3,6 @@ from typing import AsyncGenerator
 import restate
 from google.adk.models.base_llm import BaseLlm
 from google.adk.models import LlmRequest, LlmResponse, LLMRegistry
-from google.genai.types import AutomaticFunctionCallingConfigDict, AutomaticFunctionCallingConfig
-
 
 def durable_model_calls(ctx: restate.Context, model: str | BaseLlm):
 
@@ -18,14 +16,6 @@ def durable_model_calls(ctx: restate.Context, model: str | BaseLlm):
         async def generate_content_async(self,
                                  llm_request: 'LlmRequest',
                                  stream: bool = False) -> AsyncGenerator['LlmResponse', None]:
-
-            # Don't allow parallel tool calls
-            function_calling_config = llm_request.config.automatic_function_calling
-            if function_calling_config is None:
-                llm_request.config.automatic_function_calling = AutomaticFunctionCallingConfig(maximum_remote_calls=1)
-            else:
-                llm_request.config.automatic_function_calling.maximum_remote_calls = 1
-
             if stream:
                 raise restate.TerminalError(
                     "Streaming is not supported in Restate. Set StreamingMode to NONE."

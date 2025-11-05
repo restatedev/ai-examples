@@ -4,26 +4,13 @@ import restate
 from google.adk.sessions import Session
 from google.adk.events.event import Event
 from google.adk.sessions.base_session_service import BaseSessionService, ListSessionsResponse, GetSessionConfig
-from google.adk.tools import ToolContext
-from restate import TerminalError
 
-
-def get_restate_context(tool_context: ToolContext) -> restate.ObjectContext:
-    session_service = tool_context.session
-
-    if isinstance(session_service, RestateSessionService):
-        return session_service.get_restate()
-    else:
-        raise TerminalError("Cannot retrieve Restate context. Are you using a RestateSessionService?")
 
 # Translation layer between Restate's K/V store and ADK's session service interface.
 class RestateSessionService(BaseSessionService):
 
     def __init__(self, ctx: restate.ObjectContext):
         self.ctx = ctx
-
-    def get_restate(self):
-        return self.ctx
 
 
     async def create_session(self, app_name: str, user_id: str, state: Optional[dict[str, Any]] = None,

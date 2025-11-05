@@ -1,3 +1,4 @@
+import restate
 from typing import Optional, List, AsyncGenerator
 
 from google.adk import Runner
@@ -5,23 +6,7 @@ from google.adk.agents import BaseAgent
 from google.adk.events import Event
 from google.adk.plugins import BasePlugin
 
-from app.utils.restate_session_service import RestateSessionService
-
-from contextlib import contextmanager
-import restate
-import uuid
-
-@contextmanager
-def deterministic_uuid(ctx: restate.ObjectContext):
-    original_uuid4 = uuid.uuid4
-
-    # Monkey patch
-    try:
-        uuid.uuid4 = ctx.uuid
-        yield
-    finally:
-        uuid.uuid4 = original_uuid4
-
+from middleware.restate_session_service import RestateSessionService
 
 class RestateRunner(Runner):
     def __init__(
@@ -44,5 +29,4 @@ class RestateRunner(Runner):
         )
 
     def run_async(self, *args, **kwargs) -> AsyncGenerator[Event, None]:
-        with deterministic_uuid(self.ctx):
-            return super().run_async(*args, **kwargs)
+        return super().run_async(*args, **kwargs)
