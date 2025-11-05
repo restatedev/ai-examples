@@ -87,7 +87,7 @@ class RestateSessionService(BaseSessionService):
     async def append_event(self, session: Session, event: Event) -> Event:
         """Appends an event to a session object."""
 
-        # The event has an ID and timestamp that need to be persisted to avoid non-determinism
+        # The event has a timestamp that need to be persisted to avoid non-determinism
         # TODO is there a better solution?
         event = await self.ctx.run_typed(
             "persist event", lambda: event, restate.RunOptions(type_hint=Event)

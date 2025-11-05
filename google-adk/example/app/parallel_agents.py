@@ -3,61 +3,17 @@ from google.adk.agents.llm_agent import Agent
 from google.genai import types as genai_types
 from pydantic import BaseModel
 
+from app.utils.models import InsuranceClaim
+from app.utils.utils import (
+    run_eligibility_agent,
+    run_rate_comparison_agent,
+    run_fraud_agent,
+)
 from middleware.middleware import durable_model_calls
 from middleware.restate_runner import RestateRunner
 from middleware.restate_session_service import RestateSessionService
 
 APP_NAME = "agents"
-
-
-class InsuranceClaim(BaseModel):
-    claim_id: str
-    claim_type: str
-    amount: float
-    description: str
-
-
-# Simulate remote agent services for parallel execution
-eligibility_agent_service = restate.Service("EligibilityAgent")
-
-
-@eligibility_agent_service.handler()
-async def run_eligibility_agent(ctx: restate.Context, claim: InsuranceClaim) -> str:
-    """Analyze claim eligibility."""
-    if claim.amount > 100000:
-        return f"Claim {claim.claim_id} not eligible: Amount exceeds maximum coverage"
-    elif claim.claim_type.lower() not in ["medical", "auto", "property"]:
-        return f"Claim {claim.claim_id} not eligible: Invalid claim type"
-    else:
-        return f"Claim {claim.claim_id} is eligible for processing"
-
-
-fraud_agent_service = restate.Service("FraudAgent")
-
-
-@fraud_agent_service.handler()
-async def run_fraud_agent(ctx: restate.Context, claim: InsuranceClaim) -> str:
-    """Analyze the probability of fraud."""
-    if claim.amount > 50000 and "accident" in claim.description.lower():
-        return f"Claim {claim.claim_id} flagged: High amount with accident keywords - potential fraud risk"
-    elif claim.description.lower().count("total loss") > 1:
-        return f"Claim {claim.claim_id} flagged: Suspicious language patterns detected"
-    else:
-        return f"Claim {claim.claim_id} appears legitimate based on fraud analysis"
-
-
-rate_comparison_agent_service = restate.Service("RateComparisonAgent")
-
-
-@rate_comparison_agent_service.handler()
-async def run_rate_comparison_agent(ctx: restate.Context, claim: InsuranceClaim) -> str:
-    """Analyze cost and rate comparisons."""
-    if claim.amount > 75000:
-        return f"Claim {claim.claim_id} cost analysis: High-value claim, recommend additional review"
-    elif claim.amount < 1000:
-        return f"Claim {claim.claim_id} cost analysis: Low-value claim, fast-track processing"
-    else:
-        return f"Claim {claim.claim_id} cost analysis: Standard processing recommended"
 
 
 agent_service = restate.VirtualObject("ParallelAgentClaimApproval")

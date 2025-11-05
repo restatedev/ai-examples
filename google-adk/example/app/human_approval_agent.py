@@ -3,7 +3,7 @@ from google.adk.agents.llm_agent import Agent
 from google.adk.tools.tool_context import ToolContext
 from google.genai import types as genai_types
 
-from app.utils.models import ClaimPrompt
+from app.utils.models import ClaimPrompt, InsuranceClaim
 from app.utils.utils import request_human_review
 from middleware.middleware import durable_model_calls
 from middleware.restate_runner import RestateRunner
@@ -14,9 +14,7 @@ APP_NAME = "agents"
 
 
 # <start_here>
-async def human_approval(
-    tool_context: ToolContext, claim_id: str, amount: float, description: str
-) -> str:
+async def human_approval(tool_context: ToolContext, claim: InsuranceClaim) -> str:
     """Ask for human approval for high-value claims."""
     restate_context = tool_context.session.state["restate_context"]
 
@@ -27,9 +25,7 @@ async def human_approval(
     await restate_context.run_typed(
         "Request review",
         request_human_review,
-        claim_id=claim_id,
-        amount=amount,
-        description=description,
+        claim=claim,
         awakeable_id=approval_id,
     )
 

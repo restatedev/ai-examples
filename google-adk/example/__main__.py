@@ -15,18 +15,34 @@ from app.utils.utils import (
     rate_comparison_agent_service,
     eligibility_agent_service,
 )
+from app.parallel_agents import agent_service as parallel_agent_claim_approval
+from app.parallel_tools_agent import agent_service as parallel_tool_claim_agent
+from app.sub_workflow_agent import (
+    agent_service as sub_workflow_claim_approval_agent,
+    human_approval_workflow,
+)
 
 app = restate.app(
     services=[
+        # Chat agents
         chat,
+        # Durable execution
         weather_agent,
-        human_claim_approval_agent,
-        human_claim_approval_with_timeouts_agent,
+        # Orchestration
         multi_agent_claim_approval,
         remote_multi_agent_claim_approval,
+        sub_workflow_claim_approval_agent,
+        human_approval_workflow,
+        # Human-in-the-loop
+        human_claim_approval_agent,
+        human_claim_approval_with_timeouts_agent,
+        # Parallel processing
+        parallel_agent_claim_approval,
+        parallel_tool_claim_agent,
+        # Utils
         fraud_agent_service,
-        rate_comparison_agent_service,
         eligibility_agent_service,
+        rate_comparison_agent_service,
     ]
 )
 

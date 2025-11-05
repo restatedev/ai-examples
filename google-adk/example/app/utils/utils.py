@@ -59,13 +59,9 @@ def parse_weather_data(weather_data: dict) -> WeatherResponse:
     )
 
 
-async def request_human_review(
-    claim_id: str, amount: float, description: str, awakeable_id: str
-) -> None:
+async def request_human_review(claim: InsuranceClaim, awakeable_id: str) -> None:
     """Simulate requesting human review."""
-    print(
-        f"🔔 Human review requested for claim {claim_id} with amount {amount} and description: {description}"
-    )
+    print(f"🔔 Human review requested for claim {claim.model_dump_json()}")
     print(f"  Submit your claim review via: \n ")
     print(
         f"  curl localhost:8080/restate/awakeables/{awakeable_id}/resolve --json 'true'"

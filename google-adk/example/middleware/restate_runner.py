@@ -32,11 +32,11 @@ class RestateRunner(Runner):
         )
 
     def run_async(self, *args, **kwargs) -> AsyncGenerator[Event, None]:
+        # Patch uuid.uuid4 to use restate's uuid generator
         def new_uuid():
             new_id = self.ctx.uuid()
-            print("using new id: " + str(new_id))
             return new_id
-
         uuid.uuid4 = new_uuid
 
+        # Run the agent
         return super().run_async(*args, **kwargs)

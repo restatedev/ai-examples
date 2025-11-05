@@ -4,31 +4,14 @@ from google.adk.tools.tool_context import ToolContext
 from google.genai import types as genai_types
 from pydantic import BaseModel
 
+from app.utils.models import InsuranceClaim, ClaimPrompt
+from app.utils.utils import request_human_review
 from middleware.middleware import durable_model_calls
 from middleware.restate_runner import RestateRunner
 from middleware.restate_session_service import RestateSessionService
 from middleware.restate_tools import restate_tools
 
 APP_NAME = "agents"
-
-
-class ClaimPrompt(BaseModel):
-    message: str
-
-
-class InsuranceClaim(BaseModel):
-    claim_id: str
-    claim_type: str
-    amount: float
-    description: str
-
-
-def request_human_review(claim: InsuranceClaim, awakeable_id: str):
-    """Simulate requesting human review (normally would send to external system)."""
-    print(
-        f"Human review requested for claim {claim.claim_id} (${claim.amount}) - awakeable_id: {awakeable_id}"
-    )
-    return f"Review requested for claim {claim.claim_id}"
 
 
 # <start_wf>
@@ -57,17 +40,10 @@ async def request_approval(ctx: restate.Context, claim: InsuranceClaim) -> str:
 # <start_here>
 async def human_approval(
     tool_context: ToolContext,
-    claim_id: str,
-    claim_type: str,
-    amount: float,
-    description: str,
+    claim: InsuranceClaim,
 ) -> str:
     """Ask for human approval for high-value claims using sub-workflow."""
     restate_context = tool_context.session.state["restate_context"]
-
-    claim = InsuranceClaim(
-        claim_id=claim_id, claim_type=claim_type, amount=amount, description=description
-    )
 
     # Call the human approval sub-workflow
     return await restate_context.service_call(request_approval, claim)

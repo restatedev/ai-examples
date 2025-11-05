@@ -5,6 +5,8 @@ from google.genai import types as genai_types
 from pydantic import BaseModel
 from typing import List
 
+from app.utils.models import InsuranceClaim
+from app.utils.utils import check_eligibility, compare_to_standard_rates, check_fraud
 from middleware.middleware import durable_model_calls
 from middleware.restate_runner import RestateRunner
 from middleware.restate_session_service import RestateSessionService
@@ -13,57 +15,13 @@ from middleware.restate_tools import restate_tools
 APP_NAME = "agents"
 
 
-class InsuranceClaim(BaseModel):
-    claim_id: str
-    claim_type: str
-    amount: float
-    description: str
-
-
-def check_eligibility(claim: InsuranceClaim) -> str:
-    """Check if claim is eligible for processing."""
-    if claim.amount > 100000:
-        return f"Claim {claim.claim_id} not eligible: Amount exceeds maximum coverage"
-    elif claim.claim_type.lower() not in ["medical", "auto", "property"]:
-        return f"Claim {claim.claim_id} not eligible: Invalid claim type"
-    else:
-        return f"Claim {claim.claim_id} is eligible for processing"
-
-
-def compare_to_standard_rates(claim: InsuranceClaim) -> str:
-    """Compare claim amount to standard rates."""
-    if claim.amount > 75000:
-        return f"Claim {claim.claim_id} cost analysis: High-value claim, recommend additional review"
-    elif claim.amount < 1000:
-        return f"Claim {claim.claim_id} cost analysis: Low-value claim, fast-track processing"
-    else:
-        return f"Claim {claim.claim_id} cost analysis: Standard processing recommended"
-
-
-def check_fraud(claim: InsuranceClaim) -> str:
-    """Check for potential fraud indicators."""
-    if claim.amount > 50000 and "accident" in claim.description.lower():
-        return f"Claim {claim.claim_id} flagged: High amount with accident keywords - potential fraud risk"
-    elif claim.description.lower().count("total loss") > 1:
-        return f"Claim {claim.claim_id} flagged: Suspicious language patterns detected"
-    else:
-        return f"Claim {claim.claim_id} appears legitimate based on fraud analysis"
-
-
 # <start_here>
 async def calculate_metrics(
     tool_context: ToolContext,
-    claim_id: str,
-    claim_type: str,
-    amount: float,
-    description: str,
+    claim: InsuranceClaim,
 ) -> List[str]:
     """Calculate claim metrics using parallel execution."""
     restate_context = tool_context.session.state["restate_context"]
-
-    claim = InsuranceClaim(
-        claim_id=claim_id, claim_type=claim_type, amount=amount, description=description
-    )
 
     # Run tools/steps in parallel with durable execution
     results_done = await restate.gather(
