@@ -15,6 +15,7 @@ agent_service = restate.VirtualObject("WeatherAgent")
 from google.adk.tools.tool_context import ToolContext
 
 
+
 async def get_weather(tool_context: ToolContext, city: str) -> WeatherResponse:
     """Get the current weather for a given city."""
     restate_context = tool_context.session.state["restate_context"]
@@ -25,33 +26,31 @@ async def get_weather(tool_context: ToolContext, city: str) -> WeatherResponse:
 async def run(ctx: restate.ObjectContext, prompt: WeatherPrompt) -> str:
     user_id = "user"
 
-    # monkey patching needs to happen before the google adk module is loaded (specifically event.py from adk)
-    with deterministic_uuid(ctx):
-        from google.adk.agents.llm_agent import Agent
+    from google.adk.agents.llm_agent import Agent
 
-        agent = Agent(
-            model=durable_model_calls(ctx, 'gemini-2.5-flash'),
-            name='weather_agent',
-            description="Agent that provides weather updates for cities.",
-            instruction="You are a helpful agent that provides weather updates. Use the get_weather tool to fetch current weather information.",
-            tools=restate_tools(get_weather),
+    agent = Agent(
+        model=durable_model_calls(ctx, 'gemini-2.5-flash'),
+        name='weather_agent',
+        description="Agent that provides weather updates for cities.",
+        instruction="You are a helpful agent that provides weather updates. Use the get_weather tool to fetch current weather information.",
+        tools=restate_tools(get_weather),
+    )
+
+    session_service = RestateSessionService(ctx)
+    await session_service.create_session(
+        app_name=APP_NAME, user_id=user_id, session_id=ctx.key()
+    )
+
+    runner = RestateRunner(restate_context=ctx, agent=agent, app_name=APP_NAME, session_service=session_service)
+
+    events = runner.run_async(
+        user_id=user_id,
+        session_id=ctx.key(),
+        new_message=genai_types.Content(
+            role="user",
+            parts=[genai_types.Part.from_text(text=prompt.message)]
         )
-
-        session_service = RestateSessionService(ctx)
-        await session_service.create_session(
-            app_name=APP_NAME, user_id=user_id, session_id=ctx.key()
-        )
-
-        runner = RestateRunner(restate_context=ctx, agent=agent, app_name=APP_NAME, session_service=session_service)
-
-        events = runner.run_async(
-            user_id=user_id,
-            session_id=ctx.key(),
-            new_message=genai_types.Content(
-                role="user",
-                parts=[genai_types.Part.from_text(text=prompt.message)]
-            )
-        )
+    )
 
     final_response = ""
     async for event in events:

@@ -1,11 +1,15 @@
+import uuid
+
 import restate
 from typing import Optional, List, AsyncGenerator
 
 from google.adk import Runner
-from google.adk.agents import BaseAgent
+from google.adk.agents import BaseAgent, invocation_context
 from google.adk.events import Event
+from google.adk.flows.llm_flows import functions
 from google.adk.plugins import BasePlugin
 
+from middleware.deterministic_id import deterministic_uuid
 from middleware.restate_session_service import RestateSessionService
 
 class RestateRunner(Runner):
@@ -29,4 +33,10 @@ class RestateRunner(Runner):
         )
 
     def run_async(self, *args, **kwargs) -> AsyncGenerator[Event, None]:
+        def new_uuid():
+            new_id = self.ctx.uuid()
+            print("using new id: " + str(new_id))
+            return new_id
+        uuid.uuid4 = new_uuid
+
         return super().run_async(*args, **kwargs)
