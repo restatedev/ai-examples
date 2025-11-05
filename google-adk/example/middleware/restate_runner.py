@@ -36,6 +36,7 @@ class RestateRunner(Runner):
         def new_uuid():
             new_id = self.ctx.uuid()
             return new_id
+
         uuid.uuid4 = new_uuid
 
         # Run the agent
