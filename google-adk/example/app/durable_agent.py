@@ -2,7 +2,7 @@ import restate
 from google.genai import types as genai_types
 from app.utils.models import WeatherResponse, WeatherPrompt
 from app.utils.utils import fetch_weather
-from middleware.deterministic_id import deterministic_uuid
+from google.adk.tools.tool_context import ToolContext
 from middleware.middleware import durable_model_calls
 from middleware.restate_runner import RestateRunner
 from middleware.restate_session_service import RestateSessionService
@@ -11,9 +11,6 @@ from middleware.restate_tools import restate_tools
 APP_NAME = "agents"
 
 agent_service = restate.VirtualObject("WeatherAgent")
-
-from google.adk.tools.tool_context import ToolContext
-
 
 
 async def get_weather(tool_context: ToolContext, city: str) -> WeatherResponse:

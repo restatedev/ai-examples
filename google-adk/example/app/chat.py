@@ -1,9 +1,7 @@
 import restate
-from google.adk.agents.llm_agent import Agent
 from google.genai import types as genai_types
 from pydantic import BaseModel
 
-from middleware.deterministic_id import deterministic_uuid
 from middleware.middleware import durable_model_calls
 from middleware.restate_runner import RestateRunner
 from middleware.restate_session_service import RestateSessionService

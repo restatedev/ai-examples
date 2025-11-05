@@ -3,10 +3,13 @@ import asyncio
 import restate
 
 from app.chat import chat
-from app.durable_agent import agent_service
+from app.durable_agent import agent_service as weather_agent
+from app.human_approval_agent import agent_service as human_claim_approval_agent
+from app.human_approval_agent_with_timeout import (
+    agent_service as human_claim_approval_with_timeouts_agent,
+)
 
-
-app = restate.app(services=[chat, agent_service])
+app = restate.app(services=[chat, weather_agent, human_claim_approval_agent, human_claim_approval_with_timeouts_agent])
 
 
 def main():

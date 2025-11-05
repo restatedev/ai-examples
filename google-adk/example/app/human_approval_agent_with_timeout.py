@@ -6,21 +6,14 @@ from google.adk.tools.tool_context import ToolContext
 from google.genai import types as genai_types
 from pydantic import BaseModel
 
+from app.utils.models import ClaimPrompt
+from app.utils.utils import request_human_review
 from middleware.middleware import durable_model_calls
 from middleware.restate_runner import RestateRunner
 from middleware.restate_session_service import RestateSessionService
 from middleware.restate_tools import restate_tools
 
 APP_NAME = "agents"
-
-class ClaimPrompt(BaseModel):
-    message: str
-
-async def request_human_review(claim_id: str, amount: float, description: str, awakeable_id: str) -> str:
-    """Simulate requesting human review (normally would send to external system)."""
-    print(f"Human review requested for claim {claim_id} (${amount}) - awakeable_id: {awakeable_id}")
-    return f"Review requested for claim {claim_id}"
-
 
 async def human_approval(tool_context: ToolContext, claim_id: str, amount: float, description: str) -> str:
     """Ask for human approval for high-value claims."""
