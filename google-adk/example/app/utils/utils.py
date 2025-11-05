@@ -1,8 +1,8 @@
-import json
-
 import httpx
 import restate
+from google.adk import Agent
 from restate import TerminalError
+from google.genai import types as genai_types
 
 from app.utils.models import (
     WeatherResponse,
@@ -11,6 +11,9 @@ from app.utils.models import (
     FlightBooking,
     HotelBooking,
 )
+from middleware.middleware import durable_model_calls
+from middleware.restate_runner import RestateRunner
+from middleware.restate_session_service import RestateSessionService
 
 
 # <start_weather>
@@ -110,66 +113,111 @@ async def cancel_flight(booking_id: str) -> None:
     """Cancel flight booking."""
     print(f"❌ Cancelling flight booking {booking_id}")
 
-
-eligibility_agent_service = restate.Service("EligibilityAgent")
+APP_NAME = "agents"
+eligibility_agent_service = restate.VirtualObject("EligibilityAgent")
 
 @eligibility_agent_service.handler()
 async def run_eligibility_agent(
-    restate_context: restate.Context, claim: InsuranceClaim
+    ctx: restate.ObjectContext, claim: InsuranceClaim
 ) -> str:
-    result = await Runner.run(
-        Agent(
-            name="EligibilityAgent",
-            instructions="Decide whether the following claim is eligible for reimbursement."
-            "Respond with eligible if it's a medical claim, and not eligible otherwise.",
-        ),
-        input=claim.model_dump_json(),
-        run_config=RunConfig(
-            model="gpt-4o",
-            model_provider=DurableModelCalls(restate_context),
-            model_settings=ModelSettings(parallel_tool_calls=False),
-        ),
+    user_id = "user123"
+    agent = Agent(
+        model=durable_model_calls(ctx, 'gemini-2.5-flash'),
+        name='EligibilityAgent',
+        description="Decide whether the following claim is eligible for reimbursement.",
+        instruction="Respond with eligible if it's a medical claim, and not eligible otherwise.",
     )
-    return result.final_output
+    session_service = RestateSessionService(ctx)
+    await session_service.create_session(
+        app_name=APP_NAME, user_id=user_id, session_id=ctx.key()
+    )
 
-rate_comparison_agent_service = restate.Service("RateComparisonAgent")
+    runner = RestateRunner(restate_context=ctx, agent=agent, app_name=APP_NAME, session_service=session_service)
+
+    events = runner.run_async(
+        user_id=user_id,
+        session_id=ctx.key(),
+        new_message=genai_types.Content(
+            role="user",
+            parts=[genai_types.Part.from_text(text=f"Claim: {claim.model_dump_json()}")]
+        )
+    )
+
+    final_response = ""
+    async for event in events:
+        if event.is_final_response() and event.content and event.content.parts:
+            final_response = event.content.parts[0].text
+
+    return final_response
+
+rate_comparison_agent_service = restate.VirtualObject("RateComparisonAgent")
 
 @rate_comparison_agent_service.handler()
 async def run_rate_comparison_agent(
-    restate_context: restate.Context, claim: InsuranceClaim
+    ctx: restate.ObjectContext, claim: InsuranceClaim
 ) -> str:
-    result = await Runner.run(
-        Agent(
-            name="RateComparisonAgent",
-            instructions="Decide whether the cost of the claim is reasonable given the treatment." +
-            "Respond with reasonable or not reasonable.",
-        ),
-        input=claim.model_dump_json(),
-        run_config=RunConfig(
-            model="gpt-4o",
-            model_provider=DurableModelCalls(restate_context),
-            model_settings=ModelSettings(parallel_tool_calls=False),
-        ),
+    user_id = "user123"
+    agent = Agent(
+        model=durable_model_calls(ctx, 'gemini-2.5-flash'),
+        name='RateComparisonAgent',
+        description="Decide whether the cost of the claim is reasonable given the treatment.",
+        instruction="Respond with reasonable or not reasonable.",
     )
-    return result.final_output
+    session_service = RestateSessionService(ctx)
+    await session_service.create_session(
+        app_name=APP_NAME, user_id=user_id, session_id=ctx.key()
+    )
 
-fraud_agent_service = restate.Service("FraudAgent")
+    runner = RestateRunner(restate_context=ctx, agent=agent, app_name=APP_NAME, session_service=session_service)
+
+    events = runner.run_async(
+        user_id=user_id,
+        session_id=ctx.key(),
+        new_message=genai_types.Content(
+            role="user",
+            parts=[genai_types.Part.from_text(text=f"Claim: {claim.model_dump_json()}")]
+        )
+    )
+
+    final_response = ""
+    async for event in events:
+        if event.is_final_response() and event.content and event.content.parts:
+            final_response = event.content.parts[0].text
+
+    return final_response
+
+fraud_agent_service = restate.VirtualObject("FraudAgent")
 
 @fraud_agent_service.handler()
 async def run_fraud_agent(
-    restate_context: restate.Context, claim: InsuranceClaim
+    ctx: restate.ObjectContext, claim: InsuranceClaim
 ) -> str:
-    result = await Runner.run(
-        Agent(
-            name="FraudAgent",
-            instructions="Decide whether the cost of the claim is reasonable given the treatment."
-            "Respond with reasonable or not reasonable.",
-        ),
-        input=claim.model_dump_json(),
-        run_config=RunConfig(
-            model="gpt-4o",
-            model_provider=DurableModelCalls(restate_context),
-            model_settings=ModelSettings(parallel_tool_calls=False),
-        ),
+    user_id = "user123"
+    agent = Agent(
+        model=durable_model_calls(ctx, 'gemini-2.5-flash'),
+        name='FraudCheckAgent',
+        description="Decide whether the claim is fraudulent." ,
+        instruction="Always respond with low risk, medium risk, or high risk.",
     )
-    return result.final_output
+    session_service = RestateSessionService(ctx)
+    await session_service.create_session(
+        app_name=APP_NAME, user_id=user_id, session_id=ctx.key()
+    )
+
+    runner = RestateRunner(restate_context=ctx, agent=agent, app_name=APP_NAME, session_service=session_service)
+
+    events = runner.run_async(
+        user_id=user_id,
+        session_id=ctx.key(),
+        new_message=genai_types.Content(
+            role="user",
+            parts=[genai_types.Part.from_text(text=f"Claim: {claim.model_dump_json()}")]
+        )
+    )
+
+    final_response = ""
+    async for event in events:
+        if event.is_final_response() and event.content and event.content.parts:
+            final_response = event.content.parts[0].text
+
+    return final_response

@@ -23,11 +23,11 @@ class InsuranceClaim(BaseModel):
     """Insurance claim data structure."""
 
     model_config = ConfigDict(populate_by_name=True, alias_generator=camelize)
-    date: str
-    amount: float
-    category: str
-    place_of_service: str
-    reason: str
+    date: str = "2024-10-01"
+    amount: float = 3000
+    category: str = "orthopedic"
+    place_of_service: str = "General Hospital"
+    reason: str = "hospital bill for a broken leg"
 
 
 class WeatherRequest(BaseModel):

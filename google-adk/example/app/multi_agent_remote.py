@@ -4,6 +4,8 @@ from google.adk.tools.tool_context import ToolContext
 from google.genai import types as genai_types
 from pydantic import BaseModel
 
+from app.utils.models import InsuranceClaim
+from app.utils.utils import run_fraud_agent, run_eligibility_agent
 from middleware.middleware import durable_model_calls
 from middleware.restate_runner import RestateRunner
 from middleware.restate_session_service import RestateSessionService
@@ -11,58 +13,19 @@ from middleware.restate_tools import restate_tools
 
 APP_NAME = "agents"
 
-class InsuranceClaim(BaseModel):
-    claim_id: str
-    claim_type: str
-    amount: float
-    description: str
-
-
-# Simulate remote eligibility agent service
-eligibility_agent_service = restate.Service("EligibilityAgent")
-
-@eligibility_agent_service.handler()
-async def run_eligibility_agent(ctx: restate.Context, claim: InsuranceClaim) -> str:
-    """Analyze claim eligibility."""
-    # Simulate eligibility check logic
-    if claim.amount > 100000:
-        return f"Claim {claim.claim_id} not eligible: Amount exceeds maximum coverage"
-    elif claim.claim_type.lower() not in ["medical", "auto", "property"]:
-        return f"Claim {claim.claim_id} not eligible: Invalid claim type"
-    else:
-        return f"Claim {claim.claim_id} is eligible for processing"
-
-
-# Simulate remote fraud detection agent service
-fraud_agent_service = restate.Service("FraudAgent")
-
-@fraud_agent_service.handler()
-async def run_fraud_agent(ctx: restate.Context, claim: InsuranceClaim) -> str:
-    """Analyze the probability of fraud."""
-    # Simulate fraud detection logic
-    if claim.amount > 50000 and "accident" in claim.description.lower():
-        return f"Claim {claim.claim_id} flagged: High amount with accident keywords - potential fraud risk"
-    elif claim.description.lower().count("total loss") > 1:
-        return f"Claim {claim.claim_id} flagged: Suspicious language patterns detected"
-    else:
-        return f"Claim {claim.claim_id} appears legitimate based on fraud analysis"
-
-
 # Durable service call to the eligibility agent; persisted and retried by Restate
-async def check_eligibility(tool_context: ToolContext, claim_id: str, claim_type: str, amount: float, description: str) -> str:
+async def check_eligibility(tool_context: ToolContext, claim: InsuranceClaim) -> str:
     """Analyze claim eligibility."""
     restate_context = tool_context.session.state["restate_context"]
-    claim = InsuranceClaim(claim_id=claim_id, claim_type=claim_type, amount=amount, description=description)
-    return await restate_context.service_call(run_eligibility_agent, claim)
+    return await restate_context.object_call(run_eligibility_agent, tool_context.session.id, claim)
 
 
 # <start_here>
 # Durable service call to the fraud agent; persisted and retried by Restate
-async def check_fraud(tool_context: ToolContext, claim_id: str, claim_type: str, amount: float, description: str) -> str:
+async def check_fraud(tool_context: ToolContext, claim: InsuranceClaim) -> str:
     """Analyze the probability of fraud."""
     restate_context = tool_context.session.state["restate_context"]
-    claim = InsuranceClaim(claim_id=claim_id, claim_type=claim_type, amount=amount, description=description)
-    return await restate_context.service_call(run_fraud_agent, claim)
+    return await restate_context.object_call(run_fraud_agent, tool_context.session.id, claim)
 
 
 agent_service = restate.VirtualObject("RemoteMultiAgentClaimApproval")
