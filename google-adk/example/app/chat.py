@@ -9,8 +9,10 @@ from google.adk.agents.llm_agent import Agent
 
 APP_NAME = "agents"
 
+
 class ChatMessage(BaseModel):
     message: str
+
 
 chat = restate.VirtualObject("Chat")
 
@@ -19,8 +21,8 @@ chat = restate.VirtualObject("Chat")
 async def message(ctx: restate.ObjectContext, chat_message: ChatMessage) -> str:
     user_id = "user"
     agent = Agent(
-        model=durable_model_calls(ctx, 'gemini-2.5-flash'),
-        name='assistant',
+        model=durable_model_calls(ctx, "gemini-2.5-flash"),
+        name="assistant",
         description="A helpful assistant that can answer questions.",
         instruction="You are a helpful assistant. Be concise and helpful.",
     )
@@ -30,14 +32,18 @@ async def message(ctx: restate.ObjectContext, chat_message: ChatMessage) -> str:
         app_name=APP_NAME, user_id=user_id, session_id=ctx.key()
     )
 
-    runner = RestateRunner(restate_context=ctx, agent=agent, app_name=APP_NAME, session_service=session_service)
+    runner = RestateRunner(
+        restate_context=ctx,
+        agent=agent,
+        app_name=APP_NAME,
+        session_service=session_service,
+    )
     events = runner.run_async(
         user_id=user_id,
         session_id=ctx.key(),
         new_message=genai_types.Content(
-            role="user",
-            parts=[genai_types.Part.from_text(text=chat_message.message)]
-        )
+            role="user", parts=[genai_types.Part.from_text(text=chat_message.message)]
+        ),
     )
 
     final_response = ""

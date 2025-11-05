@@ -15,7 +15,10 @@ from middleware.restate_tools import restate_tools
 
 APP_NAME = "agents"
 
-async def human_approval(tool_context: ToolContext, claim_id: str, amount: float, description: str) -> str:
+
+async def human_approval(
+    tool_context: ToolContext, claim_id: str, amount: float, description: str
+) -> str:
     """Ask for human approval for high-value claims."""
     restate_context = tool_context.session.state["restate_context"]
 
@@ -24,7 +27,12 @@ async def human_approval(tool_context: ToolContext, claim_id: str, amount: float
 
     # Request human review
     await restate_context.run_typed(
-        "Request review", request_human_review, claim_id=claim_id, amount=amount, description=description, awakeable_id=approval_id
+        "Request review",
+        request_human_review,
+        claim_id=claim_id,
+        amount=amount,
+        description=description,
+        awakeable_id=approval_id,
     )
 
     # <start_here>
@@ -48,8 +56,8 @@ async def run(ctx: restate.ObjectContext, prompt: ClaimPrompt) -> str:
     user_id = "user"
 
     agent = Agent(
-        model=durable_model_calls(ctx, 'gemini-2.5-flash'),
-        name='claim_approval_with_timeout_agent',
+        model=durable_model_calls(ctx, "gemini-2.5-flash"),
+        name="claim_approval_with_timeout_agent",
         description="Insurance claim evaluation agent with timeout handling for human approval workflows.",
         instruction="You are an insurance claim evaluation agent. Use these rules: if the amount is more than 1000, ask for human approval; if the amount is less than 1000, decide by yourself. Use the human_approval tool when needed.",
         tools=restate_tools(human_approval),
@@ -60,15 +68,19 @@ async def run(ctx: restate.ObjectContext, prompt: ClaimPrompt) -> str:
         app_name=APP_NAME, user_id=user_id, session_id=ctx.key()
     )
 
-    runner = RestateRunner(restate_context=ctx, agent=agent, app_name=APP_NAME, session_service=session_service)
+    runner = RestateRunner(
+        restate_context=ctx,
+        agent=agent,
+        app_name=APP_NAME,
+        session_service=session_service,
+    )
 
     events = runner.run_async(
         user_id=user_id,
         session_id=ctx.key(),
         new_message=genai_types.Content(
-            role="user",
-            parts=[genai_types.Part.from_text(text=prompt.message)]
-        )
+            role="user", parts=[genai_types.Part.from_text(text=prompt.message)]
+        ),
     )
 
     final_response = ""

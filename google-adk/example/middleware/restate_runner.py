@@ -10,16 +10,17 @@ from google.adk.plugins import BasePlugin
 
 from middleware.restate_session_service import RestateSessionService
 
+
 class RestateRunner(Runner):
     def __init__(
-            self,
-            *,
-            restate_context: restate.ObjectContext,
-            app_name: Optional[str] = None,
-            agent: Optional[BaseAgent] = None,
-            plugins: Optional[List[BasePlugin]] = None,
-            session_service: RestateSessionService,
-            # TODO support the other args
+        self,
+        *,
+        restate_context: restate.ObjectContext,
+        app_name: Optional[str] = None,
+        agent: Optional[BaseAgent] = None,
+        plugins: Optional[List[BasePlugin]] = None,
+        session_service: RestateSessionService,
+        # TODO support the other args
     ):
         """Initializes the RestateRunner."""
         self.ctx = restate_context
@@ -35,6 +36,7 @@ class RestateRunner(Runner):
             new_id = self.ctx.uuid()
             print("using new id: " + str(new_id))
             return new_id
+
         uuid.uuid4 = new_uuid
 
         return super().run_async(*args, **kwargs)

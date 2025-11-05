@@ -9,6 +9,7 @@ from middleware.restate_session_service import RestateSessionService
 
 APP_NAME = "agents"
 
+
 class InsuranceClaim(BaseModel):
     claim_id: str
     claim_type: str
@@ -18,6 +19,7 @@ class InsuranceClaim(BaseModel):
 
 # Simulate remote agent services for parallel execution
 eligibility_agent_service = restate.Service("EligibilityAgent")
+
 
 @eligibility_agent_service.handler()
 async def run_eligibility_agent(ctx: restate.Context, claim: InsuranceClaim) -> str:
@@ -32,6 +34,7 @@ async def run_eligibility_agent(ctx: restate.Context, claim: InsuranceClaim) -> 
 
 fraud_agent_service = restate.Service("FraudAgent")
 
+
 @fraud_agent_service.handler()
 async def run_fraud_agent(ctx: restate.Context, claim: InsuranceClaim) -> str:
     """Analyze the probability of fraud."""
@@ -44,6 +47,7 @@ async def run_fraud_agent(ctx: restate.Context, claim: InsuranceClaim) -> str:
 
 
 rate_comparison_agent_service = restate.Service("RateComparisonAgent")
+
 
 @rate_comparison_agent_service.handler()
 async def run_rate_comparison_agent(ctx: restate.Context, claim: InsuranceClaim) -> str:
@@ -79,8 +83,8 @@ async def run(ctx: restate.ObjectContext, claim: InsuranceClaim) -> str:
 
     # Run decision agent on outputs
     decision_agent = Agent(
-        model=durable_model_calls(ctx, 'gemini-2.5-flash'),
-        name='claim_decision_agent',
+        model=durable_model_calls(ctx, "gemini-2.5-flash"),
+        name="claim_decision_agent",
         description="Makes final claim approval decisions based on analysis results.",
         instruction="You are a claim decision engine. Analyze the provided assessments and make a final approval decision.",
     )
@@ -90,17 +94,26 @@ async def run(ctx: restate.ObjectContext, claim: InsuranceClaim) -> str:
         app_name=APP_NAME, user_id=user_id, session_id=ctx.key()
     )
 
-    runner = RestateRunner(restate_context=ctx, agent=decision_agent, app_name=APP_NAME, session_service=session_service)
+    runner = RestateRunner(
+        restate_context=ctx,
+        agent=decision_agent,
+        app_name=APP_NAME,
+        session_service=session_service,
+    )
 
     events = runner.run_async(
         user_id=user_id,
         session_id=ctx.key(),
         new_message=genai_types.Content(
             role="user",
-            parts=[genai_types.Part.from_text(text=f"Decide about claim: {claim.model_dump_json()}. "
-                   "Base your decision on the following analyses: "
-                   f"Eligibility: {eligibility_result} Cost: {cost_result} Fraud: {fraud_result}")]
-        )
+            parts=[
+                genai_types.Part.from_text(
+                    text=f"Decide about claim: {claim.model_dump_json()}. "
+                    "Base your decision on the following analyses: "
+                    f"Eligibility: {eligibility_result} Cost: {cost_result} Fraud: {fraud_result}"
+                )
+            ],
+        ),
     )
 
     final_response = ""
@@ -109,5 +122,6 @@ async def run(ctx: restate.ObjectContext, claim: InsuranceClaim) -> str:
             final_response = event.content.parts[0].text
 
     return final_response
-# <end_here>
 
+
+# <end_here>

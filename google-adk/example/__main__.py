@@ -10,9 +10,25 @@ from app.human_approval_agent_with_timeout import (
 )
 from app.multi_agent import agent_service as multi_agent_claim_approval
 from app.multi_agent_remote import agent_service as remote_multi_agent_claim_approval
-from app.utils.utils import fraud_agent_service, rate_comparison_agent_service, eligibility_agent_service
+from app.utils.utils import (
+    fraud_agent_service,
+    rate_comparison_agent_service,
+    eligibility_agent_service,
+)
 
-app = restate.app(services=[chat, weather_agent, human_claim_approval_agent, human_claim_approval_with_timeouts_agent, multi_agent_claim_approval, remote_multi_agent_claim_approval, fraud_agent_service, rate_comparison_agent_service, eligibility_agent_service])
+app = restate.app(
+    services=[
+        chat,
+        weather_agent,
+        human_claim_approval_agent,
+        human_claim_approval_with_timeouts_agent,
+        multi_agent_claim_approval,
+        remote_multi_agent_claim_approval,
+        fraud_agent_service,
+        rate_comparison_agent_service,
+        eligibility_agent_service,
+    ]
+)
 
 
 def main():

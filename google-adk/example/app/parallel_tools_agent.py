@@ -12,6 +12,7 @@ from middleware.restate_tools import restate_tools
 
 APP_NAME = "agents"
 
+
 class InsuranceClaim(BaseModel):
     claim_id: str
     claim_type: str
@@ -50,11 +51,19 @@ def check_fraud(claim: InsuranceClaim) -> str:
 
 
 # <start_here>
-async def calculate_metrics(tool_context: ToolContext, claim_id: str, claim_type: str, amount: float, description: str) -> List[str]:
+async def calculate_metrics(
+    tool_context: ToolContext,
+    claim_id: str,
+    claim_type: str,
+    amount: float,
+    description: str,
+) -> List[str]:
     """Calculate claim metrics using parallel execution."""
     restate_context = tool_context.session.state["restate_context"]
 
-    claim = InsuranceClaim(claim_id=claim_id, claim_type=claim_type, amount=amount, description=description)
+    claim = InsuranceClaim(
+        claim_id=claim_id, claim_type=claim_type, amount=amount, description=description
+    )
 
     # Run tools/steps in parallel with durable execution
     results_done = await restate.gather(
@@ -63,6 +72,8 @@ async def calculate_metrics(tool_context: ToolContext, claim_id: str, claim_type
         restate_context.run_typed("fraud", check_fraud, claim=claim),
     )
     return [await result for result in results_done]
+
+
 # <end_here>
 
 
@@ -74,8 +85,8 @@ async def run(ctx: restate.ObjectContext, claim: InsuranceClaim) -> str:
     user_id = "user"
 
     parallel_tools_agent = Agent(
-        model=durable_model_calls(ctx, 'gemini-2.5-flash'),
-        name='parallel_tools_agent',
+        model=durable_model_calls(ctx, "gemini-2.5-flash"),
+        name="parallel_tools_agent",
         description="Analyzes insurance claims using parallel tool execution.",
         instruction="You are a claim analysis agent that analyzes insurance claims. Use your tools to calculate key metrics and decide whether to approve the claim.",
         tools=restate_tools(calculate_metrics),
@@ -86,16 +97,25 @@ async def run(ctx: restate.ObjectContext, claim: InsuranceClaim) -> str:
         app_name=APP_NAME, user_id=user_id, session_id=ctx.key()
     )
 
-    runner = RestateRunner(restate_context=ctx, agent=parallel_tools_agent, app_name=APP_NAME, session_service=session_service)
+    runner = RestateRunner(
+        restate_context=ctx,
+        agent=parallel_tools_agent,
+        app_name=APP_NAME,
+        session_service=session_service,
+    )
 
     events = runner.run_async(
         user_id=user_id,
         session_id=ctx.key(),
         new_message=genai_types.Content(
             role="user",
-            parts=[genai_types.Part.from_text(text=f"Analyze the claim {claim.model_dump_json()}. "
-                   "Use your tools to calculate key metrics and decide whether to approve.")]
-        )
+            parts=[
+                genai_types.Part.from_text(
+                    text=f"Analyze the claim {claim.model_dump_json()}. "
+                    "Use your tools to calculate key metrics and decide whether to approve."
+                )
+            ],
+        ),
     )
 
     final_response = ""
