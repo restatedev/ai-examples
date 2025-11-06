@@ -17,7 +17,7 @@ from middleware.restate_session_service import RestateSessionService
 
 
 # <start_weather>
-async def fetch_weather(city: str) -> WeatherResponse:
+async def call_weather_api(city: str) -> WeatherResponse:
     # fail_on_denver(city)
     weather_data = await call_weather_api(city)
     return parse_weather_data(weather_data)

@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from app.utils.models import InsuranceClaim
 from app.utils.utils import run_fraud_agent, run_eligibility_agent
 from middleware.middleware import durable_model_calls
-from middleware.restate_runner import RestateRunner
+from middleware.restate_runner import RestateRunner, create_restate_runner
 from middleware.restate_session_service import RestateSessionService
 from middleware.restate_tools import restate_tools
 
@@ -40,7 +40,7 @@ agent_service = restate.VirtualObject("RemoteMultiAgentClaimApproval")
 async def run(ctx: restate.ObjectContext, claim: InsuranceClaim) -> str:
     user_id = "user"
 
-    claim_approval_coordinator = Agent(
+    agent = Agent(
         model=durable_model_calls(ctx, "gemini-2.5-flash"),
         name="claim_approval_coordinator",
         description="Coordinates claim approval by analyzing eligibility and fraud risk.",
@@ -48,18 +48,7 @@ async def run(ctx: restate.ObjectContext, claim: InsuranceClaim) -> str:
         tools=restate_tools(check_fraud, check_eligibility),
     )
 
-    session_service = RestateSessionService(ctx)
-    await session_service.create_session(
-        app_name=APP_NAME, user_id=user_id, session_id=ctx.key()
-    )
-
-    runner = RestateRunner(
-        restate_context=ctx,
-        agent=claim_approval_coordinator,
-        app_name=APP_NAME,
-        session_service=session_service,
-    )
-
+    runner = await create_restate_runner(ctx, APP_NAME, user_id, agent)
     events = runner.run_async(
         user_id=user_id,
         session_id=ctx.key(),

@@ -1,11 +1,11 @@
 import restate
 from google.genai import types as genai_types
 from app.utils.models import WeatherResponse, WeatherPrompt
-from app.utils.utils import fetch_weather
+from app.utils.utils import call_weather_api
 from google.adk.tools.tool_context import ToolContext
+from google.adk.agents.llm_agent import Agent
 from middleware.middleware import durable_model_calls
-from middleware.restate_runner import RestateRunner
-from middleware.restate_session_service import RestateSessionService
+from middleware.restate_runner import create_restate_runner
 from middleware.restate_tools import restate_tools
 
 APP_NAME = "agents"
@@ -16,14 +16,12 @@ agent_service = restate.VirtualObject("WeatherAgent")
 async def get_weather(tool_context: ToolContext, city: str) -> WeatherResponse:
     """Get the current weather for a given city."""
     restate_context = tool_context.session.state["restate_context"]
-    return await restate_context.run_typed("Get weather", fetch_weather, city=city)
+    return await restate_context.run_typed("Get weather", call_weather_api, city=city)
 
 
 @agent_service.handler()
 async def run(ctx: restate.ObjectContext, prompt: WeatherPrompt) -> str:
     user_id = "user"
-
-    from google.adk.agents.llm_agent import Agent
 
     agent = Agent(
         model=durable_model_calls(ctx, "gemini-2.5-flash"),
@@ -33,18 +31,7 @@ async def run(ctx: restate.ObjectContext, prompt: WeatherPrompt) -> str:
         tools=restate_tools(get_weather),
     )
 
-    session_service = RestateSessionService(ctx)
-    await session_service.create_session(
-        app_name=APP_NAME, user_id=user_id, session_id=ctx.key()
-    )
-
-    runner = RestateRunner(
-        restate_context=ctx,
-        agent=agent,
-        app_name=APP_NAME,
-        session_service=session_service,
-    )
-
+    runner = await create_restate_runner(ctx, APP_NAME, user_id, agent)
     events = runner.run_async(
         user_id=user_id,
         session_id=ctx.key(),
