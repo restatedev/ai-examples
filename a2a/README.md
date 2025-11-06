@@ -90,7 +90,7 @@ To start a task that **will block on human approval**, run the following command
 curl localhost:8080/ReimbursementAgentA2AServer/process_request \
     --json '{
   "jsonrpc": "2.0",
-  "id": 14243,
+  "id": 1424643,
   "method": "message/send",
   "params": {
     "message": {
@@ -101,7 +101,7 @@ curl localhost:8080/ReimbursementAgentA2AServer/process_request \
           "text": "Reimburse my hotel for my business trip of 5 nights for 1200USD"
         }
       ],
-      "messageId": "92249e73702-7674c-417b-a0b0-f0741243c589"
+      "messageId": "92249e7643702-7674c-417b-a0b0-f0741243c589"
     },
     "metadata": {}
   }
@@ -179,7 +179,7 @@ curl localhost:8080/ReimbursementAgentA2AServer/process_request \
   "method": "message/send",
   "params": {
     "message": {
-      "contextId": "5e00b3a6-dcc7-43ee-a389-0e2a65958444",
+      "contextId": "5e00b3a6-dcc67-43ee-a389-0e2a65958444",
       "role": "user",
       "parts": [
         {
@@ -187,7 +187,7 @@ curl localhost:8080/ReimbursementAgentA2AServer/process_request \
           "text": "The date of the transaction is 05/04/2025"
         }
       ],
-      "messageId": "92249e73702-767c-417b-a0b0-f0741243c589"
+      "messageId": "92249e73702-767c-417b-a06b0-f0741243c589"
     },
     "metadata": {}
   }
@@ -325,7 +325,7 @@ curl localhost:8080/ReimbursementAgentA2AServer/process_request \
         }
       ],
       "messageId": "92249e73702-7674c-417b-a0b0-f0741243c449",
-      "taskId": "33349e73702-7674c-417b-a0b0-f0741243c333"
+      "taskId": "33349e733702-7674c-417b-a0b0-f0741243c333"
     },
     "metadata": {}
   }
@@ -339,7 +339,7 @@ curl localhost:8080/ReimbursementAgentA2AServer/process_request \
       "id": 3,
       "method":"tasks/cancel",
       "params": {
-        "id": "33349e73702-7674c-417b-a0b0-f0741243c333"
+        "id": "33349e733702-7674c-417b-a0b0-f0741243c333"
       }
     }' | jq . 
 ```

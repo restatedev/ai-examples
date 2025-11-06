@@ -1,24 +1,8 @@
 import calendar
 from datetime import timedelta, datetime
-from typing import Optional
 
 import restate
-from pydantic import BaseModel, ConfigDict
-
-class ReimbursementRequest(BaseModel):
-    """
-    A request for reimbursement.
-
-    Args:
-        date (Optional[str]): The date of the request. Or None.
-        amount (Optional[str]): The requested amount. Or None.
-        purpose (Optional[str]): The purpose of the request. Or None.
-    """
-
-    date: Optional[str] = None
-    amount: Optional[float] = None
-    purpose: Optional[str] = None
-
+from pydantic import BaseModel
 
 class Reimbursement(BaseModel):
     """
@@ -37,31 +21,17 @@ class Reimbursement(BaseModel):
     purpose: str
 
 
-class FormData(BaseModel):
-    """
-    A form data object for reimbursement requests.
-
-    Args:
-        form_request (dict[str, Any]): The request form data.
-        instructions (str): Instructions for processing the form. Or None.
-    """
-
-    form_request: Reimbursement
-    instructions: Optional[str] = None
-    model_config = ConfigDict(extra="forbid")
-
-
-def backoffice_submit_request(req: Reimbursement, id: str):
+def backoffice_submit_request(request_id: str, callback_id: str) -> None:
     print(
         "=" * 50,
-        f"\n Requesting approval for {req.request_id} \n",
+        f"\n Requesting approval for {request_id} \n",
         f"Resolve via: \n"
-        f"curl localhost:8080/restate/awakeables/{id}/resolve --json '{{\"approved\": true}}' \n",
+        f"curl localhost:8080/restate/awakeables/{callback_id}/resolve --json '{{\"approved\": true}}' \n",
         "=" * 50,
     )
 
 
-def backoffice_email_employee(req: Reimbursement, approved: bool):
+def backoffice_email_employee(request_id: str, approved: bool) -> None:
     print("Notifying backoffice employee of reimbursement approval")
 
 

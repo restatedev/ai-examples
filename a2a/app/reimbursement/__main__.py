@@ -97,7 +97,7 @@ if __name__ == '__main__':
 
         conf = hypercorn.Config()
         host = "localhost"
-        port = os.getenv("AGENT_PORT", "9083")
+        port = os.getenv("AGENT_PORT", "9082")
         conf.bind = [f"{host}:{port}"]
         logger.info(f"Server running at http://{host}:{port}")
         logger.info("Available endpoints:")

@@ -1,6 +1,7 @@
 import restate
 import json
 
+from typing import Any, Optional
 from google.adk.agents.llm_agent import Agent
 from google.adk.tools.tool_context import ToolContext
 from google.genai import types as genai_types
@@ -10,51 +11,59 @@ from app.common.adk.middleware import durable_model_calls
 from app.common.adk.restate_runner import create_restate_runner
 from app.common.adk.restate_tools import restate_tools
 from app.reimbursement.prompt import PROMPT
-from app.reimbursement.utils import ReimbursementRequest, Reimbursement, FormData, backoffice_submit_request, \
+from app.reimbursement.utils import Reimbursement, backoffice_submit_request, \
     backoffice_email_employee, end_of_month, handle_payment
 
 APP_NAME = "agent_app"
 
 
 async def create_request_form(
-    tool_context: ToolContext, req: ReimbursementRequest
-) -> Reimbursement:
+    tool_context: ToolContext,
+    date: Optional[str] = None,
+    amount: Optional[str] = None,
+    purpose: Optional[str] = None,
+) -> dict[str, Any]:
     """Create a request form for the employee to fill out."""
     restate_context: restate.ObjectContext = tool_context.session.state["restate_context"]
-    return Reimbursement(
-        request_id=str(restate_context.uuid()),
-        date="<transaction date>" if not req.date else req.date,
-        amount=0.0 if not req.amount else req.amount,
-        purpose=(
-            "<business justification/purpose of the transaction>"
-            if not req.purpose
-            else req.purpose
-        ),
-    )
+    return {
+        'request_id': str(restate_context.uuid()),
+        'date': '<transaction date>' if not date else date,
+        'amount': '<transaction dollar amount>' if not amount else amount,
+        'purpose': '<business justification/purpose of the transaction>'
+        if not purpose
+        else purpose,
+    }
 
 
-async def return_form(req: FormData) -> str:
+async def return_form(
+    form_request: dict[str, Any],
+    instructions: Optional[str] = None,
+) -> str:
     """Returns a structured json object indicating a form to complete."""
     return json.dumps({
         "type": "form",
         "form": Reimbursement.model_json_schema(),
-        "form_data": req.form_request.model_dump_json(),
-        "instructions": req.instructions,
+        "form_data": form_request,
+        "instructions": instructions,
     })
 
 
 async def reimburse(
-    tool_context: ToolContext, req: Reimbursement
+    tool_context: ToolContext,
+    request_id: str,
+    date: str,
+    amount: float,
+    purpose: str
 ) -> dict[str, str]:
     """Reimbursement workflow."""
-    restate_context: restate.ObjectContext = tool_context.session.state["restate_context"]
+    restate_context = tool_context.session.state["restate_context"]
 
     # 1. Wait for approval
-    if req.amount > 100.0:
+    if amount > 100.0:
         # Human approval
         callback_id, callback_promise = restate_context.awakeable()
-        await restate_context.run(
-            "Request approval", backoffice_submit_request, args=(req, callback_id)
+        await restate_context.run_typed(
+            "Request approval", backoffice_submit_request, request_id=request_id, callback_id=callback_id
         )
         approved = await callback_promise
     else:
@@ -62,14 +71,14 @@ async def reimburse(
         approved = True
 
     # 2. Notify employee
-    await restate_context.run("Notify", backoffice_email_employee, args=(req, approved))
+    await restate_context.run_typed("Notify", backoffice_email_employee, request_id=request_id, approved=approved)
 
     if not approved:
         return {"status": "rejected"}
 
     # 3. Schedule task for later: reimburse at end of month
     delay = end_of_month(await restate_context.time())
-    restate_context.service_send(handle_payment, arg=req, send_delay=delay)
+    restate_context.service_send(handle_payment, arg=Reimbursement(request_id=request_id, date=date, amount=amount, purpose=purpose), send_delay=delay)
     return {"status": "approved"}
 
 

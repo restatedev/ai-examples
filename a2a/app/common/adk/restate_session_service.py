@@ -66,17 +66,8 @@ class RestateSessionService(BaseSessionService):
     async def list_sessions(
         self, *, app_name: str, user_id: Optional[str] = None
     ) -> ListSessionsResponse:
-        sessions = []
-
-        # Get all state keys and filter for session keys
-        keys = await self.ctx.state_keys()
-        for key in keys:
-            if key.startswith(f"session:"):
-                session_data = await self.ctx.get(key, type_hint=Session)
-                if session_data:
-                    sessions.append(session_data)
-
-        return ListSessionsResponse(sessions=sessions)
+        session = await self.ctx.get("session", type_hint=Session)
+        return ListSessionsResponse(sessions=[session])
 
     async def delete_session(
         self, *, app_name: str, user_id: str, session_id: str
@@ -100,7 +91,7 @@ class RestateSessionService(BaseSessionService):
 
         session_to_store = session.model_copy()
         session_to_store.state.pop("restate_context", None)
-        self.ctx.set(f"session:{session.id}", session_to_store)
+        self.ctx.set("session", session_to_store)
 
         session.state["restate_context"] = self.ctx
         return event
