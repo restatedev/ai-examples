@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from app.utils.models import InsuranceClaim, ClaimPrompt
 from app.utils.utils import request_human_review
 from middleware.middleware import durable_model_calls
-from middleware.restate_runner import RestateRunner
+from middleware.restate_runner import RestateRunner, create_restate_runner
 from middleware.restate_session_service import RestateSessionService
 from middleware.restate_tools import restate_tools
 
@@ -59,7 +59,7 @@ agent_service = restate.VirtualObject("SubWorkflowClaimApprovalAgent")
 async def run(ctx: restate.ObjectContext, prompt: ClaimPrompt) -> str:
     user_id = "user"
 
-    sub_workflow_agent = Agent(
+    agent = Agent(
         model=durable_model_calls(ctx, "gemini-2.5-flash"),
         name="sub_workflow_claim_agent",
         description="Insurance claim evaluation agent that uses sub-workflows for human approval.",
@@ -67,18 +67,7 @@ async def run(ctx: restate.ObjectContext, prompt: ClaimPrompt) -> str:
         tools=restate_tools(human_approval),
     )
 
-    session_service = RestateSessionService(ctx)
-    await session_service.create_session(
-        app_name=APP_NAME, user_id=user_id, session_id=ctx.key()
-    )
-
-    runner = RestateRunner(
-        restate_context=ctx,
-        agent=sub_workflow_agent,
-        app_name=APP_NAME,
-        session_service=session_service,
-    )
-
+    runner = await create_restate_runner(ctx, APP_NAME, user_id, agent)
     events = runner.run_async(
         user_id=user_id,
         session_id=ctx.key(),

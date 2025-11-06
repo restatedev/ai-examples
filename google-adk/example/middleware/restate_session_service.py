@@ -27,7 +27,7 @@ class RestateSessionService(BaseSessionService):
         if session_id is None:
             raise restate.TerminalError("No session ID provided.")
 
-        ongoing_session = await self.ctx.get(f"session:{session_id}", type_hint=Session)
+        ongoing_session = await self.ctx.get("session", type_hint=Session)
 
         if ongoing_session is not None:
             print(f"ongoing session found for id {session_id}")
@@ -41,7 +41,7 @@ class RestateSessionService(BaseSessionService):
             id=session_id,
             state=state or {},
         )
-        self.ctx.set(f"session:{session_id}", session)
+        self.ctx.set("session", session)
 
         session.state["restate_context"] = self.ctx
         return session
@@ -54,7 +54,7 @@ class RestateSessionService(BaseSessionService):
         session_id: str,
         config: Optional[GetSessionConfig] = None,
     ) -> Optional[Session]:
-        session = await self.ctx.get(f"session:{session_id}", type_hint=Session)
+        session = await self.ctx.get("session", type_hint=Session)
 
         if session is None:
             print(f"no session found for id {session_id}")
@@ -81,7 +81,7 @@ class RestateSessionService(BaseSessionService):
     async def delete_session(
         self, *, app_name: str, user_id: str, session_id: str
     ) -> None:
-        self.ctx.clear(f"session:{session_id}")
+        self.ctx.clear("session")
 
     @override
     async def append_event(self, session: Session, event: Event) -> Event:
