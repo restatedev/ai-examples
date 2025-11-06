@@ -89,22 +89,23 @@ To start a task that **will block on human approval**, run the following command
 ```shell
 curl localhost:8080/ReimbursementAgentA2AServer/process_request \
     --json '{
-      "jsonrpc": "2.0",
-      "id": 22323,
-      "method":"message/send",
-      "params": {
-        "id": "lwp13w5e3sdf258t3wedsf13234",
-        "sessionId": "lw33sl5e-8966-6g6k-26ee-2d5e6w29y3a3423",
-        "message": {
-          "role":"user",
-          "parts": [{
-            "kind":"text",
-            "text": "Reimburse my hotel for my business trip of 5 nights for 1200USD"
-          }]
-        },
-        "metadata": {}
-      }
-    }' | jq . 
+  "jsonrpc": "2.0",
+  "id": 1423,
+  "method": "message/send",
+  "params": {
+    "message": {
+      "role": "user",
+      "parts": [
+        {
+          "kind": "text",
+          "text": "Reimburse my hotel for my business trip of 5 nights for 1200USD"
+        }
+      ],
+      "messageId": "92249e73702-767c-417b-a0b0-f0741243c589"
+    },
+    "metadata": {}
+  }
+}' | jq . 
 ```
 
 It will then return a response mentioning you need to provide a date. 
@@ -113,44 +114,57 @@ It will then return a response mentioning you need to provide a date.
 
 ```json
 {
+  "id": 1423,
   "jsonrpc": "2.0",
-  "id": 22323,
   "result": {
-    "id": "lwp13w5e3sdf258t3wedsf13234",
-    "sessionId": "lw33sl5e-8966-6g6k-26ee-2d5e6w29y3a3423",
-    "status": {
-      "state": "input-required",
-      "message": {
-        "role": "agent",
-        "parts": [
-          {
-            "type": "text",
-            "text": "MISSING_INFO: Could you please provide the date of the transaction for the hotel reimbursement?",
-            "metadata": null
-          }
-        ],
-        "metadata": null
-      },
-      "timestamp": "2025-06-18T08:56:41.037053"
-    },
     "artifacts": null,
+    "contextId": "5e00b3a6-dcc7-43ee-a389-0e2a65958444",
     "history": [
       {
-        "role": "user",
+        "contextId": "5e00b3a6-dcc7-43ee-a389-0e2a65958444",
+        "extensions": null,
+        "kind": "message",
+        "messageId": "92249e73702-767c-417b-a0b0-f0741243c589",
+        "metadata": null,
         "parts": [
           {
-            "type": "text",
-            "text": "Reimburse my hotel for my business trip of 5 nights for 1200USD",
-            "metadata": null
+            "kind": "text",
+            "metadata": null,
+            "text": "Reimburse my hotel for my business trip of 5 nights for 1200USD"
           }
         ],
-        "metadata": null
+        "referenceTaskIds": null,
+        "role": "user",
+        "taskId": null
       }
     ],
-    "metadata": null
-  },
-  "error": null
+    "id": "92249e73702-767c-417b-a0b0-f0741243c589",
+    "kind": "task",
+    "metadata": null,
+    "status": {
+      "message": {
+        "contextId": null,
+        "extensions": null,
+        "kind": "message",
+        "messageId": "1accd046-5ba4-4c13-b0eb-fcad422fcea7",
+        "metadata": null,
+        "parts": [
+          {
+            "kind": "text",
+            "metadata": null,
+            "text": "MISSING_INFO:Please provide the date of the transaction."
+          }
+        ],
+        "referenceTaskIds": null,
+        "role": "agent",
+        "taskId": null
+      },
+      "state": "input-required",
+      "timestamp": "2025-11-06T14:47:37.430346"
+    }
+  }
 }
+
 ```
 
 </details>
@@ -160,22 +174,24 @@ You can then provide the date of the transaction by sending another request to t
 ```shell
 curl localhost:8080/ReimbursementAgentA2AServer/process_request \
     --json '{
-      "jsonrpc": "2.0",
-      "id": 22324,
-      "method":"tasks/send",
-      "params": {
-        "id": "lwp13w5e3sdf258t3wedsf13234",
-        "sessionId": "lw33sl5e-8966-6g6k-26ee-2d5e6w29y3a3423",
-        "message": {
-          "role":"user",
-          "parts": [{
-            "type":"text",
-            "text": "The date of the transaction is 05/04/2025"
-          }]
-        },
-        "metadata": {}
-      }
-    }' | jq . 
+  "jsonrpc": "2.0",
+  "id": 1423,
+  "method": "message/send",
+  "params": {
+    "message": {
+      "contextId": "5e00b3a6-dcc7-43ee-a389-0e2a65958444",
+      "role": "user",
+      "parts": [
+        {
+          "kind": "text",
+          "text": "The date of the transaction is 05/04/2025"
+        }
+      ],
+      "messageId": "92249e73702-767c-417b-a0b0-f0741243c589"
+    },
+    "metadata": {}
+  }
+}' | jq . 
 ```
 
 Possibly, the agent will ask for a final approval before it can proceed with the reimbursement. 

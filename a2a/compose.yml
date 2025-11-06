@@ -8,7 +8,7 @@ services:
     env_file: ".env" # Your openAI key `echo "OPENAI_API_KEY=your_api_key_here" >> .env`
     environment:
         - RESTATE_HOST=http://restate:8080
-    command: ["/app/.venv/bin/python", "/app/a2a/weather"]
+    command: ["/app/.venv/bin/python", "/app/app/weather"]
   reimbursement_agent:
     # Path to the Dockerfile from root of the project
     build:
@@ -18,7 +18,7 @@ services:
     env_file: ".env" # Your openAI key `echo "OPENAI_API_KEY=your_api_key_here" >> .env`
     environment:
         - RESTATE_HOST=http://restate:8080
-    command: ["/app/.venv/bin/python", "/app/a2a/reimbursement"]
+    command: ["/app/.venv/bin/python", "/app/app/reimbursement"]
   host_agent:
     # Path to the Dockerfile from root of the project
     build:
@@ -32,7 +32,7 @@ services:
     environment:
         - RESTATE_HOST=http://restate:8080
         - REMOTE_AGENTS=http://weather_agent:9081,http://reimbursement_agent:9082
-    command: ["/app/.venv/bin/python", "/app/a2a/host_agent"]
+    command: ["/app/.venv/bin/python", "/app/app/host_agent"]
     deploy:
       restart_policy:
         condition: on-failure

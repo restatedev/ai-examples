@@ -14,4 +14,4 @@ RUN uv sync --frozen --no-install-workspace
 COPY . /app
 RUN uv sync --frozen
 
-CMD ["/app/.venv/bin/python", "/app/a2a/weather"]
+CMD ["/app/.venv/bin/python", "/app/app/weather"]

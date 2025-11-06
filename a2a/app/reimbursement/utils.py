@@ -74,7 +74,7 @@ def end_of_month(time_now: float) -> timedelta:
     return timedelta(seconds=time_remaining.total_seconds())
 
 
-payment_service = restate.Service("reimbursement_payment_service")
+payment_service = restate.Service("PaymentService")
 
 @payment_service.handler()
 async def handle_payment(ctx: restate.ObjectContext, req: Reimbursement):
