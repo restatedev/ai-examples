@@ -169,7 +169,7 @@ class RestateA2AMiddleware(Iterable[restate.Service | restate.VirtualObject]):
                     return SendMessageResponse(root=SendMessageSuccessResponse(id=request.id, result=updated_task))
                 except restate.exceptions.TerminalError as e:
                     if e.status_code == 409 and e.message == "cancelled":
-                        logger.info("Task %s was cancelled", message_send_params.id)
+                        logger.info("Task %s was cancelled", message_send_params.message.task_id)
                         cancelled_task = await TaskObject.update_store(
                             ctx, state=TaskState.CANCELED
                         )
@@ -351,7 +351,7 @@ class RestateA2AMiddleware(Iterable[restate.Service | restate.VirtualObject]):
                     return GetTaskResponse(root=JSONRPCErrorResponse(id=request.id, error=TaskNotFoundError()))
 
                 task_result = task.model_copy()
-                history_length = task_query_params.historyLength
+                history_length = task_query_params.history_length
                 if history_length is not None and history_length > 0:
                     task_result.history = task.history[-history_length:]
                 else:
@@ -388,7 +388,7 @@ class RestateA2AMiddleware(Iterable[restate.Service | restate.VirtualObject]):
                 )
                 return CancelTaskResponse(root=CancelTaskSuccessResponse(
                     id=request.id,
-                    result=canceled_task_info.result,
+                    result=canceled_task_info.root.result,
                 ))
 
             @staticmethod

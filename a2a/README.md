@@ -90,7 +90,7 @@ To start a task that **will block on human approval**, run the following command
 curl localhost:8080/ReimbursementAgentA2AServer/process_request \
     --json '{
   "jsonrpc": "2.0",
-  "id": 1423,
+  "id": 14243,
   "method": "message/send",
   "params": {
     "message": {
@@ -101,7 +101,7 @@ curl localhost:8080/ReimbursementAgentA2AServer/process_request \
           "text": "Reimburse my hotel for my business trip of 5 nights for 1200USD"
         }
       ],
-      "messageId": "92249e73702-767c-417b-a0b0-f0741243c589"
+      "messageId": "92249e73702-7674c-417b-a0b0-f0741243c589"
     },
     "metadata": {}
   }
@@ -200,16 +200,16 @@ curl localhost:8080/ReimbursementAgentA2AServer/process_request \
     --json '{
       "jsonrpc": "2.0",
       "id": 22325,
-      "method":"tasks/send",
+      "method": "message/send",
       "params": {
-        "id": "lwp13w5e3sdf258t3wedsf13234",
-        "sessionId": "lw33sl5e-8966-6g6k-26ee-2d5e6w29y3a3423",
         "message": {
+          "contextId": "5e00b3a6-dcc7-43ee-a389-0e2a65958444",
           "role":"user",
           "parts": [{
-            "type":"text",
+            "kind": "text",
             "text": "The info looks good"
           }]
+          "messageId": "92249e737032-767c-417b-a0b0-f0741243c589"
         },
         "metadata": {}
       }
@@ -231,7 +231,7 @@ Or you can leave the task blocked if you want to try out the get and cancel task
  Requesting approval for request_id_1633297 
  Resolve via: 
 curl localhost:8080/restate/awakeables/sign_1oqmHpDF_RJQBltjnf48zszmfmRr4w9izAAAAEQ/resolve --json '{"approved": true}' 
- ==================================================
+==================================================
 ```
 
 Approve the reimbursement. 
@@ -256,8 +256,8 @@ curl localhost:8080/ReimbursementAgentA2AServer/process_request \
       "id": 2,
       "method":"tasks/get",
       "params": {
-        "id": "lwp13w5e3sdf258t3wesf13234",
-        "historyLength": 10,
+        "id": "101496f4-7805-473c-9b15-c0f0bdff465a",
+        "history_length": 10,
         "metadata": {}
       }
     }' | jq . 
@@ -312,22 +312,24 @@ For example, start a new reimbursement task and then cancel it:
 ```shell
 curl localhost:8080/ReimbursementAgentA2AServer/process_request \
     --json '{
-      "jsonrpc": "2.0",
-      "id": 223235,
-      "method":"tasks/send",
-      "params": {
-        "id": "lwp13w5e3sdf258t3wedsf13234",
-        "sessionId": "lw33sl5e-8966-6g6k-26ee-2d5e6w29y3a34235",
-        "message": {
-          "role":"user",
-          "parts": [{
-            "type":"text",
-            "text": "Reimburse my hotel for my business trip of 5 nights for 1200USD of 05/04/2025"
-          }]
-        },
-        "metadata": {}
-      }
-    }' | jq . 
+  "jsonrpc": "2.0",
+  "id": 1424443,
+  "method": "message/send",
+  "params": {
+    "message": {
+      "role": "user",
+      "parts": [
+        {
+          "kind": "text",
+          "text": "Reimburse my hotel for my business trip of 5 nights for 1200USD of 05/04/2025"
+        }
+      ],
+      "messageId": "92249e73702-7674c-417b-a0b0-f0741243c449",
+      "taskId": "33349e73702-7674c-417b-a0b0-f0741243c333"
+    },
+    "metadata": {}
+  }
+}' | jq . 
 ```
 
 ```shell
@@ -337,8 +339,7 @@ curl localhost:8080/ReimbursementAgentA2AServer/process_request \
       "id": 3,
       "method":"tasks/cancel",
       "params": {
-        "id": "lwp13w5e3sdf258t3wedsf13234",
-        "metadata": {}
+        "id": "33349e73702-7674c-417b-a0b0-f0741243c333"
       }
     }' | jq . 
 ```
