@@ -6,8 +6,9 @@ import os
 from fastapi import FastAPI
 from dotenv import load_dotenv
 
-from a2a_samples.reimbursement.agent import ReimbursementAgent, reimbursement_service
-from a2a_samples.common.a2a.a2a_middleware import RestateA2AMiddleware
+from app.reimbursement.agent import ReimbursementAgent, reimbursement_service
+from app.reimbursement.utils import payment_service
+from app.common.a2a.a2a_middleware import RestateA2AMiddleware
 from a2a.types import AgentCard, AgentCapabilities, AgentSkill
 load_dotenv()
 
@@ -92,11 +93,11 @@ if __name__ == '__main__':
             return agent_card
 
         # Mount both A2A SDK endpoints and Restate endpoints
-        app.mount("/restate/v1", restate.app([*middleware, reimbursement_service]))
+        app.mount("/restate/v1", restate.app([*middleware, reimbursement_service, payment_service]))
 
         conf = hypercorn.Config()
         host = "localhost"
-        port = 9083
+        port = os.getenv("AGENT_PORT", "9083")
         conf.bind = [f"{host}:{port}"]
         logger.info(f"Server running at http://{host}:{port}")
         logger.info("Available endpoints:")

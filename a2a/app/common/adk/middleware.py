@@ -4,19 +4,19 @@ import restate
 from google.adk.models.base_llm import BaseLlm
 from google.adk.models import LlmRequest, LlmResponse, LLMRegistry
 
+
 def durable_model_calls(ctx: restate.Context, model: str | BaseLlm):
 
     # If a model name is provided, create an instance of the model
     if isinstance(model, str):
-      model = LLMRegistry.new_llm(model)
+        model = LLMRegistry.new_llm(model)
 
     class RestateModel(type(model)):
         """A simple model that restates the prompt."""
 
-        async def generate_content_async(self,
-                                 llm_request: 'LlmRequest',
-                                 stream: bool = False) -> AsyncGenerator['LlmResponse', None]:
-
+        async def generate_content_async(
+            self, llm_request: "LlmRequest", stream: bool = False
+        ) -> AsyncGenerator["LlmResponse", None]:
             if stream:
                 raise restate.TerminalError(
                     "Streaming is not supported in Restate. Set StreamingMode to NONE."

@@ -22,7 +22,7 @@ dependencies = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["a2a"]
+packages = ["app"]
 
 [build-system]
 requires = ["hatchling"]

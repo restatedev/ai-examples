@@ -1,71 +1,22 @@
 import restate
-import random
-import calendar
 import json
 import logging
 
-from typing import Optional
-from datetime import datetime, timedelta
-from pydantic import BaseModel, ConfigDict
-
 from google.adk.agents.llm_agent import Agent
 from google.adk.tools.tool_context import ToolContext
-from google.adk.runners import Runner
 from google.genai import types as genai_types
 
-from a2a_samples.common.a2a.models import A2AAgent, AgentInvokeResult
-from a2a_samples.common.adk.adk_middleware import durable_model_calls
-from a2a_samples.common.adk.restate_session_service import RestateSessionService
+from app.common.a2a.models import A2AAgent, AgentInvokeResult
+from app.common.adk.middleware import durable_model_calls
+from app.common.adk.restate_runner import RestateRunner
+from app.common.adk.restate_session_service import RestateSessionService
+from app.common.adk.restate_tools import restate_tools
+from app.reimbursement.utils import ReimbursementRequest, Reimbursement, FormData, backoffice_submit_request, \
+    backoffice_email_employee, end_of_month, handle_payment
 
 logger = logging.getLogger(__name__)
 
 APP_NAME = "agent_app"
-
-
-class ReimbursementRequest(BaseModel):
-    """
-    A request for reimbursement.
-
-    Args:
-        date (Optional[str]): The date of the request. Or None.
-        amount (Optional[str]): The requested amount. Or None.
-        purpose (Optional[str]): The purpose of the request. Or None.
-    """
-
-    date: Optional[str] = None
-    amount: Optional[float] = None
-    purpose: Optional[str] = None
-
-
-class Reimbursement(BaseModel):
-    """
-    A request for reimbursement.
-
-    Args:
-        request_id (str): The ID of the request.
-        date (str): The date of the request.
-        amount (float): The requested amount in USD.
-        purpose (str): The purpose of the request.
-    """
-
-    request_id: str
-    date: str
-    amount: float
-    purpose: str
-
-
-class FormData(BaseModel):
-    """
-    A form data object for reimbursement requests.
-
-    Args:
-        form_request (dict[str, Any]): The request form data.
-        instructions (str): Instructions for processing the form. Or None.
-    """
-
-    form_request: Reimbursement
-    instructions: Optional[str] = None
-    model_config = ConfigDict(extra="forbid")
 
 
 # TOOLS
@@ -84,22 +35,16 @@ async def create_request_form(
         dict[str, Any]: A dictionary containing the request form data.
     """
     restate_context: restate.ObjectContext = tool_context.session.state["restate_context"]
-    date, amount, purpose = req.date, req.amount, req.purpose
-
-    request_id = await restate_context.run(
-        "Assign ID", lambda: "request_id_" + str(random.randint(1000000, 9999999))
-    )
-    reimbursement = Reimbursement(
-        request_id=request_id,
-        date="<transaction date>" if not date else date,
-        amount=0.0 if not amount else amount,
+    return Reimbursement(
+        request_id=str(restate_context.uuid()),
+        date="<transaction date>" if not req.date else req.date,
+        amount=0.0 if not req.amount else req.amount,
         purpose=(
             "<business justification/purpose of the transaction>"
-            if not purpose
-            else purpose
+            if not req.purpose
+            else req.purpose
         ),
     )
-    return reimbursement
 
 
 async def return_form(tool_context: ToolContext, req: FormData) -> str:
@@ -112,13 +57,11 @@ async def return_form(tool_context: ToolContext, req: FormData) -> str:
     Returns:
         dict[str, Any]: A JSON dictionary for the form response.
     """
-    form_request, instructions = req.form_request, req.instructions
-
     form_dict = {
         "type": "form",
         "form": Reimbursement.model_json_schema(),
-        "form_data": form_request.model_dump_json(),
-        "instructions": instructions,
+        "form_data": req.form_request.model_dump_json(),
+        "instructions": req.instructions,
     }
     return json.dumps(form_dict)
 
@@ -152,7 +95,8 @@ async def reimburse(
         return {"status": "rejected"}
 
     # 3. Schedule task for later: reimburse at end of month
-    restate_context.service_send(handle_payment, arg=req, send_delay=end_of_month())
+    delay = end_of_month(await restate_context.time())
+    restate_context.service_send(handle_payment, arg=req, send_delay=delay)
     return {"status": "approved"}
 
 
@@ -164,10 +108,6 @@ reimbursement_service = restate.VirtualObject("ReimbursementService")
 @reimbursement_service.handler()
 async def invoke(restate_context: restate.ObjectContext, query: str) -> AgentInvokeResult:
     user_id = "test_user"
-
-    # Load the conversation history
-    memory = await restate_context.get("memory") or []
-    memory.append({"role": "user", "content": query})
 
     reimbursement_agent = Agent(
         model=durable_model_calls(restate_context, 'gemini-2.5-flash'),
@@ -199,7 +139,7 @@ async def invoke(restate_context: restate.ObjectContext, query: str) -> AgentInv
           * In your response, you should include the request_id and the status of the reimbursement request.
 
         """,
-        tools=[create_request_form, reimburse, return_form],
+        tools=restate_tools(create_request_form, reimburse, return_form),
     )
 
 
@@ -208,7 +148,8 @@ async def invoke(restate_context: restate.ObjectContext, query: str) -> AgentInv
         app_name=APP_NAME, user_id=user_id, session_id=restate_context.key()
     )
 
-    runner = Runner(
+    runner = RestateRunner(
+        restate_context=restate_context,
         agent=reimbursement_agent,
         app_name=APP_NAME,
         session_service=session_service
@@ -227,11 +168,6 @@ async def invoke(restate_context: restate.ObjectContext, query: str) -> AgentInv
         if event.is_final_response() and event.content and event.content.parts:
             final_output = event.content.parts[0].text
 
-
-    # Store the conversation history
-    memory.append({"role": "assistant", "content": final_output})
-    restate_context.set("memory", memory)
-
     # Prepare the response
     parts = [{"type": "text", "text": final_output}]
     requires_input = "MISSING_INFO:" in final_output
@@ -248,34 +184,3 @@ class ReimbursementAgent(A2AAgent):
         self, restate_context: restate.ObjectContext, query: str, session_id: str
     ) -> AgentInvokeResult:
         return await restate_context.object_call(invoke, key=session_id, arg=query)
-
-
-# UTILS
-
-
-@reimbursement_service.handler()
-async def handle_payment(ctx: restate.ObjectContext, req: Reimbursement):
-    pass
-
-
-def backoffice_submit_request(req: Reimbursement, id: str):
-    print(
-        "=" * 50,
-        f"\n Requesting approval for {req.request_id} \n",
-        f"Resolve via: \n"
-        f"curl localhost:8080/restate/awakeables/{id}/resolve --json '{{\"approved\": true}}' \n",
-        "=" * 50,
-    )
-
-
-def backoffice_email_employee(req: Reimbursement, approved: bool):
-    logger.info("Notifying backoffice employee of reimbursement approval")
-
-
-def end_of_month():
-    now = datetime.now()
-    last_day = calendar.monthrange(now.year, now.month)[1]
-    end_of_month = datetime(now.year, now.month, last_day, 23, 59, 59, 999999)
-
-    time_remaining = end_of_month - now
-    return timedelta(seconds=time_remaining.total_seconds())

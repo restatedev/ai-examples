@@ -58,22 +58,23 @@ You can either send a message to the weather agent using the A2A protocol:
 ```shell
 curl localhost:8080/WeatherAgentA2AServer/process_request \
     --json '{
-      "jsonrpc": "2.0",
-      "id": 923043,
-      "method":"tasks/send",
-      "params": {
-        "id": "3954039823504",
-        "sessionId": "lw33sl5e-8966-6g6k-26ee-2d5e6w29ya3423",
-        "message": {
-          "role":"user",
-          "parts": [{
-            "type":"text",
-            "text": "What is the weather in Detroit?"
-          }]
-        },
-        "metadata": {}
-      }
-    }' | jq . 
+  "jsonrpc": "2.0",
+  "id": 142,
+  "method": "message/send",
+  "params": {
+    "message": {
+      "role": "user",
+      "parts": [
+        {
+          "kind": "text",
+          "text": "What is the weather in Detroit?"
+        }
+      ],
+      "messageId": "92249e7702-767c-417b-a0b0-f0741243c589"
+    },
+    "metadata": {}
+  }
+}' | jq . 
 ```
 
 ### Reimbursement Agent: Restate + OpenAI Agent SDK
@@ -90,14 +91,14 @@ curl localhost:8080/ReimbursementAgentA2AServer/process_request \
     --json '{
       "jsonrpc": "2.0",
       "id": 22323,
-      "method":"tasks/send",
+      "method":"message/send",
       "params": {
         "id": "lwp13w5e3sdf258t3wedsf13234",
         "sessionId": "lw33sl5e-8966-6g6k-26ee-2d5e6w29y3a3423",
         "message": {
           "role":"user",
           "parts": [{
-            "type":"text",
+            "kind":"text",
             "text": "Reimburse my hotel for my business trip of 5 nights for 1200USD"
           }]
         },

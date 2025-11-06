@@ -4,8 +4,8 @@ import restate
 
 from fastapi import FastAPI
 
-from a2a_samples.common.a2a.a2a_middleware import RestateA2AMiddleware
-from agent import ADKWeatherAgent, agent_service
+from app.common.a2a.a2a_middleware import RestateA2AMiddleware
+from agent import agent_service, ADKWeatherAgent
 from a2a.types import (
     AgentCard,
     AgentCapabilities,
@@ -21,8 +21,8 @@ logger = logging.getLogger(__name__)
 RESTATE_HOST = os.getenv("RESTATE_HOST", "http://localhost:8080")
 
 AGENT_CARD = AgentCard(
-    name="weather_time_agent",
-    description="Agent to answer questions about the time and weather in a city.",
+    name="WeatherAgent",
+    description="Agent to answer questions about the weather in a city.",
     url=RESTATE_HOST,
     version="1.0.0",
     capabilities=AgentCapabilities(streaming=False, push_notifications=False),
@@ -64,9 +64,14 @@ def main():
     if not os.getenv("OPENAI_API_KEY"):
         raise Exception("OPENAI_API_KEY environment variable not set.")
 
-    port = os.getenv("AGENT_PORT", "9081")
     conf = hypercorn.Config()
-    conf.bind = [f"0.0.0.0:{port}"]
+    host = "localhost"
+    port = os.getenv("AGENT_PORT", "9081")
+    conf.bind = [f"{host}:{port}"]
+    logger.info(f"Server running at http://{host}:{port}")
+    logger.info("Available endpoints:")
+    logger.info(f"  - Agent card: http://{host}:{port}/.well-known/agent.json")
+    logger.info(f"  - Restate services: http://{host}:{port}/restate/v1/")
     asyncio.run(hypercorn.asyncio.serve(app, conf))
 
 
