@@ -21,6 +21,7 @@ Revenue grew by 45% compared to last year.
 Market share is now at 23% in our primary market.
 Customer churn decreased to 5% from 8%."""
 
+
 class Prompt(BaseModel):
     message: str = example_prompt
 

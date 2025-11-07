@@ -1,0 +1,51 @@
+import * as restate from "@restatedev/restate-sdk";
+import { Context, RestatePromise } from "@restatedev/restate-sdk";
+import llmCall from "./utils/llm";
+import { utils } from "./utils/utils";
+
+const example_prompt =
+  "Our Q3 results exceeded all expectations! Customer satisfaction reached 95%, revenue grew " +
+  "by 40% year-over-year, and we successfully launched three new product features. " +
+  "The team worked incredibly hard to deliver these outcomes despite supply chain challenges. " +
+  "Our market share increased to 23%, and we're well-positioned for continued growth in Q4.";
+
+/**
+ * Parallel Agent Processing
+ *
+ * Process multiple inputs simultaneously with specialized agents.
+ * If any task fails, Restate retries only the failed tasks while preserving completed results.
+ *
+ * Task A ↘
+ * Task B → [Wait on Results] � Results A, B, C
+ * Task C ↗
+ */
+async function analyzeText(
+  ctx: Context,
+  { message }: { message: string },
+): Promise<string[]> {
+  // Create parallel tasks - each runs independently
+  const tasks = [
+    ctx.run("Analyze sentiment", async () =>
+      llmCall(`Analyze sentiment (positive/negative/neutral): ${message}`),
+    ),
+    ctx.run("Extract key points", async () =>
+      llmCall(`Extract 3 key points as bullets: ${message}`),
+    ),
+    ctx.run("Summarize", async () =>
+      llmCall(`Summarize in one sentence: ${message}`),
+    ),
+  ];
+
+  // Wait for all tasks to complete and return the results
+  return RestatePromise.all(tasks);
+}
+
+export default restate.service({
+  name: "ParallelAgentsService",
+  handlers: {
+    analyzeText: restate.createServiceHandler(
+      { input: utils(example_prompt) },
+      analyzeText,
+    ),
+  },
+});

@@ -12,7 +12,7 @@ Execute multiple tools in parallel with durable results that persist across fail
 """
 parallel_tools_agent = restate.Service("ParallelToolAgent")
 
-get_weather_tool= {
+get_weather_tool = {
     "type": "function",
     "function": {
         "name": "get_weather",
@@ -47,7 +47,6 @@ async def run(ctx: Context, prompt: MultiWeatherPrompt) -> str | None:
 
         # start all parallel tool calls with retries and recovery
         tool_output_promises = {}
-
         for tool_call in response.tool_calls:
             if tool_call.function.name == "get_weather":
                 tool_promise = ctx.run_typed(

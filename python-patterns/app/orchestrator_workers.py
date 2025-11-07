@@ -32,21 +32,26 @@ example_prompt = (
 class Prompt(BaseModel):
     message: str = example_prompt
 
+
 class Task(BaseModel):
     task_type: str
     instruction: str
 
+
 class TaskList(BaseModel):
     tasks: list[Task]
+
 
 @orchestrator_svc.handler()
 async def process_text(ctx: restate.Context, prompt: Prompt) -> str:
     """Orchestrate text analysis breakdown and parallel execution by specialized workers."""
 
     messages = [
-        {"role": "system",
-         "content": "You are an orchestrator that breaks down text analysis tasks into specialized subtasks for workers."},
-        {"role": "user", "content": f"Text to analyze: {prompt.message}"}
+        {
+            "role": "system",
+            "content": "You are an orchestrator that breaks down text analysis tasks into specialized subtasks for workers.",
+        },
+        {"role": "user", "content": f"Text to analyze: {prompt.message}"},
     ]
 
     # Step 1: Orchestrator analyzes and breaks down the text analysis task
@@ -57,12 +62,14 @@ async def process_text(ctx: restate.Context, prompt: Prompt) -> str:
         RunOptions(max_attempts=3, type_hint=ModelResponse),
         model="gpt-4o",
         messages=messages,
-        response_format=TaskList
+        response_format=TaskList,
     )
-    if not hasattr(response.choices[0], "message") or not response.choices[0].message.content:
+    if (
+        not hasattr(response.choices[0], "message")
+        or not response.choices[0].message.content
+    ):
         return "Orchestrator failed to produce a task list."
     task_list_json = response.choices[0].message.content
-
 
     task_list = TaskList.model_validate_json(task_list_json)
 
@@ -82,5 +89,8 @@ async def process_text(ctx: restate.Context, prompt: Prompt) -> str:
     await restate.gather(*task_promises)
 
     # Collect results
-    results = [f"{task.task_type} result: {await task_promise}" for task, task_promise in zip(task_list.tasks, task_promises)]
-    return '--'.join(results)
+    results = [
+        f"{task.task_type} result: {await task_promise}"
+        for task, task_promise in zip(task_list.tasks, task_promises)
+    ]
+    return "--".join(results)

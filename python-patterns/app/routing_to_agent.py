@@ -77,13 +77,12 @@ async def route(ctx: restate.Context, prompt: Prompt) -> str | None:
     fn = tool_call.function
     # Route to appropriate support tool
     if fn.name == "billing_support":
-        result =await ctx.run_typed(
+        result = await ctx.run_typed(
             "run billing agent",
             llm_call,
             RunOptions(max_attempts=3),
             system="You are a billing support specialist."
-            "Acknowledge the billing issue, explain charges clearly, provide next steps with timeline."
-            "Keep responses professional but friendly.",
+            "Acknowledge the billing issue, explain charges clearly, provide next steps with timeline.",
             prompt=prompt.message,
         )
         return result.content
@@ -93,19 +92,17 @@ async def route(ctx: restate.Context, prompt: Prompt) -> str | None:
             llm_call,
             RunOptions(max_attempts=3),
             system="You are an account security specialist."
-            "Prioritize account security and verification, provide clear recovery steps, include security tips."
-            "Maintain a serious, security-focused tone.",
+            "Prioritize account security and verification, provide clear recovery steps, include security tips.",
             prompt=prompt.message,
         )
         return result.content
     elif fn.name == "product_support":
-        result= await ctx.run_typed(
+        result = await ctx.run_typed(
             "run product agent",
             llm_call,
             RunOptions(max_attempts=3),
             system="You are a product specialist."
-            "Focus on feature education and best practices, include specific examples, suggest related features."
-            "Be educational and encouraging in tone.",
+            "Focus on feature education and best practices, include specific examples, suggest related features.",
             prompt=prompt.message,
         )
         return result.content

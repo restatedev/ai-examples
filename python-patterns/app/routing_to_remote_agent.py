@@ -54,8 +54,11 @@ async def route(ctx: restate.Context, prompt: Prompt) -> str | None:
     tool_call = result.tool_calls[0]
 
     # We use a generic call to route to the specialized agent service
-    if (tool_call.function.name is None or
-            tool_call.function.name not in ["BillingAgent", "AccountAgent", "ProductAgent"]):
+    if tool_call.function.name is None or tool_call.function.name not in [
+        "BillingAgent",
+        "AccountAgent",
+        "ProductAgent",
+    ]:
         return "We cannot help you with this request."
     # Generic calls let us call agents by string name and method
     response = await ctx.generic_call(

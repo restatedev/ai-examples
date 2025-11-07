@@ -1,7 +1,8 @@
 import * as restate from "@restatedev/restate-sdk";
 import { Context } from "@restatedev/restate-sdk";
 import llmCall from "./utils/llm";
-import { prompt } from "./utils/prompt";
+import { utils } from "./utils/utils";
+import { openai } from "@ai-sdk/openai";
 
 const example_prompt = `Q3 Performance Summary:
     Our customer satisfaction score rose to 92 points this quarter.
@@ -46,7 +47,7 @@ export default restate.service({
   name: "CallChainingService",
   handlers: {
     run: restate.createServiceHandler(
-      { input: prompt(example_prompt) },
+      { input: utils(example_prompt) },
       processReport,
     ),
   },

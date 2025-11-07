@@ -5,6 +5,8 @@ from restate import RunOptions
 from .util.litellm_call import llm_call
 from .util.util import print_evaluation
 
+max_iterations = 5
+
 """
 Evaluator-Optimizer Pattern
 
@@ -30,8 +32,6 @@ class Prompt(BaseModel):
 async def improve_until_good(ctx: restate.Context, prompt: Prompt) -> str | None:
     """Iteratively improve a solution until it meets quality standards."""
 
-    max_iterations = 5
-
     solution: str | None = None
     attempts: list[str] = []
     for iteration in range(max_iterations):
@@ -40,8 +40,7 @@ async def improve_until_good(ctx: restate.Context, prompt: Prompt) -> str | None
             f"generate_v{iteration+1}",
             llm_call,
             RunOptions(max_attempts=3),
-            system="Create a Python function to solve this task. Eagerly return results for review.",
-            prompt=f"Previous attempts: {attempts} - Task: {prompt}"
+            prompt=f"Task: {prompt} - Previous attempts: {attempts}",
         )
         solution = solution_response.content
         if solution is not None:
@@ -56,7 +55,7 @@ async def improve_until_good(ctx: restate.Context, prompt: Prompt) -> str | None
             Reply with either:
             'PASS: [brief reason]' if the solution is correct and very well-implemented
             'IMPROVE: [specific issues to fix]' if it needs work""",
-            prompt=f"Task: {prompt} - Solution: {solution}"""
+            prompt=f"Task: {prompt} - Solution: {solution}" "",
         )
         evaluation = evaluation_response.content
         print_evaluation(iteration, solution, evaluation)
