@@ -15,7 +15,6 @@ from middleware.restate_tools import restate_tools
 APP_NAME = "agents"
 
 
-# <start_here>
 async def calculate_metrics(
     tool_context: ToolContext,
     claim: InsuranceClaim,
@@ -30,9 +29,6 @@ async def calculate_metrics(
         restate_context.run_typed("fraud", check_fraud, claim=claim),
     )
     return [await result for result in results_done]
-
-
-# <end_here>
 
 
 agent_service = restate.VirtualObject("ParallelToolClaimAgent")

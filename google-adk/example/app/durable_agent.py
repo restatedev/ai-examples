@@ -16,6 +16,8 @@ agent_service = restate.VirtualObject("WeatherAgent")
 async def get_weather(tool_context: ToolContext, city: str) -> WeatherResponse:
     """Get the current weather for a given city."""
     restate_context = tool_context.session.state["restate_context"]
+
+    #  call tool wrapped as Restate durable step
     return await restate_context.run_typed("Get weather", call_weather_api, city=city)
 
 
@@ -24,6 +26,8 @@ async def run(ctx: restate.ObjectContext, prompt: WeatherPrompt) -> str:
     user_id = "user"
 
     agent = Agent(
+        # The durable_model_calls middleware persists each LLM response in Restate,
+        #  so they can be restored on retries without re-calling the LLM
         model=durable_model_calls(ctx, "gemini-2.5-flash"),
         name="weather_agent",
         description="Agent that provides weather updates for cities.",

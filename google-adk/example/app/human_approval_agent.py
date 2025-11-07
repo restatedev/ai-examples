@@ -13,7 +13,6 @@ from middleware.restate_tools import restate_tools
 APP_NAME = "agents"
 
 
-# <start_here>
 async def human_approval(tool_context: ToolContext, claim: InsuranceClaim) -> str:
     """Ask for human approval for high-value claims."""
     restate_context = tool_context.session.state["restate_context"]
@@ -31,9 +30,6 @@ async def human_approval(tool_context: ToolContext, claim: InsuranceClaim) -> st
 
     # Wait for human approval
     return await approval_promise
-
-
-# <end_here>
 
 
 agent_service = restate.VirtualObject("HumanClaimApprovalAgent")

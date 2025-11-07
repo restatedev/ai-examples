@@ -30,11 +30,9 @@ class RestateSessionService(BaseSessionService):
         ongoing_session = await self.ctx.get("session", type_hint=Session)
 
         if ongoing_session is not None:
-            print(f"ongoing session found for id {session_id}")
             ongoing_session.state["restate_context"] = self.ctx
             return ongoing_session
 
-        print(f"creating session for id {session_id}")
         session = Session(
             app_name=app_name,
             user_id=user_id,
@@ -57,7 +55,6 @@ class RestateSessionService(BaseSessionService):
         session = await self.ctx.get("session", type_hint=Session)
 
         if session is None:
-            print(f"no session found for id {session_id}")
             return None
 
         session.state["restate_context"] = self.ctx
@@ -100,7 +97,7 @@ class RestateSessionService(BaseSessionService):
 
         session_to_store = session.model_copy()
         session_to_store.state.pop("restate_context", None)
-        self.ctx.set(f"session:{session.id}", session_to_store)
+        self.ctx.set("session", session_to_store)
 
         session.state["restate_context"] = self.ctx
         return event

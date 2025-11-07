@@ -12,11 +12,15 @@ from middleware.restate_session_service import RestateSessionService
 
 
 async def create_restate_runner(ctx, APP_NAME, user_id, agent):
+
+    # Restate session service uses Restate to store session state
+    # Gets persisted together with code execution results
     session_service = RestateSessionService(ctx)
     await session_service.create_session(
         app_name=APP_NAME, user_id=user_id, session_id=ctx.key()
     )
 
+    # Thin wrapper around the ADK runner to persist UUIDs in Restate
     runner = RestateRunner(
         restate_context=ctx,
         agent=agent,
@@ -24,8 +28,6 @@ async def create_restate_runner(ctx, APP_NAME, user_id, agent):
         session_service=session_service,
     )
     return runner
-
-
 
 
 class RestateRunner(Runner):
@@ -49,7 +51,7 @@ class RestateRunner(Runner):
         )
 
     def run_async(self, *args, **kwargs) -> AsyncGenerator[Event, None]:
-        # Patch uuid.uuid4 to use restate's uuid generator
+        # Patch uuid.uuid4 to use restate's uuid generator (pending better solution)
         def new_uuid():
             new_id = self.ctx.uuid()
             return new_id

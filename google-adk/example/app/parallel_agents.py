@@ -1,7 +1,6 @@
 import restate
 from google.adk.agents.llm_agent import Agent
 from google.genai import types as genai_types
-from pydantic import BaseModel
 
 from app.utils.models import InsuranceClaim
 from app.utils.utils import (
@@ -10,8 +9,7 @@ from app.utils.utils import (
     run_fraud_agent,
 )
 from middleware.middleware import durable_model_calls
-from middleware.restate_runner import RestateRunner, create_restate_runner
-from middleware.restate_session_service import RestateSessionService
+from middleware.restate_runner import create_restate_runner
 
 APP_NAME = "agents"
 
@@ -19,7 +17,6 @@ APP_NAME = "agents"
 agent_service = restate.VirtualObject("ParallelAgentClaimApproval")
 
 
-# <start_here>
 @agent_service.handler()
 async def run(ctx: restate.ObjectContext, claim: InsuranceClaim) -> str:
     user_id = "user"
@@ -67,6 +64,3 @@ async def run(ctx: restate.ObjectContext, claim: InsuranceClaim) -> str:
             final_response = event.content.parts[0].text
 
     return final_response
-
-
-# <end_here>

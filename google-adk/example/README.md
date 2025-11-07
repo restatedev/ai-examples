@@ -1,15 +1,41 @@
-# Python Hello World
+# Restate + Google ADK Example
 
-Python hello world project to get started.
+**This integration is work-in-progress.**
 
-To get started, run:
+AI agent examples using [Restate](https://restate.dev) for durable execution and [Google Agent Development Kit](https://cloud.google.com/agent-development-kit) for AI workflows.
 
-```shell
+## Features
+
+- **Durable execution** - Weather agent with durable execution ([see weather agent](./app/durable_agent.py))
+- **Chat agents** - Multi-turn conversations with session state ([see chat agent](./app/chat.py))
+- **Multi-agent orchestration** - Claim processing workflows with durable communication ([see multi-agent claim approval](./app/multi_agent.py))
+- **Human-in-the-loop** - Resilient approval workflows (with timeouts) ([see human-in-the-loop agent](./app/human_approval_agent.py))
+- **Parallel processing** - Concurrent agent and tool execution that can be deterministically recovered ([see parallel agent](./app/parallel_agents.py) and [parallel tools](./app/parallel_tools.py))
+
+## Quick Start
+
+1. Run the application:
+```bash
 uv run . 
 ```
 
-To build a docker image:
+The agent runs on http://localhost:9080
 
-```shell
-docker build .
+2. Start Restate:
+```bash
+docker run --name restate_dev --rm \
+-p 8080:8080 -p 9070:9070 -p 9071:9071 \
+--add-host=host.docker.internal:host-gateway \
+docker.restate.dev/restatedev/restate:latest
 ```
+
+3. Go to the Restate UI at http://localhost:9070. Click on `register deployment`. And fill in the agent url `http://host.docker.internal:9080`.
+
+![Register service](./docs/images/register_deployment.png)
+
+4. Click on one of the handlers of the registered services and send the default request.
+
+![Send request](./docs/images/request.png)
+
+5. In the invocations tab, you see the execution journal when clicking on the invocation ID:
+![See journal](./docs/images/journal.png)

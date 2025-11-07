@@ -26,6 +26,8 @@ async def message(ctx: restate.ObjectContext, chat_message: ChatMessage) -> str:
         instruction="You are a helpful assistant. Be concise and helpful.",
     )
 
+    # Restate runner which uses RestateSessionService to persist session state in Restate
+
     runner = await create_restate_runner(ctx, APP_NAME, user_id, agent)
     events = runner.run_async(
         user_id=user_id,

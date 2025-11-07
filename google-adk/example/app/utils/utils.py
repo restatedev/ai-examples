@@ -4,6 +4,7 @@ from google.adk import Agent
 from restate import TerminalError
 from google.genai import types as genai_types
 
+from app.multi_agent import APP_NAME
 from app.utils.models import (
     WeatherResponse,
     InsuranceClaim,
@@ -12,18 +13,14 @@ from app.utils.models import (
     HotelBooking,
 )
 from middleware.middleware import durable_model_calls
-from middleware.restate_runner import RestateRunner
+from middleware.restate_runner import RestateRunner, create_restate_runner
 from middleware.restate_session_service import RestateSessionService
 
 
-# <start_weather>
 async def call_weather_api(city: str) -> WeatherResponse:
     # fail_on_denver(city)
-    weather_data = await call_weather_api(city)
+    weather_data = await fetch_weather(city)
     return parse_weather_data(weather_data)
-
-
-# <end_weather>
 
 
 def fail_on_denver(city):
@@ -31,7 +28,7 @@ def fail_on_denver(city):
         raise Exception("[👻 SIMULATED] Fetching weather failed: Weather API down...")
 
 
-async def call_weather_api(city):
+async def fetch_weather(city):
     try:
         resp = httpx.get(f"https://wttr.in/{httpx.URL(city)}?format=j1", timeout=10.0)
         resp.raise_for_status()
@@ -85,40 +82,8 @@ async def check_fraud(claim: InsuranceClaim) -> str:
     return "low risk"
 
 
-async def reserve_hotel(booking_id: str, booking: HotelBooking) -> BookingResult:
-    """Reserve a hotel (simulated)."""
-    print(f"🏨 Reserving hotel in {booking.name} for {booking.guests} guests")
-    return BookingResult(
-        id=booking_id,
-        confirmation=f"Hotel {booking.name} booked for {booking.guests} guests on {booking.dates}",
-    )
-
-
-async def reserve_flight(booking_id: str, booking: FlightBooking) -> BookingResult:
-    """Reserve a flight (simulated)."""
-    print(f"✈️ Reserving flight from {booking.origin} to {booking.destination}")
-    if booking.destination == "San Francisco" or booking.destination == "SFO":
-        print(f"[👻 SIMULATED] Flight booking failed: No flights to SFO available...")
-        raise TerminalError(
-            f"[👻 SIMULATED] Flight booking failed: No flights to SFO available..."
-        )
-    return BookingResult(
-        id=booking_id,
-        confirmation=f"Flight from {booking.origin} to {booking.destination} on {booking.date} for {booking.passengers} passengers",
-    )
-
-
-async def cancel_hotel(booking_id: str) -> None:
-    """Cancel hotel booking."""
-    print(f"❌ Cancelling hotel booking {booking_id}")
-
-
-async def cancel_flight(booking_id: str) -> None:
-    """Cancel flight booking."""
-    print(f"❌ Cancelling flight booking {booking_id}")
-
-
 APP_NAME = "agents"
+
 eligibility_agent_service = restate.VirtualObject("EligibilityAgent")
 
 
@@ -133,18 +98,7 @@ async def run_eligibility_agent(
         description="Decide whether the following claim is eligible for reimbursement.",
         instruction="Respond with eligible if it's a medical claim, and not eligible otherwise.",
     )
-    session_service = RestateSessionService(ctx)
-    await session_service.create_session(
-        app_name=APP_NAME, user_id=user_id, session_id=ctx.key()
-    )
-
-    runner = RestateRunner(
-        restate_context=ctx,
-        agent=agent,
-        app_name=APP_NAME,
-        session_service=session_service,
-    )
-
+    runner = await create_restate_runner(ctx, APP_NAME, user_id, agent)
     events = runner.run_async(
         user_id=user_id,
         session_id=ctx.key(),
@@ -178,18 +132,7 @@ async def run_rate_comparison_agent(
         description="Decide whether the cost of the claim is reasonable given the treatment.",
         instruction="Respond with reasonable or not reasonable.",
     )
-    session_service = RestateSessionService(ctx)
-    await session_service.create_session(
-        app_name=APP_NAME, user_id=user_id, session_id=ctx.key()
-    )
-
-    runner = RestateRunner(
-        restate_context=ctx,
-        agent=agent,
-        app_name=APP_NAME,
-        session_service=session_service,
-    )
-
+    runner = await create_restate_runner(ctx, APP_NAME, user_id, agent)
     events = runner.run_async(
         user_id=user_id,
         session_id=ctx.key(),
@@ -221,18 +164,7 @@ async def run_fraud_agent(ctx: restate.ObjectContext, claim: InsuranceClaim) -> 
         description="Decide whether the claim is fraudulent.",
         instruction="Always respond with low risk, medium risk, or high risk.",
     )
-    session_service = RestateSessionService(ctx)
-    await session_service.create_session(
-        app_name=APP_NAME, user_id=user_id, session_id=ctx.key()
-    )
-
-    runner = RestateRunner(
-        restate_context=ctx,
-        agent=agent,
-        app_name=APP_NAME,
-        session_service=session_service,
-    )
-
+    runner = await create_restate_runner(ctx, APP_NAME, user_id, agent)
     events = runner.run_async(
         user_id=user_id,
         session_id=ctx.key(),
