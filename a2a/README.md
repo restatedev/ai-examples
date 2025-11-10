@@ -89,7 +89,7 @@ The example implements a reimbursement workflow where the agent gathers the requ
     restate-server
     ```
    
-3. Go to the Restate UI at http://localhost:9070. Click on `register deployment`. And fill in the agent url `http://localhost:9081/restate/v1` (for the reimbursement agent).
+3. Go to the Restate UI at `http://localhost:9070`. Click on `register deployment`. And fill in the agent url `http://localhost:9081/restate/v1` (for the reimbursement agent).
 
 
 ### Multi-turn conversations
