@@ -1,5 +1,7 @@
 # Resilient A2A Agents with Restate
 
+**This integration is work-in-progress.**
+
 These examples use [Restate](https://ai.restate.dev/) to implement the [Agent2Agent (A2A) protocol](https://github.com/google/A2A).
 
 Restate acts as a scalable, resilient task orchestrator that speaks the A2A protocol and gives you:
