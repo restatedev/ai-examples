@@ -2,7 +2,7 @@
 
 **This integration is work-in-progress.**
 
-AI agent examples using [Restate](https://restate.dev) for durable execution and [Google Agent Development Kit](https://cloud.google.com/agent-development-kit) for AI workflows.
+AI agent examples using [Restate](https://restate.dev) for durable execution and [Google Agent Development Kit](https://google.github.io/adk-docs/) for AI workflows.
 
 ## Features
 
@@ -19,7 +19,7 @@ AI agent examples using [Restate](https://restate.dev) for durable execution and
 uv run . 
 ```
 
-The agent runs on http://localhost:9080
+The agent runs on `http://localhost:9080`
 
 2. Start Restate:
 ```bash
@@ -29,7 +29,7 @@ docker run --name restate_dev --rm \
 docker.restate.dev/restatedev/restate:latest
 ```
 
-3. Go to the Restate UI at http://localhost:9070. Click on `register deployment`. And fill in the agent url `http://host.docker.internal:9080`.
+3. Go to the Restate UI at `http://localhost:9070`. Click on `register deployment`. And fill in the agent url `http://host.docker.internal:9080`.
 
 ![Register service](./docs/images/register_deployment.png)
 

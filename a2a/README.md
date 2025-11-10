@@ -39,7 +39,7 @@ This example shows how to run a weather agent (Restate+Google ADK) and use the A
     restate-server
     ```
    
-3. Go to the Restate UI at http://localhost:9070. Click on `register deployment`. And fill in the agent url `http://localhost:9080/restate/v1` (for the reimbursement agent).
+3. Go to the Restate UI at `http://localhost:9070`. Click on `register deployment`. And fill in the agent url `http://localhost:9080/restate/v1` (for the reimbursement agent).
 
     ![Register service](./docs/images/register_deployment.png)
 
