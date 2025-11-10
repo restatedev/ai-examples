@@ -18,71 +18,82 @@ Restate acts as a scalable, resilient task orchestrator that speaks the A2A prot
 ## Prerequisites
 - Python 3.12 or higher
 - [UV](https://docs.astral.sh/uv/)
-- An [OpenAI API Key](https://platform.openai.com/docs/api-reference/authentication)
+- A [Google API Key](https://platform.openai.com/docs/api-reference/authentication)
     ```shell
-    echo "OPENAI_API_KEY=your_api_key_here" >> .env
+    echo "GOOGLE_API_KEY=your_api_key_here" >> .env
     ```
 
-## Running the example: multi-agent 
+## Quickstart: running the weather agent
 
-This example shows how to run multiple agents and use the A2A protocol to communicate with them.
+This example shows how to run a weather agent (Restate+Google ADK) and use the A2A protocol to communicate with it:
 
-<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/a2a/multi_agent.png" alt="Restate UI" width="600"/>
+1. Run the application:
+    ```bash
+    uv run app/weather
+    ```
+    
+    The agent prints the address where it is running: `http://localhost:9080/restate/v1`
 
-Make sure you have no other Restate server/services running. Then bring up the multi-agent example:
+2. [Install and launch Restate](https://docs.restate.dev/installation#install-restate-server-%26-cli)
+    ```shell
+    restate-server
+    ```
+   
+3. Go to the Restate UI at http://localhost:9070. Click on `register deployment`. And fill in the agent url `http://localhost:9080/restate/v1` (for the reimbursement agent).
 
-```shell
-echo "OPENAI_API_KEY=your_api_key_here" >> .env
-docker compose up
-```
+    ![Register service](./docs/images/register_deployment.png)
 
-(It will take a while before all the services are up and running and you will see a few retries for the registration.)
+4. Click on the `WeatherAgentA2AServer/process_request` handler of the registered service and send a request using the A2A protocol:
+    
+    ```shell
+    curl localhost:8080/WeatherAgentA2AServer/process_request \
+        --json '{
+      "jsonrpc": "2.0",
+      "id": 142,
+      "method": "message/send",
+      "params": {
+        "message": {
+          "role": "user",
+          "parts": [
+            {
+              "kind": "text",
+              "text": "What is the weather in Detroit?"
+            }
+          ],
+          "messageId": "92249e7702-767c-417b-a0b0-f0741243c589"
+        },
+        "metadata": {}
+      }
+    }' | jq . 
+    ```
 
-Go to the Restate UI (`http://localhost:9070`). You see here the overview of the services that are running:
+## Reimbursement example: Experimenting with A2A messages
 
-<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/a2a/multi_agent_overview.png" alt="Restate UI" width="1000"/>
+This is a stateful agent which supports long-running conversations and tasks, giving you time to experiment with the A2A protocol by starting, querying, and canceling tasks.
 
-To send messages to the host agent, click on it and then click on the "Playground" button. 
+The example implements a reimbursement workflow where the agent gathers the required input and blocks on human approval if the amount is greater than 100 USD.
 
-<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/a2a/multi_agent_chat.png" alt="Restate UI" width="1000"/>
+### Run the reimbursement agent
 
-The host agent will forward messages to the registered agents that it knows of, and it will use the A2A protocol to communicate with them.
+1. Run the application:
+    ```bash
+    uv run app/reimbursement
+    ```
+    
+    The agent prints the address where it is running: `http://localhost:9081/restate/v1`
 
-You can also send messages with the A2A protocol directly to the agents, without going through the host agent:
+2. [Launch Restate](https://docs.restate.dev/installation#install-restate-server-%26-cli)
+    ```shell
+    restate-server
+    ```
+   
+3. Go to the Restate UI at http://localhost:9070. Click on `register deployment`. And fill in the agent url `http://localhost:9081/restate/v1` (for the reimbursement agent).
 
 
-### Weather Agent: Restate + OpenAI Agent SDK
+### Multi-turn conversations
 
-You can either send a message to the weather agent using the A2A protocol:
-
-```shell
-curl localhost:8080/WeatherAgentA2AServer/process_request \
-    --json '{
-  "jsonrpc": "2.0",
-  "id": 142,
-  "method": "message/send",
-  "params": {
-    "message": {
-      "role": "user",
-      "parts": [
-        {
-          "kind": "text",
-          "text": "What is the weather in Detroit?"
-        }
-      ],
-      "messageId": "92249e7702-767c-417b-a0b0-f0741243c589"
-    },
-    "metadata": {}
-  }
-}' | jq . 
-```
-
-### Reimbursement Agent: Restate + OpenAI Agent SDK
-
-This is a stateful agent which runs long-running tasks and blocks on human approval if the amount is greater than 100 USD.
-
-You talk to a dedicated reimbursement agent based on the session ID. 
-If you provide the session ID, the agent will remember the conversation and the tasks you have sent to it.
+You can do multi-turn conversations with the agent by providing the `contextId` in the message.
+If you provide the context ID, the agent will remember the conversation and the tasks you have sent to it.
 
 To start a task that **will block on human approval**, run the following command:
 
@@ -101,7 +112,9 @@ curl localhost:8080/ReimbursementAgentA2AServer/process_request \
           "text": "Reimburse my hotel for my business trip of 5 nights for 1200USD"
         }
       ],
-      "messageId": "92249e7643702-7674c-417b-a0b0-f0741243c589"
+      "taskId": "0d9g9ea6-dcc67-43ee-a389-8s9g0e6es5554",
+      "contextId": "5e00b4a6-dcc67-43ee-a389-0e2a65958444",
+      "messageId": "9224947643702-7674c-417b-a0b0-f0741243c589"
     },
     "metadata": {}
   }
@@ -114,17 +127,17 @@ It will then return a response mentioning you need to provide a date.
 
 ```json
 {
-  "id": 1423,
+  "id": 1424643,
   "jsonrpc": "2.0",
   "result": {
     "artifacts": null,
-    "contextId": "5e00b3a6-dcc7-43ee-a389-0e2a65958444",
+    "contextId": "5e00b4a6-dcc67-43ee-a389-0e2a65958444",
     "history": [
       {
-        "contextId": "5e00b3a6-dcc7-43ee-a389-0e2a65958444",
+        "contextId": "5e00b4a6-dcc67-43ee-a389-0e2a65958444",
         "extensions": null,
         "kind": "message",
-        "messageId": "92249e73702-767c-417b-a0b0-f0741243c589",
+        "messageId": "9224947643702-7674c-417b-a0b0-f0741243c589",
         "metadata": null,
         "parts": [
           {
@@ -135,10 +148,10 @@ It will then return a response mentioning you need to provide a date.
         ],
         "referenceTaskIds": null,
         "role": "user",
-        "taskId": null
+        "taskId": "0d9g9ea6-dcc67-43ee-a389-8s9g0e6es5554"
       }
     ],
-    "id": "92249e73702-767c-417b-a0b0-f0741243c589",
+    "id": "9224947643702-7674c-417b-a0b0-f0741243c589",
     "kind": "task",
     "metadata": null,
     "status": {
@@ -146,13 +159,13 @@ It will then return a response mentioning you need to provide a date.
         "contextId": null,
         "extensions": null,
         "kind": "message",
-        "messageId": "1accd046-5ba4-4c13-b0eb-fcad422fcea7",
+        "messageId": "89194646-702b-4af3-86d5-7c60355fbb77",
         "metadata": null,
         "parts": [
           {
             "kind": "text",
             "metadata": null,
-            "text": "MISSING_INFO:Please provide the date of the transaction."
+            "text": "MISSING_INFO: Please provide the date of the transaction."
           }
         ],
         "referenceTaskIds": null,
@@ -160,16 +173,15 @@ It will then return a response mentioning you need to provide a date.
         "taskId": null
       },
       "state": "input-required",
-      "timestamp": "2025-11-06T14:47:37.430346"
+      "timestamp": "2025-11-10T08:57:25.462064"
     }
   }
 }
-
 ```
 
 </details>
 
-You can then provide the date of the transaction by sending another request to the same stateful session (same task and session ID):
+You can then provide the date of the transaction by sending another request to the same stateful session (same task and context ID):
 
 ```shell
 curl localhost:8080/ReimbursementAgentA2AServer/process_request \
@@ -179,7 +191,6 @@ curl localhost:8080/ReimbursementAgentA2AServer/process_request \
   "method": "message/send",
   "params": {
     "message": {
-      "contextId": "5e00b3a6-dcc67-43ee-a389-0e2a65958444",
       "role": "user",
       "parts": [
         {
@@ -187,7 +198,9 @@ curl localhost:8080/ReimbursementAgentA2AServer/process_request \
           "text": "The date of the transaction is 05/04/2025"
         }
       ],
-      "messageId": "92249e73702-767c-417b-a06b0-f0741243c589"
+      "taskId": "0d9g9ea6-dcc67-43ee-a389-8s9g0e6es5554",
+      "contextId": "5e00b4a6-dcc67-43ee-a389-0e2a65958444",
+      "messageId": "92249e73702-767c-417b-a06b0-5sg6g881243c589"
     },
     "metadata": {}
   }
@@ -203,12 +216,13 @@ curl localhost:8080/ReimbursementAgentA2AServer/process_request \
       "method": "message/send",
       "params": {
         "message": {
-          "contextId": "5e00b3a6-dcc7-43ee-a389-0e2a65958444",
           "role":"user",
           "parts": [{
             "kind": "text",
             "text": "The info looks good"
           }]
+          "taskId": "0d9g9ea6-dcc67-43ee-a389-8s9g0e6es5554",
+          "contextId": "5e00b4a6-dcc67-43ee-a389-0e2a65958444",
           "messageId": "92249e737032-767c-417b-a0b0-f0741243c589"
         },
         "metadata": {}
@@ -256,7 +270,7 @@ curl localhost:8080/ReimbursementAgentA2AServer/process_request \
       "id": 2,
       "method":"tasks/get",
       "params": {
-        "id": "101496f4-7805-473c-9b15-c0f0bdff465a",
+        "id": "0d9g9ea6-dcc67-43ee-a389-8s9g0e6es5554",
         "history_length": 10,
         "metadata": {}
       }
@@ -268,33 +282,88 @@ curl localhost:8080/ReimbursementAgentA2AServer/process_request \
 
 ```json
 {
-  "jsonrpc": "2.0",
   "id": 2,
+  "jsonrpc": "2.0",
   "result": {
-    "id": "lwp13w5e3sdf258t3wesf13234",
-    "sessionId": "lw33sl5e-8966-6g6k-26ee-2d5e6w29ya3423",
-    "status": {
-      "state": "submitted",
-      "message": null,
-      "timestamp": "2025-05-16T13:42:46.306507"
-    },
-    "artifacts": null,
-    "history": [
+    "artifacts": [
       {
-        "role": "user",
+        "artifactId": "d2ab957f-003d-49f7-b96d-1a5a83fee3b9",
+        "description": null,
+        "extensions": null,
+        "metadata": null,
+        "name": null,
         "parts": [
           {
-            "type": "text",
-            "text": "Reimburse my hotel for my business trip of 5 nights for 1200USD of 05/04/2025",
-            "metadata": null
+            "kind": "text",
+            "metadata": null,
+            "text": "Your reimbursement request with ID da52bd93-1927-4a62-8a15-eaafb29dd899 has been approved."
           }
-        ],
-        "metadata": null
+        ]
       }
     ],
-    "metadata": null
-  },
-  "error": null
+    "contextId": "5e00b4a6-dcc67-43ee-a389-0e2a65958444",
+    "history": [
+      {
+        "contextId": "5e00b4a6-dcc67-43ee-a389-0e2a65958444",
+        "extensions": null,
+        "kind": "message",
+        "messageId": "9224947643702-7674c-417b-a0b0-f0741243c589",
+        "metadata": null,
+        "parts": [
+          {
+            "kind": "text",
+            "metadata": null,
+            "text": "Reimburse my hotel for my business trip of 5 nights for 1200USD"
+          }
+        ],
+        "referenceTaskIds": null,
+        "role": "user",
+        "taskId": "0d9g9ea6-dcc67-43ee-a389-8s9g0e6es5554"
+      },
+      {
+        "contextId": "5e00b4a6-dcc67-43ee-a389-0e2a65958444",
+        "extensions": null,
+        "kind": "message",
+        "messageId": "92249e73702-767c-417b-a06b0-5sg6g881243c589",
+        "metadata": null,
+        "parts": [
+          {
+            "kind": "text",
+            "metadata": null,
+            "text": "The date of the transaction is 05/04/2025"
+          }
+        ],
+        "referenceTaskIds": null,
+        "role": "user",
+        "taskId": "0d9g9ea6-dcc67-43ee-a389-8s9g0e6es5554"
+      },
+      {
+        "contextId": null,
+        "extensions": null,
+        "kind": "message",
+        "messageId": "89194646-702b-4af3-86d5-7c60355fbb77",
+        "metadata": null,
+        "parts": [
+          {
+            "kind": "text",
+            "metadata": null,
+            "text": "MISSING_INFO: Please provide the date of the transaction."
+          }
+        ],
+        "referenceTaskIds": null,
+        "role": "agent",
+        "taskId": null
+      }
+    ],
+    "id": "9224947643702-7674c-417b-a0b0-f0741243c589",
+    "kind": "task",
+    "metadata": null,
+    "status": {
+      "message": null,
+      "state": "completed",
+      "timestamp": "2025-11-10T09:05:15.488894"
+    }
+  }
 }
 ```
 
@@ -349,33 +418,56 @@ curl localhost:8080/ReimbursementAgentA2AServer/process_request \
 
 ```json
 {
-  "jsonrpc": "2.0",
   "id": 3,
+  "jsonrpc": "2.0",
   "result": {
-    "id": "lwp13w5e3sdf258t3wesf13234",
-    "sessionId": "lw33sl5e-8966-6g6k-26ee-2d5e6w29ya3423",
-    "status": {
-      "state": "canceled",
-      "message": null,
-      "timestamp": "2025-05-16T13:44:05.852323"
-    },
     "artifacts": null,
+    "contextId": "a64226cb-90d9-4a9b-b014-c2a3923e3645",
     "history": [
       {
-        "role": "user",
+        "contextId": "a64226cb-90d9-4a9b-b014-c2a3923e3645",
+        "extensions": null,
+        "kind": "message",
+        "messageId": "92249e73702-7674c-417b-a0b0-f0741243c449",
+        "metadata": null,
         "parts": [
           {
-            "type": "text",
-            "text": "Reimburse my hotel for my business trip of 5 nights for 1200USD of 05/04/2025",
-            "metadata": null
+            "kind": "text",
+            "metadata": null,
+            "text": "Reimburse my hotel for my business trip of 5 nights for 1200USD of 05/04/2025"
           }
         ],
-        "metadata": null
+        "referenceTaskIds": null,
+        "role": "user",
+        "taskId": "33349e733702-7674c-417b-a0b0-f0741243c333"
+      },
+      {
+        "contextId": null,
+        "extensions": null,
+        "kind": "message",
+        "messageId": "3d4d228d-4adf-4dc5-9ff3-2c8c7b45f5aa",
+        "metadata": null,
+        "parts": [
+          {
+            "kind": "text",
+            "metadata": null,
+            "text": "MISSING_INFO: Please provide the request_id."
+          }
+        ],
+        "referenceTaskIds": null,
+        "role": "agent",
+        "taskId": null
       }
     ],
-    "metadata": null
-  },
-  "error": null
+    "id": "92249e73702-7674c-417b-a0b0-f0741243c449",
+    "kind": "task",
+    "metadata": null,
+    "status": {
+      "message": null,
+      "state": "canceled",
+      "timestamp": "2025-11-10T09:13:41.690479"
+    }
+  }
 }
 ```
 
@@ -387,36 +479,3 @@ The UI also shows the task as canceled in the state tab and in the journal overv
 
 This is implemented via Restate's [cancel task API](https://docs.restate.dev/develop/python/service-communication#cancel-an-invocation).
 
-### Stopping the example
-
-To bring the services down, run:
-
-```shell
-docker compose down
-docker compose rm
-```
-
-
-## Running a single agent
-
-You can also start a single agent together with Restate. 
-
-
-For example, to run the weather agent:
-
-```shell
-uv run a2a/weather
-```
-
-[Start the Restate Server](https://docs.restate.dev/develop/local_dev) in a separate shell:
-```shell
-restate-server
-```
-
-Then register the service:
-
-```shell
-restate -y deployments register http://localhost:9081/restate/v1
-```
-
-Then send requests to the agent.

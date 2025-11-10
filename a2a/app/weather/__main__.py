@@ -66,12 +66,12 @@ def main():
 
     conf = hypercorn.Config()
     host = "localhost"
-    port = os.getenv("AGENT_PORT", "9081")
+    port = os.getenv("AGENT_PORT", "9080")
     conf.bind = [f"{host}:{port}"]
     logger.info(f"Server running at http://{host}:{port}")
     logger.info("Available endpoints:")
     logger.info(f"  - Agent card: http://{host}:{port}/.well-known/agent.json")
-    logger.info(f"  - Restate services: http://{host}:{port}/restate/v1/")
+    logger.info(f"  - Restate services: http://{host}:{port}/restate/v1")
     asyncio.run(hypercorn.asyncio.serve(app, conf))
 
 
