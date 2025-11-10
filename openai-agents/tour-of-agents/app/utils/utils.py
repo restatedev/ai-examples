@@ -163,8 +163,8 @@ async def run_fraud_agent(
     result = await Runner.run(
         Agent(
             name="FraudAgent",
-            instructions="Decide whether the cost of the claim is reasonable given the treatment."
-            "Respond with reasonable or not reasonable.",
+            instructions="Decide whether the claim is fraudulent."
+            "Always respond with low risk, medium risk, or high risk.",
         ),
         input=claim.model_dump_json(),
         run_config=RunConfig(
