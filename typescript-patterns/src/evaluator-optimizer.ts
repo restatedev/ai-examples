@@ -1,13 +1,14 @@
 import * as restate from "@restatedev/restate-sdk";
 import { Context } from "@restatedev/restate-sdk";
 import llmCall from "./utils/llm";
-import { printEvaluation, utils } from "./utils/utils";
+import { printEvaluation, zodPrompt } from "./utils/utils";
+const maxIterations = 5;
 
-const example_prompt =
+const examplePrompt =
   "Write a Python function that finds the longest palindromic substring in a string. " +
   "It should be efficient and handle edge cases.";
 
-const evaluation_prompt =
+const evaluationPrompt =
   `Evaluate this solution on correctness, efficiency, and readability. Reply with: ` +
   `'PASS: [brief reason]' if the solution is correct and very well-implemented ` +
   `'IMPROVE: [specific issues to fix]' if it needs work. `;
@@ -24,24 +25,27 @@ async function improveUntilGood(
   ctx: Context,
   { message }: { message: string },
 ): Promise<string> {
-  const maxIterations = 5;
-
   let solution: string | null = null;
   const attempts: string[] = [];
 
   for (let iteration = 0; iteration < maxIterations; iteration++) {
     // Generate solution (with context from previous attempts)
-    solution = await ctx.run(`generate_v${iteration + 1}`, async () =>
-      llmCall(`Task: ${message} - Previous attempts: ${attempts.join(", ")}`),
+    solution = await ctx.run(
+      `generate_v${iteration + 1}`,
+      async () =>
+        llmCall(`Task: ${message} - Previous attempts: ${attempts.join(", ")}`),
+      { maxRetryAttempts: 3 },
     );
-
     if (solution) {
       attempts.push(solution);
     }
 
     // Evaluate the solution
-    const evaluation = await ctx.run(`evaluate_v${iteration + 1}`, async () =>
-      llmCall(`${evaluation_prompt} Task: ${message} - Solution: ${solution}`),
+    const evaluation = await ctx.run(
+      `evaluate_v${iteration + 1}`,
+      async () =>
+        llmCall(`${evaluationPrompt} Task: ${message} - Solution: ${solution}`),
+      { maxRetryAttempts: 3 },
     );
     printEvaluation(iteration, solution, evaluation);
 
@@ -57,7 +61,7 @@ export default restate.service({
   name: "EvaluatorOptimizer",
   handlers: {
     improveUntilGood: restate.createServiceHandler(
-      { input: utils(example_prompt) },
+      { input: zodPrompt(examplePrompt) },
       improveUntilGood,
     ),
   },

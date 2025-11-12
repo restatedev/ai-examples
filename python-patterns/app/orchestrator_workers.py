@@ -1,13 +1,3 @@
-import restate
-from litellm.types.utils import ModelResponse
-
-from pydantic import BaseModel, RootModel
-from restate import RunOptions
-
-from .util.litellm_call import llm_call
-
-import litellm
-
 """
 Orchestrator-Worker Pattern
 
@@ -16,6 +6,17 @@ If any worker fails, Restate retries only that worker while preserving other com
 
 Task → Orchestrator → [Worker A, Worker B, Worker C] → Aggregated Results
 """
+
+import restate
+from litellm.types.utils import ModelResponse
+
+from pydantic import BaseModel
+from restate import RunOptions
+
+from .util.litellm_call import llm_call
+
+import litellm
+
 
 orchestrator_svc = restate.Service("Orchestrator")
 
@@ -66,16 +67,16 @@ async def process_text(ctx: restate.Context, prompt: Prompt) -> str:
     )
     if (
         not hasattr(response.choices[0], "message")
-        or not response.choices[0].message.content
+        or not response.choices[0].text.content
     ):
         return "Orchestrator failed to produce a task list."
-    task_list_json = response.choices[0].message.content
+    task_list_json = response.choices[0].text.content
 
-    task_list = TaskList.model_validate_json(task_list_json)
+    tasks = TaskList.model_validate_json(task_list_json).tasks
 
     # Step 2: Workers execute their specialized tasks in parallel
     task_promises = []
-    for task in task_list.tasks:
+    for task in tasks:
         worker_task = ctx.run_typed(
             task.task_type,
             llm_call,
@@ -91,6 +92,6 @@ async def process_text(ctx: restate.Context, prompt: Prompt) -> str:
     # Collect results
     results = [
         f"{task.task_type} result: {await task_promise}"
-        for task, task_promise in zip(task_list.tasks, task_promises)
+        for task, task_promise in zip(tasks, task_promises)
     ]
     return "--".join(results)

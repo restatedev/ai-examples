@@ -1,110 +1,65 @@
-import restate
-from restate import RunOptions
+"""
+Agent Routing
 
-from .util.litellm_call import llm_call
+Route customer questions to specialized AI agents based on their content.
+Each routing decision is durable and can be retried if it fails.
+
+Flow: Customer Question → Classifier → Specialized Agent → Response
+"""
+
+import restate
+
+from restate import RunOptions
 from pydantic import BaseModel
 
-"""
-Multi-Agent Routing
-
-Automatically route requests to specialized agents based on content analysis.
-Routing decisions are persisted and can be retried if they fail.
-
-Request → Classifier → Agent A/B/C → Specialized Response
-"""
-
-# Example input text to analyze
-example_prompt = "I can't log into my account. Keep getting invalid password errors."
-"""
-Other examples:
-    "Why was I charged $49.99 when I'm on the $29.99 plan?",
-    "How do I export my project data to Excel format?",
-    "What's the best way to organize my dashboard widgets?"
-"""
+from .util.litellm_call import llm_call
+from .util.util import tool
 
 
-class Prompt(BaseModel):
-    message: str = example_prompt
+# Customer's question
+class Question(BaseModel):
+    text: str = "I can't log into my account. Keep getting invalid password errors."
 
 
-# ROUTING SERVICE
+# Create the routing service
+router = restate.Service("AgentRouter")
 
-agent_router_service = restate.Service("AgentRouterService")
-
-
-billing_agent = {
-    "type": "function",
-    "function": {
-        "name": "billing_support",
-        "description": "Handle billing related queries: payments, charges, refunds, plans",
-    },
-}
-
-account_agent = {
-    "type": "function",
-    "function": {
-        "name": "account_support",
-        "description": "Handle account related queries: login, password, security, access",
-    },
-}
-
-product_agent = {
-    "type": "function",
-    "function": {
-        "name": "product_support",
-        "description": "Handle product related queries: features, usage, best practices",
-    },
+# Our team of AI specialists
+SPECIALISTS = {
+    "billing": "Expert in payments, charges, and refunds",
+    "account": "Expert in login issues and security",
+    "product": "Expert in features and how-to guides",
 }
 
 
-@agent_router_service.handler()
-async def route(ctx: restate.Context, prompt: Prompt) -> str | None:
+@router.handler()
+async def answer_question(ctx: restate.Context, question: Question) -> str:
     """Classify request and route to appropriate specialized agent."""
 
-    # Classify the request
-    result = await ctx.run_typed(
-        "handle request",
+    # 1. First, decide if a specialist is needed
+    routing_decision = await ctx.run_typed(
+        "pick_specialist",
         llm_call,
-        RunOptions(max_attempts=3),
-        prompt=prompt.message,
-        tools=[billing_agent, account_agent, product_agent],
+        RunOptions(max_attempts=3),  # Retry up to 3 times if needed
+        system="You are a customer service routing system. Choose the appropriate specialist, or respond directly if no specialist is needed.",
+        prompt=question.text,
+        tools=[tool(name=name, description=desc) for name, desc in SPECIALISTS.items()],
     )
 
-    if not result.tool_calls:
-        return result.content
+    # 2. No specialist needed? Give a general answer
+    if not routing_decision.tool_calls:
+        return routing_decision.content
 
-    tool_call = result.tool_calls[0]
-    fn = tool_call.function
-    # Route to appropriate support tool
-    if fn.name == "billing_support":
-        result = await ctx.run_typed(
-            "run billing agent",
-            llm_call,
-            RunOptions(max_attempts=3),
-            system="You are a billing support specialist."
-            "Acknowledge the billing issue, explain charges clearly, provide next steps with timeline.",
-            prompt=prompt.message,
-        )
-        return result.content
-    elif fn.name == "account_support":
-        result = await ctx.run_typed(
-            "run account agent",
-            llm_call,
-            RunOptions(max_attempts=3),
-            system="You are an account security specialist."
-            "Prioritize account security and verification, provide clear recovery steps, include security tips.",
-            prompt=prompt.message,
-        )
-        return result.content
-    elif fn.name == "product_support":
-        result = await ctx.run_typed(
-            "run product agent",
-            llm_call,
-            RunOptions(max_attempts=3),
-            system="You are a product specialist."
-            "Focus on feature education and best practices, include specific examples, suggest related features.",
-            prompt=prompt.message,
-        )
-        return result.content
-    else:
-        return "Sorry, I couldn't answer your request."
+    # 3. Get the specialist's name
+    specialist = routing_decision.tool_calls[0].function.name
+
+    # 4. Ask the specialist to answer
+    answer = await ctx.run_typed(
+        f"ask_{specialist}",
+        llm_call,
+        RunOptions(max_attempts=3),
+        system=f"You are a {SPECIALISTS.get(specialist, 'support')} specialist.",
+        prompt=question.text,
+    )
+
+    return answer.content

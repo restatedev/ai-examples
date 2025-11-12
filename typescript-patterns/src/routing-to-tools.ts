@@ -1,69 +1,99 @@
 import * as restate from "@restatedev/restate-sdk";
 import { openai } from "@ai-sdk/openai";
-import { generateText, ModelMessage, tool, wrapLanguageModel } from "ai";
-import z from "zod";
-import { durableCalls } from "@restatedev/vercel-ai-middleware";
-import { fetchWeather } from "../utils";
+import { generateText, ModelMessage, tool } from "ai";
+import { z } from "zod";
+import {
+  fetchServiceStatus,
+  createSupportTicket,
+  queryUserDb,
+  SupportTicket,
+} from "./utils/utils";
 
-async function getWeather(ctx: restate.Context, { city }: { city: string }) {
-    return ctx.run("get-weather", () => fetchWeather(city));
+interface Question {
+  userId: string;
+  message: string;
 }
 
 export default restate.service({
-    name: "ManualLoopAgent",
-    handlers: {
-        run: async (ctx: restate.Context, { prompt }: { prompt: string }) => {
-            const messages = [{ role: "user", content: prompt } as ModelMessage];
+  name: "ToolRouter",
+  handlers: {
+    route: async (ctx: restate.Context, question: Question) => {
+      const messages: ModelMessage[] = [
+        { role: "user", content: question.message },
+      ];
 
-            while (true) {
-                const model = wrapLanguageModel({
-                    model: openai("gpt-4o"),
-                    middleware: durableCalls(ctx, { maxRetryAttempts: 3 }),
-                });
+      while (true) {
+        const result = await ctx.run(
+          "LLM call",
+          async () =>
+            generateText({
+              model: openai("gpt-4o"),
+              messages,
+              tools: {
+                fetchServiceStatus: tool({
+                  description: "Check service status and outages",
+                  inputSchema: z.void(),
+                }),
+                queryUserDatabase: tool({
+                  description: "Get user account and billing info",
+                  inputSchema: z.void(),
+                }),
+                createSupportTicket: tool({
+                  description: "Create support tickets",
+                  inputSchema: z.object({
+                    user_id: z.string().describe("User ID creating the ticket"),
+                    description: z
+                      .string()
+                      .describe("Detailed description of the issue"),
+                  }),
+                }),
+              },
+            }),
+          { maxRetryAttempts: 3 },
+        );
 
-                const result = await generateText({
-                    model,
-                    messages,
-                    tools: {
-                        getWeather: tool({
-                            name: "getWeather",
-                            description: "Get the current weather in a given location",
-                            inputSchema: z.object({
-                                city: z.string(),
-                            }),
-                        }),
-                        // add more tools here, omitting the execute function so you handle it yourself
-                    },
-                });
+        messages.push(...result.response.messages);
 
-                messages.push(...result.response.messages);
+        if (result.finishReason === "tool-calls") {
+          for (const toolCall of result.toolCalls) {
+            let toolOutput: string;
 
-                if (result.finishReason === "tool-calls") {
-                    // Handle all tool call execution here
-                    for (const toolCall of result.toolCalls) {
-                        if (toolCall.toolName === "getWeather") {
-                            const toolOutput = await getWeather(
-                                ctx,
-                                toolCall.input as { city: string },
-                            );
-                            messages.push({
-                                role: "tool",
-                                content: [
-                                    {
-                                        toolName: toolCall.toolName,
-                                        toolCallId: toolCall.toolCallId,
-                                        type: "tool-result",
-                                        output: { type: "json", value: toolOutput },
-                                    },
-                                ],
-                            });
-                        }
-                        // Handle other tool calls
-                    }
-                } else {
-                    return result.text;
-                }
+            switch (toolCall.toolName) {
+              case "queryUserDatabase":
+                toolOutput = await ctx.run("query-user-db", () =>
+                  queryUserDb(question.userId),
+                );
+                break;
+              case "fetchServiceStatus":
+                toolOutput = await ctx.run("fetch-service-status", () =>
+                  fetchServiceStatus(),
+                );
+                break;
+              case "createSupportTicket":
+                toolOutput = await ctx.run("create-support-ticket", () =>
+                  createSupportTicket(toolCall.input as SupportTicket),
+                );
+                break;
+              default:
+                toolOutput = `Tool not found: ${toolCall.toolName}`;
             }
-        },
+
+            messages.push({
+              role: "tool",
+              content: [
+                {
+                  toolName: toolCall.toolName,
+                  toolCallId: toolCall.toolCallId,
+                  type: "tool-result",
+                  output: { type: "json", value: toolOutput },
+                },
+              ],
+            });
+          }
+        } else {
+          return result.text;
+        }
+      }
     },
+  },
 });

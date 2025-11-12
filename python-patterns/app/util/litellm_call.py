@@ -1,7 +1,7 @@
 import litellm
-from typing import Optional, List
+from typing import Optional, List, Any, Coroutine
 
-from litellm.types.utils import Message
+from litellm.types.utils import Message, ChatCompletionMessageToolCall
 from restate import TerminalError
 
 

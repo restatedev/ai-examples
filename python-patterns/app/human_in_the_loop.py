@@ -1,58 +1,46 @@
-import restate
-from restate import RunOptions
-
-from .util.litellm_call import llm_call
-from .util.util import notify_moderator, Content
-
 """
 Human-in-the-Loop Pattern
 
 Implement resilient human approval steps that suspend execution until feedback is received.
 Durable promises survive crashes and can be recovered across process restarts.
 """
-content_moderator_svc = restate.Service("HumanInTheLoopService")
+
+import restate
+from restate import RunOptions
+
+from .util.litellm_call import llm_call
+from .util.util import notify_moderator, Content, tool
+
+content_moderator = restate.Service("HumanInTheLoopService")
 
 
-@content_moderator_svc.handler()
+@content_moderator.handler()
 async def moderate(ctx: restate.Context, content: Content) -> str | None:
-    """Moderate content with human-in-the-loop review"""
+    """Moderate content with optional human review."""
 
-    # Durable step for LLM inference, auto retried & recovered
+    # Run LLM moderation
     result = await ctx.run_typed(
         "moderate",
         llm_call,
         RunOptions(max_attempts=3),
-        prompt=f"Decide whether content violates the policy."
-        f"Use the human review tool if you are not sure."
-        f"Content: {content}",
-        tools=[
-            {
-                "type": "function",
-                "function": {
-                    "name": "get_human_review",
-                    "description": "Get human review for content that may violate policy.",
-                },
-            }
-        ],
+        system="You are a content moderation agent. Decide if the content violates policy.",
+        prompt=content.message,
+        tools=[tool("get_human_review", "Request human review if policy violation is uncertain.")],
     )
 
-    # request human review, if ordered by LLM
+    # Handle human review request
     if result.tool_calls and result.tool_calls[0].function.name == "get_human_review":
-        # Create a durable promise (awakeable),
+        # Create a recoverable approval promise
         approval_id, approval_promise = ctx.awakeable(type_hint=str)
 
-        # Notify moderator, identify the durable promise by its id
         await ctx.run_typed(
-            "notify_moderator",
+            "notify moderator",
             notify_moderator,
             content=content,
             approval_id=approval_id,
         )
 
-        # Pause for completion of the promise.
-        # The workflow suspends here and resumes after the promise resolution.
-        # Check the service logs to see how to resolve it, e.g.:
-        # curl http://localhost:8080/restate/awakeables/sign_.../resolve --json '"approved"'
+        # Suspend until moderator resolves the approval
         return await approval_promise
 
     return result.content

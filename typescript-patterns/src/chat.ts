@@ -1,10 +1,10 @@
 import * as restate from "@restatedev/restate-sdk";
 import { ObjectContext } from "@restatedev/restate-sdk";
 import llmCall from "./utils/llm";
-import { utils } from "./utils/utils";
+import { zodPrompt } from "./utils/utils";
 import { ModelMessage } from "@ai-sdk/provider-utils";
 
-const example_prompt = "Write a poem about Durable Execution";
+const examplePrompt = "Write a poem about Durable Execution";
 
 /**
  * Long-lived, Stateful Chat Sessions
@@ -12,17 +12,16 @@ const example_prompt = "Write a poem about Durable Execution";
  * Maintains conversation state across multiple requests using Restate's persistent memory.
  * Sessions survive failures and can be resumed at any time.
  */
-async function messageHandler(
-  restate: ObjectContext,
-  { message }: { message: string },
-) {
-  const messages = (await restate.get<Array<ModelMessage>>("memory")) ?? [];
+async function onMessage(ctx: ObjectContext, { message }: { message: string }) {
+  const messages = (await ctx.get<Array<ModelMessage>>("memory")) ?? [];
   messages.push({ role: "user", content: message });
 
-  const result = await restate.run("LLM call", async () => llmCall(messages));
+  const result = await ctx.run("LLM call", async () => llmCall(messages), {
+    maxRetryAttempts: 3,
+  });
 
   messages.push({ role: "assistant", content: result });
-  restate.set("memory", messages);
+  ctx.set("memory", messages);
 
   return result;
 }
@@ -31,8 +30,8 @@ export default restate.object({
   name: "Chat",
   handlers: {
     message: restate.createObjectHandler(
-      { input: utils(example_prompt) },
-      messageHandler,
+      { input: zodPrompt(examplePrompt) },
+      onMessage,
     ),
   },
 });

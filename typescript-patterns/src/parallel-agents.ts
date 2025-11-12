@@ -1,9 +1,9 @@
 import * as restate from "@restatedev/restate-sdk";
 import { Context, RestatePromise } from "@restatedev/restate-sdk";
 import llmCall from "./utils/llm";
-import { utils } from "./utils/utils";
+import { zodPrompt } from "./utils/utils";
 
-const example_prompt =
+const examplePrompt =
   "Our Q3 results exceeded all expectations! Customer satisfaction reached 95%, revenue grew " +
   "by 40% year-over-year, and we successfully launched three new product features. " +
   "The team worked incredibly hard to deliver these outcomes despite supply chain challenges. " +
@@ -25,14 +25,21 @@ async function analyzeText(
 ): Promise<string[]> {
   // Create parallel tasks - each runs independently
   const tasks = [
-    ctx.run("Analyze sentiment", async () =>
-      llmCall(`Analyze sentiment (positive/negative/neutral): ${message}`),
+    ctx.run(
+      "Analyze sentiment",
+      async () =>
+        llmCall(`Analyze sentiment (positive/negative/neutral): ${message}`),
+      { maxRetryAttempts: 3 },
     ),
-    ctx.run("Extract key points", async () =>
-      llmCall(`Extract 3 key points as bullets: ${message}`),
+    ctx.run(
+      "Extract key points",
+      async () => llmCall(`Extract 3 key points as bullets: ${message}`),
+      { maxRetryAttempts: 3 },
     ),
-    ctx.run("Summarize", async () =>
-      llmCall(`Summarize in one sentence: ${message}`),
+    ctx.run(
+      "Summarize",
+      async () => llmCall(`Summarize in one sentence: ${message}`),
+      { maxRetryAttempts: 3 },
     ),
   ];
 
@@ -44,7 +51,7 @@ export default restate.service({
   name: "ParallelAgentsService",
   handlers: {
     analyzeText: restate.createServiceHandler(
-      { input: utils(example_prompt) },
+      { input: zodPrompt(examplePrompt) },
       analyzeText,
     ),
   },

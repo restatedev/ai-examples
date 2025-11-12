@@ -1,9 +1,25 @@
 import datetime
 import uuid
+import restate
 
 import httpx
 from pydantic import BaseModel
-from restate import TerminalError
+from restate import TerminalError, RunOptions
+
+from app.util.litellm_call import llm_call
+
+
+def tool(name: str, description: str, parameters=None):
+    tool_def = {
+        "type": "function",
+        "function": {
+            "name": name,
+            "description": description,
+        },
+    }
+    if parameters:
+        tool_def["function"]["parameters"] = parameters
+    return tool_def
 
 
 def print_evaluation(iteration: int, solution: str | None, evaluation: str | None):
@@ -66,7 +82,7 @@ class SupportTicket(BaseModel):
     message: str
 
 
-def create_support_ticket(ticket: SupportTicket) -> str:
+async def create_support_ticket(ticket: SupportTicket) -> str:
     # Mock ticket creation (would be real API calls to ticketing systems)
     ticket_id = str(uuid.uuid4())
     return str(
@@ -196,3 +212,54 @@ async def get_weather(req: WeatherRequest) -> dict:
             ) from e
         else:
             raise Exception(f"HTTP error occurred: {e}") from e
+
+
+# Billing Support Agent
+billing_agent_svc = restate.Service("BillingAgent")
+
+
+@billing_agent_svc.handler("run")
+async def get_billing_support(ctx: restate.Context, question: str) -> str | None:
+    result = await ctx.run_typed(
+        "billing_response",
+        llm_call,
+        RunOptions(max_attempts=3),
+        system=f"""You are a billing support specialist.
+        Acknowledge the billing issue, explain charges clearly, provide next steps with timeline.""",
+        prompt=question.text,
+    )
+    return result.content
+
+
+# Account Security Agent
+account_agent_svc = restate.Service("AccountAgent")
+
+
+@account_agent_svc.handler("run")
+async def get_account_support(ctx: restate.Context, question: str) -> str | None:
+    result = await ctx.run_typed(
+        "account_response",
+        llm_call,
+        RunOptions(max_attempts=3),
+        system=f"""You are an account security specialist.
+        Prioritize account security and verification, provide clear recovery steps, include security tips.""",
+        prompt=question.text,
+    )
+    return result.content
+
+
+# Product Support Agent
+product_agent_svc = restate.Service("ProductAgent")
+
+
+@product_agent_svc.handler("run")
+async def get_product_support(ctx: restate.Context, question: str) -> str | None:
+    result = await ctx.run_typed(
+        "product_response",
+        llm_call,
+        RunOptions(max_attempts=3),
+        system=f"""You are a product specialist.
+        Focus on feature education and best practices, include specific examples, suggest related features.""",
+        prompt=question.text,
+    )
+    return result.content
