@@ -1,18 +1,3 @@
-import * as restate from "@restatedev/restate-sdk";
-import { Context } from "@restatedev/restate-sdk";
-import llmCall from "./utils/llm";
-import { printEvaluation, zodPrompt } from "./utils/utils";
-const maxIterations = 5;
-
-const examplePrompt =
-  "Write a Python function that finds the longest palindromic substring in a string. " +
-  "It should be efficient and handle edge cases.";
-
-const evaluationPrompt =
-  `Evaluate this solution on correctness, efficiency, and readability. Reply with: ` +
-  `'PASS: [brief reason]' if the solution is correct and very well-implemented ` +
-  `'IMPROVE: [specific issues to fix]' if it needs work. `;
-
 /**
  * Evaluator-Optimizer Pattern
  *
@@ -21,6 +6,21 @@ const evaluationPrompt =
  *
  * Generate � Evaluate � [Pass/Improve] � Final Result
  */
+import * as restate from "@restatedev/restate-sdk";
+import { Context } from "@restatedev/restate-sdk";
+import llmCall from "./utils/llm";
+import { printEvaluation, zodPrompt } from "./utils/utils";
+
+const maxIterations = 5;
+const examplePrompt =
+  "Write a Python function that finds the longest palindromic substring in a string. " +
+  "It should be efficient and handle edge cases.";
+const evaluationPrompt =
+  `Evaluate this solution on correctness, efficiency, and readability. Reply with: ` +
+  `'PASS: [brief reason]' if the solution is correct and very well-implemented ` +
+  `'IMPROVE: [specific issues to fix]' if it needs work. `;
+
+
 async function improveUntilGood(
   ctx: Context,
   { message }: { message: string },

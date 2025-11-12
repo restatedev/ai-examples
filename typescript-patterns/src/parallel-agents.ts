@@ -1,3 +1,13 @@
+/**
+ * Parallel Agent Processing
+ *
+ * Process multiple inputs simultaneously with specialized agents.
+ * If any task fails, Restate retries only the failed tasks while preserving completed results.
+ *
+ * Task A ↘
+ * Task B → [Wait on Results] � Results A, B, C
+ * Task C ↗
+ */
 import * as restate from "@restatedev/restate-sdk";
 import { Context, RestatePromise } from "@restatedev/restate-sdk";
 import llmCall from "./utils/llm";
@@ -9,16 +19,7 @@ const examplePrompt =
   "The team worked incredibly hard to deliver these outcomes despite supply chain challenges. " +
   "Our market share increased to 23%, and we're well-positioned for continued growth in Q4.";
 
-/**
- * Parallel Agent Processing
- *
- * Process multiple inputs simultaneously with specialized agents.
- * If any task fails, Restate retries only the failed tasks while preserving completed results.
- *
- * Task A ↘
- * Task B → [Wait on Results] � Results A, B, C
- * Task C ↗
- */
+
 async function analyzeText(
   ctx: Context,
   { message }: { message: string },

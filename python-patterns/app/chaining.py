@@ -61,4 +61,4 @@ async def process_report(ctx: restate.Context, report: Report) -> str | None:
         ),
     )
 
-    return table
+    return table.content

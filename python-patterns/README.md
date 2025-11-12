@@ -52,7 +52,7 @@ The state can be queried from the outside. Stateful sessions are long-lived and 
 
 Build fault-tolerant processing pipelines where each step transforms the previous step's output.
 
-In the UI (`http://localhost:9070`), click on the `run` handler of the `CallChainingService` to open the playground and send a default request:
+In the UI (`http://localhost:9070`), click on the `process_report` handler of the `CallChainingService` to open the playground and send a default request:
 <img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/chaining_playground.png" alt="Chaining LLM calls - UI"/>
 
 You see in the Invocations Tab of the UI how the LLM is called multiple times, and how the results are refined step by step:

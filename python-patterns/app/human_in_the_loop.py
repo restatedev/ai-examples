@@ -41,6 +41,8 @@ async def moderate(ctx: restate.Context, content: Content) -> str | None:
         )
 
         # Suspend until moderator resolves the approval
+        # Check the service logs to see how to resolve it over HTTP, e.g.:
+        # curl http://localhost:8080/restate/awakeables/sign_.../resolve --json '"approved"'
         return await approval_promise
 
     return result.content

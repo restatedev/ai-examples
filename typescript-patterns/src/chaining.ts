@@ -1,3 +1,11 @@
+/**
+ * LLM Prompt Chaining
+ *
+ * Build fault-tolerant processing pipelines where each step transforms the previous step's output.
+ * If any step fails, Restate automatically resumes from that point.
+ *
+ * Input → Analysis → Extraction → Summary → Result
+ */
 import * as restate from "@restatedev/restate-sdk";
 import { Context } from "@restatedev/restate-sdk";
 import llmCall from "./utils/llm";
@@ -10,14 +18,7 @@ const examplePrompt = `Q3 Performance Summary:
     Market share is now at 23% in our primary market.
     Customer churn decreased to 5% from 8%.`;
 
-/**
- * LLM Prompt Chaining
- *
- * Build fault-tolerant processing pipelines where each step transforms the previous step's output.
- * If any step fails, Restate automatically resumes from that point.
- *
- * Input → Analysis → Extraction → Summary → Result
- */
+
 async function processReport(ctx: Context, report: { message: string }) {
   // Step 1: Extract metrics
   const extract = await ctx.run(
