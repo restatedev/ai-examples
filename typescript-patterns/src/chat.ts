@@ -12,7 +12,6 @@ import { ModelMessage } from "@ai-sdk/provider-utils";
 
 const examplePrompt = "Write a poem about Durable Execution";
 
-
 async function onMessage(ctx: ObjectContext, { message }: { message: string }) {
   const messages = (await ctx.get<Array<ModelMessage>>("memory")) ?? [];
   messages.push({ role: "user", content: message });

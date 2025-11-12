@@ -19,7 +19,6 @@ const examplePrompt =
   "The team worked incredibly hard to deliver these outcomes despite supply chain challenges. " +
   "Our market share increased to 23%, and we're well-positioned for continued growth in Q4.";
 
-
 async function analyzeText(
   ctx: Context,
   { message }: { message: string },

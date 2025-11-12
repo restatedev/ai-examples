@@ -1,3 +1,11 @@
+/**
+ * Agent Routing
+ *
+ * Route customer questions to specialized AI agents based on their content.
+ * Each routing decision is durable and can be retried if it fails.
+ *
+ * Flow: Customer Question → Classifier → Specialized Agent → Response
+ */
 import * as restate from "@restatedev/restate-sdk";
 import { openai } from "@ai-sdk/openai";
 import { generateText, tool } from "ai";

@@ -20,7 +20,6 @@ const evaluationPrompt =
   `'PASS: [brief reason]' if the solution is correct and very well-implemented ` +
   `'IMPROVE: [specific issues to fix]' if it needs work. `;
 
-
 async function improveUntilGood(
   ctx: Context,
   { message }: { message: string },

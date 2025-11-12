@@ -18,7 +18,6 @@ const examplePrompt = `Q3 Performance Summary:
     Market share is now at 23% in our primary market.
     Customer churn decreased to 5% from 8%.`;
 
-
 async function processReport(ctx: Context, report: { message: string }) {
   // Step 1: Extract metrics
   const extract = await ctx.run(
