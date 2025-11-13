@@ -37,7 +37,7 @@ const SPECIALISTS = {
 type Specialist = keyof typeof SPECIALISTS;
 
 // <start_here>
-async function answerQuestion(ctx: Context, question: { message: string }) {
+async function answerQuestion(ctx: Context, { message }: { message: string }) {
   const specialistTools: Record<string, any> = {};
   Object.entries(SPECIALISTS).forEach(([name, { description }]) => {
     specialistTools[name] = tool({
@@ -52,7 +52,7 @@ async function answerQuestion(ctx: Context, question: { message: string }) {
     async () =>
       generateText({
         model: openai("gpt-4o"),
-        prompt: question.message,
+        prompt: message,
         tools: specialistTools,
       }),
     { maxRetryAttempts: 3 },
@@ -73,7 +73,7 @@ async function answerQuestion(ctx: Context, question: { message: string }) {
       generateText({
         model: openai("gpt-4o"),
         system: SPECIALISTS[specialist].system,
-        prompt: question.message,
+        prompt: message,
       }),
     { maxRetryAttempts: 3 },
   );

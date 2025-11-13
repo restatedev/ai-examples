@@ -12,93 +12,68 @@ import { generateText, ModelMessage, tool } from "ai";
 import { z } from "zod";
 import {
   fetchServiceStatus,
-  createSupportTicket,
+  createTicket,
   queryUserDb,
   SupportTicket,
   zodPrompt,
   zodQuestion,
+  toolResult,
 } from "./utils/utils";
 import { Context } from "@restatedev/restate-sdk";
+import llmCall from "./utils/llm";
 
 const examplePrompt = "My API calls are failing, what's wrong with my account?";
 
 // <start_here>
-async function route(
-  ctx: Context,
-  { message, userId }: { message: string; userId: string },
-) {
-  const messages: ModelMessage[] = [{ role: "user", content: message }];
+// Define your tools as your AI SDK requires (here Vercel AI SDK)
+const tools = {
+  fetchServiceStatus: tool({
+    description: "Check service status and outages",
+    inputSchema: z.void(),
+  }),
+  queryUserDatabase: tool({
+    description: "Get user account and billing info",
+    inputSchema: z.void(),
+  }),
+  createSupportTicket: tool({
+    description: "Create support tickets",
+    inputSchema: z.object({
+      user_id: z.string().describe("User ID creating the ticket"),
+      description: z.string().describe("Detailed description of the issue"),
+    }),
+  }),
+};
+
+async function route(ctx: Context, req: { message: string; userId: string }) {
+  const messages: ModelMessage[] = [{ role: "user", content: req.message }];
 
   while (true) {
     const result = await ctx.run(
       "LLM call",
-      async () =>
-        generateText({
-          model: openai("gpt-4o"),
-          messages,
-          tools: {
-            fetchServiceStatus: tool({
-              description: "Check service status and outages",
-              inputSchema: z.void(),
-            }),
-            queryUserDatabase: tool({
-              description: "Get user account and billing info",
-              inputSchema: z.void(),
-            }),
-            createSupportTicket: tool({
-              description: "Create support tickets",
-              inputSchema: z.object({
-                user_id: z.string().describe("User ID creating the ticket"),
-                description: z
-                  .string()
-                  .describe("Detailed description of the issue"),
-              }),
-            }),
-          },
-        }),
+      async () => llmCall(messages, tools),
       { maxRetryAttempts: 3 },
     );
+    messages.push(...result.messages);
 
-    messages.push(...result.response.messages);
+    if (result.finishReason !== "tool-calls") return result.text;
 
-    if (result.finishReason === "tool-calls") {
-      for (const toolCall of result.toolCalls) {
-        let toolOutput: string;
-
-        switch (toolCall.toolName) {
-          case "queryUserDatabase":
-            toolOutput = await ctx.run("query-user-db", () =>
-              queryUserDb(userId),
-            );
-            break;
-          case "fetchServiceStatus":
-            toolOutput = await ctx.run("fetch-service-status", () =>
-              fetchServiceStatus(),
-            );
-            break;
-          case "createSupportTicket":
-            toolOutput = await ctx.run("create-support-ticket", () =>
-              createSupportTicket(toolCall.input as SupportTicket),
-            );
-            break;
-          default:
-            toolOutput = `Tool not found: ${toolCall.toolName}`;
-        }
-
-        messages.push({
-          role: "tool",
-          content: [
-            {
-              toolName: toolCall.toolName,
-              toolCallId: toolCall.toolCallId,
-              type: "tool-result",
-              output: { type: "json", value: toolOutput },
-            },
-          ],
-        });
+    for (const { toolName, toolCallId, input } of result.toolCalls) {
+      let output: string;
+      switch (toolName) {
+        case "queryUserDatabase":
+          output = await ctx.run(toolName, () => queryUserDb(req.userId));
+          break;
+        case "fetchServiceStatus":
+          output = await ctx.run(toolName, () => fetchServiceStatus());
+          break;
+        case "createSupportTicket":
+          const ticket = input as SupportTicket;
+          output = await ctx.run(toolName, () => createTicket(ticket));
+          break;
+        default:
+          output = `Tool not found: ${toolName}`;
       }
-    } else {
-      return result.text;
+      messages.push(toolResult(toolCallId, toolName, output));
     }
   }
 }

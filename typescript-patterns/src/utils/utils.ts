@@ -3,6 +3,7 @@ import { serde } from "@restatedev/restate-sdk-zod";
 import * as restate from "@restatedev/restate-sdk";
 import llmCall from "./llm";
 import { TerminalError } from "@restatedev/restate-sdk";
+import { ModelMessage } from "ai";
 
 export function zodQuestion(examplePrompt: string) {
   return serde.zod(
@@ -19,6 +20,20 @@ export function zodPrompt(examplePrompt: string) {
       message: z.string().default(examplePrompt),
     }),
   );
+}
+
+export function toolResult(toolCallId: string, toolName: string, output: any) {
+  return {
+    role: "tool",
+    content: [
+      {
+        toolName,
+        toolCallId,
+        type: "tool-result",
+        output: { type: "json", value: output },
+      },
+    ],
+  } as ModelMessage;
 }
 
 export function printEvaluation(
@@ -133,7 +148,7 @@ export function fetchServiceStatus(): string {
   });
 }
 
-export function createSupportTicket(ticket: SupportTicket): string {
+export function createTicket(ticket: SupportTicket): string {
   const ticketId = crypto.randomUUID();
   return JSON.stringify({
     ticket_id: ticketId,
@@ -198,15 +213,17 @@ export function queryUserDb(userId: string): string {
 export const billingAgent = restate.service({
   name: "BillingAgent",
   handlers: {
-    run: async (ctx: restate.Context, question: string): Promise<string> =>
-      ctx.run(
+    run: async (ctx: restate.Context, question: string): Promise<string> => {
+      const { text } = await ctx.run(
         "account_response",
         async () =>
           llmCall(`You are a billing support specialist.
             Acknowledge the billing issue, explain charges clearly, provide next steps with timeline.
             ${question}`),
         { maxRetryAttempts: 3 },
-      ),
+      );
+      return text;
+    },
   },
 });
 
@@ -214,15 +231,17 @@ export const billingAgent = restate.service({
 export const accountAgent = restate.service({
   name: "AccountAgent",
   handlers: {
-    run: async (ctx: restate.Context, question: string): Promise<string> =>
-      ctx.run(
+    run: async (ctx: restate.Context, question: string): Promise<string> => {
+      const { text } = await ctx.run(
         "account_response",
         async () =>
           llmCall(`You are an account security specialist.
             Prioritize account security and verification, provide clear recovery steps, include security tips.
             ${question}`),
         { maxRetryAttempts: 3 },
-      ),
+      );
+      return text;
+    },
   },
 });
 
@@ -230,14 +249,16 @@ export const accountAgent = restate.service({
 export const productAgent = restate.service({
   name: "ProductAgent",
   handlers: {
-    run: async (ctx: restate.Context, question: string): Promise<string> =>
-      ctx.run(
+    run: async (ctx: restate.Context, question: string): Promise<string> => {
+      const { text } = await ctx.run(
         "product_response",
         async () =>
           llmCall(`You are a product specialist.
             Focus on feature education and best practices, include specific examples, suggest related features.
             ${question}`),
         { maxRetryAttempts: 3 },
-      ),
+      );
+      return text;
+    },
   },
 });

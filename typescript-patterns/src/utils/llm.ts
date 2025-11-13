@@ -4,9 +4,17 @@ import { ModelMessage } from "@ai-sdk/provider-utils";
 
 const model = openai("gpt-4");
 
-async function llmCall(prompt: string | Array<ModelMessage>): Promise<string> {
-  const response = await generateText({ model, prompt });
-  return response.text;
+async function llmCall(
+  prompt: string | Array<ModelMessage>,
+  tools?: Record<string, any>,
+) {
+  const response = await generateText({ model, prompt, tools });
+  return {
+    text: response.text,
+    toolCalls: response.toolCalls,
+    finishReason: response.finishReason,
+    messages: response.response.messages,
+  };
 }
 
 export default llmCall;

@@ -25,7 +25,7 @@ const SPECIALISTS = {
 type Specialist = keyof typeof SPECIALISTS;
 
 // <start_here>
-async function answerQuestion(ctx: Context, question: { message: string }) {
+async function answerQuestion(ctx: Context, { message }: { message: string }) {
   // 1. First, decide if a specialist is needed
   const specialistTools: Record<string, any> = {};
   Object.entries(SPECIALISTS).forEach(([name, description]) => {
@@ -41,7 +41,7 @@ async function answerQuestion(ctx: Context, question: { message: string }) {
         model: openai("gpt-4o"),
         system:
           "You are a customer service routing system. Choose the appropriate specialist to handle this question, or respond directly if no specialist is needed.",
-        prompt: question.message,
+        prompt: message,
         tools: specialistTools,
       }),
     { maxRetryAttempts: 3 },
@@ -59,7 +59,7 @@ async function answerQuestion(ctx: Context, question: { message: string }) {
   return ctx.genericCall<string, string>({
     service: specialist,
     method: "run",
-    parameter: question.message,
+    parameter: message,
   });
 }
 // <end_here>
