@@ -5,12 +5,12 @@ import llmCall from "./llm";
 import { TerminalError } from "@restatedev/restate-sdk";
 
 export function zodQuestion(examplePrompt: string) {
-    return serde.zod(
-        z.object({
-            userId: z.string().default("user_12345"),
-            message: z.string().default(examplePrompt),
-        }),
-    );
+  return serde.zod(
+    z.object({
+      userId: z.string().default("user_12345"),
+      message: z.string().default(examplePrompt),
+    }),
+  );
 }
 
 export function zodPrompt(examplePrompt: string) {

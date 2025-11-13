@@ -20,6 +20,7 @@ const evaluationPrompt =
   `'PASS: [brief reason]' if the solution is correct and very well-implemented ` +
   `'IMPROVE: [specific issues to fix]' if it needs work. `;
 
+// <start_here>
 async function improveUntilGood(
   ctx: Context,
   { message }: { message: string },
@@ -55,6 +56,7 @@ async function improveUntilGood(
 
   return `Max iterations reached. Best attempt:\n${solution}`;
 }
+// <end_here>
 
 export default restate.service({
   name: "EvaluatorOptimizer",

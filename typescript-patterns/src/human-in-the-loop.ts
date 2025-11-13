@@ -13,6 +13,7 @@ import z from "zod";
 
 const examplePrompt = "Write a poem about Durable Execution";
 
+// <start_here>
 async function moderate(ctx: Context, { message }: { message: string }) {
   const result = await ctx.run(
     "LLM call",
@@ -32,13 +33,9 @@ async function moderate(ctx: Context, { message }: { message: string }) {
     { maxRetryAttempts: 3 },
   );
 
-  if (
-    result.finishReason === "tool-calls" &&
-    result.toolCalls?.[0]?.toolName === "getHumanReview"
-  ) {
+  if (result.toolCalls?.[0]?.toolName === "getHumanReview") {
     // Create a recoverable approval promise
     const approval = ctx.awakeable<string>();
-
     await ctx.run("Notify moderator", () =>
       notifyModerator(message, approval.id),
     );
@@ -51,6 +48,7 @@ async function moderate(ctx: Context, { message }: { message: string }) {
 
   return result;
 }
+// <end_here>
 
 export default restate.service({
   name: "HumanInTheLoopService",

@@ -19,6 +19,7 @@ const examplePrompt =
   "The team worked incredibly hard to deliver these outcomes despite supply chain challenges. " +
   "Our market share increased to 23%, and we're well-positioned for continued growth in Q4.";
 
+// <start_here>
 async function analyzeText(
   ctx: Context,
   { message }: { message: string },
@@ -46,6 +47,7 @@ async function analyzeText(
   // Wait for all tasks to complete and return the results
   return RestatePromise.all(tasks);
 }
+// <end_here>
 
 export default restate.service({
   name: "ParallelAgentsService",

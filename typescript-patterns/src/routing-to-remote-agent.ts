@@ -24,6 +24,7 @@ const SPECIALISTS = {
 
 type Specialist = keyof typeof SPECIALISTS;
 
+// <start_here>
 async function answerQuestion(ctx: Context, question: { message: string }) {
   // 1. First, decide if a specialist is needed
   const specialistTools: Record<string, any> = {};
@@ -61,6 +62,7 @@ async function answerQuestion(ctx: Context, question: { message: string }) {
     parameter: question.message,
   });
 }
+// <end_here>
 
 export default restate.service({
   name: "RemoteAgentRouter",

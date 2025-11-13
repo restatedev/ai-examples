@@ -13,6 +13,7 @@ import { zodPrompt, fetchWeather } from "./utils/utils";
 const examplePrompt =
   "What is the weather in New York, San Francisco, and Boston?";
 
+// <start_here>
 async function run(ctx: Context, prompt: { message: string }): Promise<string> {
   const messages: ModelMessage[] = [{ role: "user", content: prompt.message }];
 
@@ -76,6 +77,7 @@ async function run(ctx: Context, prompt: { message: string }): Promise<string> {
     }
   }
 }
+// <end_here>
 
 export default restate.service({
   name: "ParallelToolAgent",

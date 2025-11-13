@@ -36,6 +36,7 @@ const SPECIALISTS = {
 
 type Specialist = keyof typeof SPECIALISTS;
 
+// <start_here>
 async function answerQuestion(ctx: Context, question: { message: string }) {
   const specialistTools: Record<string, any> = {};
   Object.entries(SPECIALISTS).forEach(([name, { description }]) => {
@@ -79,6 +80,7 @@ async function answerQuestion(ctx: Context, question: { message: string }) {
 
   return answer.text;
 }
+// <end_here>
 
 export default restate.service({
   name: "AgentRouter",

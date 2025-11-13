@@ -12,13 +12,12 @@ import { ModelMessage } from "@ai-sdk/provider-utils";
 
 const examplePrompt = "Write a poem about Durable Execution";
 
+// <start_here>
 async function onMessage(ctx: ObjectContext, { message }: { message: string }) {
   const messages = (await ctx.get<Array<ModelMessage>>("memory")) ?? [];
   messages.push({ role: "user", content: message });
 
-  const result = await ctx.run("LLM call", async () => llmCall(messages), {
-    maxRetryAttempts: 3,
-  });
+  const result = await ctx.run("LLM call", async () => llmCall(messages));
 
   messages.push({ role: "assistant", content: result });
   ctx.set("memory", messages);
@@ -35,3 +34,4 @@ export default restate.object({
     ),
   },
 });
+// <end_here>

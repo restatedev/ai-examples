@@ -15,7 +15,7 @@ from .util.litellm_call import llm_call
 # Example input text to analyze
 # Ask as feedback to make it funnier, or more technical, etc.
 class ChatMessage(BaseModel):
-    text: str = "Write a poem about Durable Execution"
+    message: str = "Write a poem about Durable Execution"
 
 
 chat = restate.VirtualObject("Chat")
@@ -27,7 +27,7 @@ async def on_message(ctx: restate.ObjectContext, message: ChatMessage) -> str | 
 
     # Retrieve conversation memory from Restate
     memory = await ctx.get("memory", type_hint=list[dict]) or []
-    memory.append({"role": "user", "content": message.text})
+    memory.append({"role": "user", "content": message.message})
 
     result = await ctx.run_typed(
         "LLM call",

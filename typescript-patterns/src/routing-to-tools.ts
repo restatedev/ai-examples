@@ -11,16 +11,22 @@ import { openai } from "@ai-sdk/openai";
 import { generateText, ModelMessage, tool } from "ai";
 import { z } from "zod";
 import {
-    fetchServiceStatus,
-    createSupportTicket,
-    queryUserDb,
-    SupportTicket, zodPrompt, zodQuestion,
+  fetchServiceStatus,
+  createSupportTicket,
+  queryUserDb,
+  SupportTicket,
+  zodPrompt,
+  zodQuestion,
 } from "./utils/utils";
 import { Context } from "@restatedev/restate-sdk";
 
-const examplePrompt = "My API calls are failing, what's wrong with my account?"
+const examplePrompt = "My API calls are failing, what's wrong with my account?";
 
-async function route(ctx: Context, { message, userId }: { message: string, userId: string }) {
+// <start_here>
+async function route(
+  ctx: Context,
+  { message, userId }: { message: string; userId: string },
+) {
   const messages: ModelMessage[] = [{ role: "user", content: message }];
 
   while (true) {
@@ -96,13 +102,14 @@ async function route(ctx: Context, { message, userId }: { message: string, userI
     }
   }
 }
+// <end_here>
 
 export default restate.service({
   name: "ToolRouter",
   handlers: {
-      route: restate.createServiceHandler(
-          { input: zodQuestion(examplePrompt) },
-          route,
-      ),
+    route: restate.createServiceHandler(
+      { input: zodQuestion(examplePrompt) },
+      route,
+    ),
   },
 });
