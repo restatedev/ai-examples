@@ -16,9 +16,6 @@ from restate import RunOptions
 from .util.litellm_call import llm_call
 
 
-parallelization_svc = restate.Service("ParallelAgentsService")
-
-
 class Text(BaseModel):
     content: str = (
         "Our Q3 results exceeded all expectations! Customer satisfaction reached 95%, revenue grew "
@@ -26,6 +23,9 @@ class Text(BaseModel):
         "The team worked incredibly hard to deliver these outcomes despite supply chain challenges. "
         "Our market share increased to 23%, and we're well-positioned for continued growth in Q4."
     )
+
+
+parallelization_svc = restate.Service("ParallelAgentsService")
 
 
 @parallelization_svc.handler()

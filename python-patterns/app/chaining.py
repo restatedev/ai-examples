@@ -14,8 +14,6 @@ from restate import RunOptions
 from .util.litellm_call import llm_call
 
 
-call_chaining_svc = restate.Service("CallChainingService")
-
 example_prompt = """Q3 Performance Summary:
 Our customer satisfaction score rose to 92 points this quarter.
 Revenue grew by 45% compared to last year.
@@ -25,6 +23,9 @@ Customer churn decreased to 5% from 8%."""
 
 class Report(BaseModel):
     text: str = example_prompt
+
+
+call_chaining_svc = restate.Service("CallChainingService")
 
 
 @call_chaining_svc.handler()

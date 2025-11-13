@@ -25,7 +25,12 @@ async def moderate(ctx: restate.Context, content: Content) -> str | None:
         RunOptions(max_attempts=3),
         system="You are a content moderation agent. Decide if the content violates policy.",
         prompt=content.message,
-        tools=[tool("get_human_review", "Request human review if policy violation is uncertain.")],
+        tools=[
+            tool(
+                "get_human_review",
+                "Request human review if policy violation is uncertain.",
+            )
+        ],
     )
 
     # Handle human review request

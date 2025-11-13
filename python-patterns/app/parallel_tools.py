@@ -11,11 +11,12 @@ from restate import Context, RunOptions
 from app.util.litellm_call import llm_call
 from app.util.util import get_weather, WeatherRequest, tool
 
-parallel_tools_agent = restate.Service("ParallelToolAgent")
-
 
 class WeatherPrompt(BaseModel):
     message: str = "What is the weather in New York,  San Francisco, and Boston?"
+
+
+parallel_tools_agent = restate.Service("ParallelToolAgent")
 
 
 @parallel_tools_agent.handler()

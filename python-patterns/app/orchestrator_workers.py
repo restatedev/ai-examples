@@ -18,9 +18,6 @@ from .util.litellm_call import llm_call
 import litellm
 
 
-orchestrator_svc = restate.Service("Orchestrator")
-
-
 example_prompt = (
     "Analyze the following text for sentiment, key points, and provide a summary:"
     "'Our Q3 results exceeded all expectations! Customer satisfaction reached 95%, "
@@ -41,6 +38,9 @@ class Task(BaseModel):
 
 class TaskList(BaseModel):
     tasks: list[Task]
+
+
+orchestrator_svc = restate.Service("Orchestrator")
 
 
 @orchestrator_svc.handler()
