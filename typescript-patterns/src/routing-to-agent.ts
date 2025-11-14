@@ -18,15 +18,15 @@ const examplePrompt =
 
 // <start_here>
 const tools = {
-  billing: tool({
+  billingAgent: tool({
     description: "Expert in payments, charges, and refunds",
     inputSchema: z.object({}),
   }),
-  account: tool({
+  accountAgent: tool({
     description: "Expert in login issues and security",
     inputSchema: z.object({}),
   }),
-  product: tool({
+  productAgent: tool({
     description: "Expert in features and how-to guides",
     inputSchema: z.object({}),
   }),
@@ -34,18 +34,18 @@ const tools = {
 type Specialist = keyof typeof tools;
 
 const PROMPTS = {
-  billing:
-    "You are a billing supportagent specializing in payments, charges, and refunds.",
-  account:
+  billingAgent:
+    "You are a billing support agent specializing in payments, charges, and refunds.",
+  accountAgent:
     "You are an account support agent specializing in login issues and security.",
-  product:
+  productAgent:
     "You are a product support agent specializing in features and how-to guides.",
 };
 
-async function answerQuestion(ctx: Context, { message }: { message: string }) {
+async function answer(ctx: Context, { message }: { message: string }) {
   // 1. First, decide if a specialist is needed
   const routingDecision = await ctx.run(
-    "pick_specialist",
+    "Pick specialist",
     async () => llmCall(message, tools),
     { maxRetryAttempts: 3 },
   );
@@ -60,7 +60,7 @@ async function answerQuestion(ctx: Context, { message }: { message: string }) {
 
   // 4. Ask the specialist to answer
   const { text } = await ctx.run(
-    `ask_${specialist}`,
+    `Ask ${specialist}`,
     async () =>
       llmCall([
         { role: "user", content: message },
@@ -76,9 +76,9 @@ async function answerQuestion(ctx: Context, { message }: { message: string }) {
 export default restate.service({
   name: "AgentRouter",
   handlers: {
-    answerQuestion: restate.createServiceHandler(
+    answer: restate.createServiceHandler(
       { input: zodPrompt(examplePrompt) },
-      answerQuestion,
+      answer,
     ),
   },
 });

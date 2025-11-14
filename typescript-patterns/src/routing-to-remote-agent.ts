@@ -33,7 +33,7 @@ const tools = {
 type Specialist = keyof typeof tools;
 
 // <start_here>
-async function answerQuestion(ctx: Context, { message }: { message: string }) {
+async function answer(ctx: Context, { message }: { message: string }) {
   // 1. First, decide if a specialist is needed
   const messages: ModelMessage[] = [
     {
@@ -69,9 +69,9 @@ async function answerQuestion(ctx: Context, { message }: { message: string }) {
 export default restate.service({
   name: "RemoteAgentRouter",
   handlers: {
-    answerQuestion: restate.createServiceHandler(
+    answer: restate.createServiceHandler(
       { input: zodPrompt(examplePrompt) },
-      answerQuestion,
+      answer,
     ),
   },
 });

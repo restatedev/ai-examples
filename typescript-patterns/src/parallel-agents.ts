@@ -20,7 +20,7 @@ const examplePrompt =
   "Our market share increased to 23%, and we're well-positioned for continued growth in Q4.";
 
 // <start_here>
-async function analyzeText(
+async function analyze(
   ctx: Context,
   { message }: { message: string },
 ): Promise<string[]> {
@@ -53,9 +53,9 @@ async function analyzeText(
 export default restate.service({
   name: "ParallelAgentsService",
   handlers: {
-    analyzeText: restate.createServiceHandler(
+    analyze: restate.createServiceHandler(
       { input: zodPrompt(examplePrompt) },
-      analyzeText,
+      analyze,
     ),
   },
 });

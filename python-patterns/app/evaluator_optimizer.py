@@ -33,7 +33,7 @@ evaluator_optimizer = restate.Service("EvaluatorOptimizer")
 
 
 @evaluator_optimizer.handler()
-async def improve_until_good(ctx: restate.Context, task: Task) -> str | None:
+async def run(ctx: restate.Context, task: Task) -> str | None:
     """Iteratively improve a solution until it meets quality standards."""
 
     solution: str | None = None

@@ -13,7 +13,7 @@ import { ModelMessage } from "@ai-sdk/provider-utils";
 const examplePrompt = "Write a poem about Durable Execution";
 
 // <start_here>
-async function onMessage(ctx: ObjectContext, { message }: { message: string }) {
+async function message(ctx: ObjectContext, { message }: { message: string }) {
   const messages = (await ctx.get<Array<ModelMessage>>("memory")) ?? [];
   messages.push({ role: "user", content: message });
 
@@ -30,7 +30,7 @@ export default restate.object({
   handlers: {
     message: restate.createObjectHandler(
       { input: zodPrompt(examplePrompt) },
-      onMessage,
+      message,
     ),
   },
 });

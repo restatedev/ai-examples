@@ -19,7 +19,7 @@ const examplePrompt = `Q3 Performance Summary:
     Customer churn decreased to 5% from 8%.`;
 
 // <start_here>
-async function processReport(ctx: Context, report: { message: string }) {
+async function process(ctx: Context, report: { message: string }) {
   // Step 1: Extract metrics
   const extract = await ctx.run(
     "Extract metrics",
@@ -57,9 +57,9 @@ async function processReport(ctx: Context, report: { message: string }) {
 export default restate.service({
   name: "CallChainingService",
   handlers: {
-    run: restate.createServiceHandler(
+      process: restate.createServiceHandler(
       { input: zodPrompt(examplePrompt) },
-      processReport,
+      process,
     ),
   },
 });

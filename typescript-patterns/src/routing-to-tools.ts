@@ -50,7 +50,7 @@ async function route(ctx: Context, req: { message: string; userId: string }) {
   const messages: ModelMessage[] = [{ role: "user", content: req.message }];
 
   while (true) {
-      // Call the LLM using your favorite AI SDK
+    // Call the LLM using your favorite AI SDK
     const result = await ctx.run(
       "LLM call",
       async () => llmCall(messages, tools),
@@ -62,8 +62,8 @@ async function route(ctx: Context, req: { message: string; userId: string }) {
 
     for (const { toolName, toolCallId, input } of result.toolCalls) {
       let output: string;
-        // Use ctx.run to ensure durable execution of tool calls
-        switch (toolName) {
+      // Use ctx.run to ensure durable execution of tool calls
+      switch (toolName) {
         case "queryUserDatabase":
           output = await ctx.run(toolName, () => queryUserDb(req.userId));
           break;

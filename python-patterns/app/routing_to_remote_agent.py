@@ -32,7 +32,7 @@ SPECIALISTS = {
 
 
 @remote_agent_router.handler()
-async def answer_question(ctx: restate.Context, question: Question) -> str:
+async def answer(ctx: restate.Context, question: Question) -> str:
     """Classify request and route to appropriate specialized agent."""
 
     # 1. First, decide if a specialist is needed

@@ -22,7 +22,7 @@ chat = restate.VirtualObject("Chat")
 
 
 @chat.handler()
-async def on_message(ctx: restate.ObjectContext, message: ChatMessage) -> str | None:
+async def message(ctx: restate.ObjectContext, message: ChatMessage) -> str | None:
     """A long-lived stateful chat session that allows for ongoing conversation."""
 
     # Retrieve conversation memory from Restate

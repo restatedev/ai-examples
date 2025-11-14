@@ -21,7 +21,7 @@ const evaluationPrompt =
   `'IMPROVE: [specific issues to fix]' if it needs work. `;
 
 // <start_here>
-async function improveUntilGood(
+async function run(
   ctx: Context,
   { message }: { message: string },
 ): Promise<string> {
@@ -69,9 +69,9 @@ async function improveUntilGood(
 export default restate.service({
   name: "EvaluatorOptimizer",
   handlers: {
-    improveUntilGood: restate.createServiceHandler(
+      run: restate.createServiceHandler(
       { input: zodPrompt(examplePrompt) },
-      improveUntilGood,
+        run,
     ),
   },
 });

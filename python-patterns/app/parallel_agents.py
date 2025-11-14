@@ -29,7 +29,7 @@ parallelization_svc = restate.Service("ParallelAgentsService")
 
 
 @parallelization_svc.handler()
-async def analyze_text(ctx: restate.Context, text: Text) -> list[str]:
+async def analyze(ctx: restate.Context, text: Text) -> list[str]:
     """Analyzes multiple aspects of the text in parallel."""
 
     # Create parallel tasks - each runs independently

@@ -29,7 +29,7 @@ call_chaining_svc = restate.Service("CallChainingService")
 
 
 @call_chaining_svc.handler()
-async def process_report(ctx: restate.Context, report: Report) -> str | None:
+async def process(ctx: restate.Context, report: Report) -> str | None:
     """Sequentially chains multiple LLM calls, each transforming the prior output."""
 
     # Step 1: Extract metrics

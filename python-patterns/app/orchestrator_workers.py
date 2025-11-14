@@ -44,7 +44,7 @@ orchestrator_svc = restate.Service("Orchestrator")
 
 
 @orchestrator_svc.handler()
-async def process_text(ctx: restate.Context, prompt: Prompt) -> str:
+async def process(ctx: restate.Context, prompt: Prompt) -> str:
     """Orchestrate text analysis breakdown and parallel execution by specialized workers."""
 
     messages = [
