@@ -21,6 +21,7 @@ def tool(name: str, description: str, parameters=None):
         tool_def["function"]["parameters"] = parameters
     return tool_def
 
+
 def tool_result(tool_id: str, tool_name: str, output: str) -> dict:
     return {
         "role": "tool",
@@ -242,10 +243,13 @@ async def get_billing_support(ctx: restate.Context, question: Question) -> str |
         prompt=question.message,
     )
     return result.content
+
+
 # <end_here>
 
 # Account Security Agent
 account_agent_svc = restate.Service("AccountAgent")
+
 
 @account_agent_svc.handler("run")
 async def get_account_support(ctx: restate.Context, question: Question) -> str | None:

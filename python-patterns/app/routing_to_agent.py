@@ -39,8 +39,8 @@ async def answer_question(ctx: restate.Context, question: Question) -> str:
     # 1. First, decide if a specialist is needed
     routing_decision = await ctx.run_typed(
         "Pick specialist",
-        llm_call,
-        RunOptions(max_attempts=3),  # Retry up to 3 times if needed
+        llm_call,  # Use your preferred LLM SDK here
+        RunOptions(max_attempts=3),
         system="You are a customer service routing system. Choose the appropriate specialist, or respond directly if no specialist is needed.",
         prompt=question.message,
         tools=[tool(name=name, description=desc) for name, desc in SPECIALISTS.items()],

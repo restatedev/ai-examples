@@ -31,7 +31,7 @@ async def on_message(ctx: restate.ObjectContext, message: ChatMessage) -> str | 
 
     result = await ctx.run_typed(
         "LLM call",
-        llm_call,
+        llm_call,  # Use your preferred LLM SDK here
         RunOptions(max_attempts=3),
         messages=memory,
     )

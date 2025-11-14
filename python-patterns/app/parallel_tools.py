@@ -28,7 +28,7 @@ async def run(ctx: Context, prompt: WeatherPrompt) -> str | None:
         # Call LLM with durable execution
         response = await ctx.run_typed(
             "llm-call",
-            llm_call,
+            llm_call,  # Use your preferred LLM SDK here
             RunOptions(max_attempts=3),
             messages=messages,
             tools=[
@@ -45,18 +45,18 @@ async def run(ctx: Context, prompt: WeatherPrompt) -> str | None:
             return response.content
 
         # Run all tool calls in parallel
-        tool_promises = {
-            tool_call.id: ctx.run_typed(
-                "Get weather",
-                get_weather,
-                req=WeatherRequest.model_validate_json(tool_call.function.arguments),
-            )
-            for tool_call in response.tool_calls
-            if tool_call.function.name == "get_weather"
-        }
+        tool_promises = {}
+        for tool_call in response.tool_calls:
+            if tool_call.function.name == "get_weather":
+                req = WeatherRequest.model_validate_json(tool_call.function.arguments)
+                tool_promises[tool_call.id] = ctx.run_typed(
+                    f"Get weather {req.city}",
+                    get_weather,
+                    req=req,
+                )
 
         #  Wait for all tools to complete and append results
         await restate.gather(*tool_promises.values())
         for tool_id, promise in tool_promises.items():
             output = await promise
-            messages.append(tool_result(tool_id, "get_weather", output))
+            messages.append(tool_result(tool_id, "get_weather", str(output)))

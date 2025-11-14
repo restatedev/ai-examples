@@ -13,6 +13,7 @@ from app.human_in_the_loop import content_moderator
 from app.chat import chat
 from app.routing_to_remote_agent import remote_agent_router
 from app.util.util import billing_agent_svc, product_agent_svc, account_agent_svc
+from app.racing_agents import racing_agent
 
 app = restate.app(
     services=[
@@ -29,6 +30,7 @@ app = restate.app(
         billing_agent_svc,
         account_agent_svc,
         product_agent_svc,
+        racing_agent
     ]
 )
 

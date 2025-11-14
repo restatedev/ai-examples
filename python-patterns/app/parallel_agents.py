@@ -36,7 +36,7 @@ async def analyze_text(ctx: restate.Context, text: Text) -> list[str]:
     tasks = [
         ctx.run_typed(
             "Analyze sentiment",
-            llm_call,
+            llm_call,  # Use your preferred LLM SDK here
             RunOptions(max_attempts=3),
             prompt=f"Analyze sentiment (positive/negative/neutral): {text}",
         ),

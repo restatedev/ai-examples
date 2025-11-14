@@ -35,8 +35,8 @@ async def process_report(ctx: restate.Context, report: Report) -> str | None:
     # Step 1: Extract metrics
     extract = await ctx.run_typed(
         "Extract metrics",
-        llm_call,
-        RunOptions(max_attempts=3),
+        llm_call,  # Use your preferred LLM SDK here
+        RunOptions(max_attempts=3),  # Avoid infinite retries
         prompt=(
             "Extract numerical values and their metrics from the text. "
             f"Format as 'Metric: Value' per line. Input: {report.text}"

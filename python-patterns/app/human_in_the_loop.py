@@ -21,7 +21,7 @@ async def moderate(ctx: restate.Context, content: Content) -> str | None:
     # Run LLM moderation
     result = await ctx.run_typed(
         "moderate",
-        llm_call,
+        llm_call,  # Use your preferred LLM SDK here
         RunOptions(max_attempts=3),
         system="You are a content moderation agent. Decide if the content violates policy.",
         prompt=content.message,

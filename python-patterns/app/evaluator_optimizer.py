@@ -43,7 +43,7 @@ async def improve_until_good(ctx: restate.Context, task: Task) -> str | None:
         # Generate solution (with context from previous attempts)
         solution_response = await ctx.run_typed(
             f"generate_v{iteration+1}",
-            llm_call,
+            llm_call,  # Use your preferred LLM SDK here
             RunOptions(max_attempts=3),
             prompt=f"Task: {task} - Previous attempts: {attempts}",
         )

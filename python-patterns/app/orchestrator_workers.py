@@ -59,7 +59,7 @@ async def process_text(ctx: restate.Context, prompt: Prompt) -> str:
     litellm.enable_json_schema_validation = True
     response = await ctx.run_typed(
         "orchestrator_analysis",
-        litellm.acompletion,
+        litellm.acompletion,  # Use your preferred LLM SDK here
         RunOptions(max_attempts=3, type_hint=ModelResponse),
         model="gpt-4o",
         messages=messages,
@@ -79,7 +79,7 @@ async def process_text(ctx: restate.Context, prompt: Prompt) -> str:
     for task in tasks:
         worker_task = ctx.run_typed(
             task.task_type,
-            llm_call,
+            llm_call,  # Use your preferred LLM SDK here
             RunOptions(max_attempts=3),
             system=f"You are a {task.task_type} specialist.",
             prompt=f"Task: {task.instruction} - Text to analyze: {prompt}",

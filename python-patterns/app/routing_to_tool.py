@@ -18,7 +18,8 @@ from .util.util import (
     fetch_service_status,
     query_user_db,
     SupportTicket,
-    tool, tool_result,
+    tool,
+    tool_result,
 )
 
 
@@ -29,6 +30,7 @@ class Question(BaseModel):
 
 tool_router = restate.Service("ToolRouter")
 
+# Define tools as required by your LLM SDK
 TOOLS = [
     tool("fetch_service_status", "Check service status and outages"),
     tool("query_user_database", "Get user account and billing info"),
@@ -48,7 +50,7 @@ async def route(ctx: restate.Context, question: Question) -> str:
     while True:
         result = await ctx.run_typed(
             "LLM call",
-            llm_call,
+            llm_call,  # Use your preferred LLM SDK here
             RunOptions(max_attempts=3, type_hint=Message),
             messages=messages,
             tools=TOOLS,
