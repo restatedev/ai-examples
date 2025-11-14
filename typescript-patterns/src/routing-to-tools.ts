@@ -11,13 +11,13 @@ import { openai } from "@ai-sdk/openai";
 import { generateText, ModelMessage, tool } from "ai";
 import { z } from "zod";
 import {
-  fetchServiceStatus,
-  createTicket,
-  queryUserDb,
-  SupportTicket,
-  zodPrompt,
-  zodQuestion,
-  toolResult,
+    fetchServiceStatus,
+    createTicket,
+    queryUserDb,
+    SupportTicket,
+    zodPrompt,
+    zodQuestion,
+    toolResult, crmService,
 } from "./utils/utils";
 import { Context } from "@restatedev/restate-sdk";
 import llmCall from "./utils/llm";
@@ -28,10 +28,6 @@ const examplePrompt = "My API calls are failing, what's wrong with my account?";
 // TOOLS
 // Define your tools as your AI SDK requires (here Vercel AI SDK)
 const tools = {
-  fetchServiceStatus: tool({
-    description: "Check service status and outages",
-    inputSchema: z.void(),
-  }),
   queryUserDatabase: tool({
     description: "Get user account and billing info",
     inputSchema: z.void(),
@@ -65,14 +61,14 @@ async function route(ctx: Context, req: { message: string; userId: string }) {
       // Use ctx.run to ensure durable execution of tool calls
       switch (toolName) {
         case "queryUserDatabase":
+          // Example of a local tool
           output = await ctx.run(toolName, () => queryUserDb(req.userId));
           break;
-        case "fetchServiceStatus":
-          output = await ctx.run(toolName, () => fetchServiceStatus());
-          break;
         case "createSupportTicket":
-          const ticket = input as SupportTicket;
-          output = await ctx.run(toolName, () => createTicket(ticket));
+          // Example of a remote tool/workflow
+          output = await ctx
+            .serviceClient(crmService)
+            .createSupportTicket(input as SupportTicket);
           break;
         default:
           output = `Tool not found: ${toolName}`;

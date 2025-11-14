@@ -14,12 +14,11 @@ from restate import RunOptions
 
 from .util.litellm_call import llm_call
 from .util.util import (
-    create_support_ticket,
-    fetch_service_status,
     query_user_db,
     SupportTicket,
     tool,
     tool_result,
+    create_ticket, create_support_ticket,
 )
 
 
@@ -28,11 +27,11 @@ class Question(BaseModel):
     message: str = "My API calls are failing, what's wrong with my account?"
 
 
+# <start_here>
 tool_router = restate.Service("ToolRouter")
 
 # Define tools as required by your LLM SDK
 TOOLS = [
-    tool("fetch_service_status", "Check service status and outages"),
     tool("query_user_database", "Get user account and billing info"),
     tool(
         "create_support_ticket",
@@ -64,17 +63,18 @@ async def route(ctx: restate.Context, question: Question) -> str:
             fn = tool_call.function
             match fn.name:
                 case "query_user_database":
+                    # Example of a local tool
                     result = await ctx.run_typed(
-                        fn.name, query_user_db, user_id=question.user_id
+                        "Query DB", query_user_db, user_id=question.user_id
                     )
-                case "fetch_service_status":
-                    result = await ctx.run_typed(fn.name, fetch_service_status)
                 case "create_support_ticket":
+                    # Example of a remote tool/workflow
                     ticket = SupportTicket.model_validate_json(fn.arguments)
-                    result = await ctx.run_typed(
-                        fn.name, create_support_ticket, ticket=ticket
-                    )
+                    result = await ctx.service_call(create_support_ticket, arg=ticket)
                 case _:
                     result = f"Tool not found: {fn.name}"
 
             messages.append(tool_result(tool_call.id, fn.name, result))
+
+
+# <end_here>

@@ -69,9 +69,6 @@ async function run(
 export default restate.service({
   name: "EvaluatorOptimizer",
   handlers: {
-      run: restate.createServiceHandler(
-      { input: zodPrompt(examplePrompt) },
-        run,
-    ),
+    run: restate.createServiceHandler({ input: zodPrompt(examplePrompt) }, run),
   },
 });

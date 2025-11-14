@@ -57,7 +57,7 @@ async function process(ctx: Context, report: { message: string }) {
 export default restate.service({
   name: "CallChainingService",
   handlers: {
-      process: restate.createServiceHandler(
+    process: restate.createServiceHandler(
       { input: zodPrompt(examplePrompt) },
       process,
     ),

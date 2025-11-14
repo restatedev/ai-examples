@@ -91,15 +91,13 @@ class SupportTicket(BaseModel):
     message: str
 
 
-async def create_support_ticket(ticket: SupportTicket) -> str:
+async def create_ticket(ticket_id: str, ticket: SupportTicket) -> str:
     # Mock ticket creation (would be real API calls to ticketing systems)
-    ticket_id = str(uuid.uuid4())
     return str(
         {
             "ticket_id": ticket_id,
             "user_id": ticket.user_id,
             "status": "open",
-            "created_at": datetime.datetime.now().isoformat(),
             "details": ticket.message,
         }
     )
@@ -279,3 +277,21 @@ async def get_product_support(ctx: restate.Context, question: Question) -> str |
         prompt=question.message,
     )
     return result.content
+
+
+# <start_remote_tool>
+crm_service = restate.Service("CRMService")
+
+
+@crm_service.handler()
+async def create_support_ticket(ctx: restate.Context, ticket: SupportTicket) -> str:
+    """Multi-step workflow to create a support ticket"""
+    ticket_id = str(ctx.uuid())
+    result = await ctx.run_typed(
+        fn.name, create_ticket, ticket_id=ticket_id, ticket=ticket
+    )
+    # ... other steps ...
+    return result
+
+
+# <end_remote_tool>

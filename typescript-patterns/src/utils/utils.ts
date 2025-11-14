@@ -2,7 +2,7 @@ import { z } from "zod";
 import { serde } from "@restatedev/restate-sdk-zod";
 import * as restate from "@restatedev/restate-sdk";
 import llmCall from "./llm";
-import { TerminalError } from "@restatedev/restate-sdk";
+import { Context, TerminalError } from "@restatedev/restate-sdk";
 import { ModelMessage } from "ai";
 
 export function zodQuestion(examplePrompt: string) {
@@ -148,13 +148,11 @@ export function fetchServiceStatus(): string {
   });
 }
 
-export function createTicket(ticket: SupportTicket): string {
-  const ticketId = crypto.randomUUID();
+export function createTicket(ticketId: string, ticket: SupportTicket): string {
   return JSON.stringify({
     ticket_id: ticketId,
     user_id: ticket.user_id,
     status: "open",
-    created_at: new Date().toISOString(),
     details: ticket.message,
   });
 }
@@ -214,7 +212,7 @@ export function queryUserDb(userId: string): string {
 export const billingAgent = restate.service({
   name: "BillingAgent",
   handlers: {
-    run: async (ctx: restate.Context, question: string): Promise<string> => {
+    run: async (ctx: Context, question: string): Promise<string> => {
       const { text } = await ctx.run(
         "account_response",
         async () =>
@@ -233,7 +231,7 @@ export const billingAgent = restate.service({
 export const accountAgent = restate.service({
   name: "AccountAgent",
   handlers: {
-    run: async (ctx: restate.Context, question: string): Promise<string> => {
+    run: async (ctx: Context, question: string): Promise<string> => {
       const { text } = await ctx.run(
         "account_response",
         async () =>
@@ -251,7 +249,7 @@ export const accountAgent = restate.service({
 export const productAgent = restate.service({
   name: "ProductAgent",
   handlers: {
-    run: async (ctx: restate.Context, question: string): Promise<string> => {
+    run: async (ctx: Context, question: string): Promise<string> => {
       const { text } = await ctx.run(
         "product_response",
         async () =>
@@ -264,3 +262,19 @@ export const productAgent = restate.service({
     },
   },
 });
+
+// <start_remote_tool>
+export const crmService = restate.service({
+  name: "CRMService",
+  handlers: {
+    createSupportTicket: async (ctx: Context, ticket: SupportTicket) => {
+      const ticketId = ctx.rand.uuidv4();
+      const output = await ctx.run("Create ticket", () =>
+        createTicket(ticketId, ticket),
+      );
+      //  ... other steps ...
+      return output;
+    },
+  },
+});
+// <end_remote_tool>

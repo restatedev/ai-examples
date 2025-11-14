@@ -8,6 +8,12 @@ import parallelAgents from "./parallel-agents";
 import routingToAgent from "./routing-to-agent";
 import routingToRemoteAgent from "./routing-to-remote-agent";
 import routingToTools from "./routing-to-tools";
+import {
+  crmService,
+  accountAgent,
+  billingAgent,
+  productAgent,
+} from "./utils/utils";
 
 restate.serve({
   services: [
@@ -20,6 +26,10 @@ restate.serve({
     routingToAgent,
     routingToRemoteAgent,
     routingToTools,
+    crmService,
+    accountAgent,
+    billingAgent,
+    productAgent,
   ],
   port: 9080,
 });
