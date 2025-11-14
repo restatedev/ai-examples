@@ -210,6 +210,7 @@ export function queryUserDb(userId: string): string {
 }
 
 // Billing Support Agent
+// <start_here>
 export const billingAgent = restate.service({
   name: "BillingAgent",
   handlers: {
@@ -226,6 +227,7 @@ export const billingAgent = restate.service({
     },
   },
 });
+// <end_here>
 
 // Account Security Agent
 export const accountAgent = restate.service({

@@ -18,7 +18,7 @@ from .util.litellm_call import llm_call
 
 # Customer's question
 class Question(BaseModel):
-    text: str = "I can't log into my account. Keep getting invalid password errors."
+    message: str = "I can't log into my account. Keep getting invalid password errors."
 
 
 remote_agent_router = restate.Service("RemoteAgentRouter")
@@ -37,10 +37,10 @@ async def answer_question(ctx: restate.Context, question: Question) -> str:
 
     # 1. First, decide if a specialist is needed
     routing_decision = await ctx.run_typed(
-        "pick_specialist",
+        "Pick specialist",
         llm_call,
         RunOptions(max_attempts=3),  # Retry up to 3 times if needed
-        prompt=question.text,
+        prompt=question.message,
         tools=[tool(name=name, description=desc) for name, desc in SPECIALISTS.items()],
     )
 
@@ -55,6 +55,6 @@ async def answer_question(ctx: restate.Context, question: Question) -> str:
     response = await ctx.generic_call(
         specialist,
         "run",
-        arg=question.text.encode(),
+        arg=question.model_dump_json().encode(),
     )
     return response.decode("utf-8")

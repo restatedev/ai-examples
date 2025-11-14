@@ -18,7 +18,7 @@ from .util.util import (
     fetch_service_status,
     query_user_db,
     SupportTicket,
-    tool,
+    tool, tool_result,
 )
 
 
@@ -75,11 +75,4 @@ async def route(ctx: restate.Context, question: Question) -> str:
                 case _:
                     result = f"Tool not found: {fn.name}"
 
-            messages.append(
-                {
-                    "tool_call_id": tool_call.id,
-                    "role": "tool",
-                    "name": fn.name,
-                    "content": result,
-                }
-            )
+            messages.append(tool_result(tool_call.id, fn.name, result))

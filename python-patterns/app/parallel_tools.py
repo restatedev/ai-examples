@@ -9,7 +9,7 @@ from pydantic import BaseModel
 from restate import Context, RunOptions
 
 from app.util.litellm_call import llm_call
-from app.util.util import get_weather, WeatherRequest, tool
+from app.util.util import get_weather, WeatherRequest, tool, tool_result
 
 
 class WeatherPrompt(BaseModel):
@@ -59,10 +59,4 @@ async def run(ctx: Context, prompt: WeatherPrompt) -> str | None:
         await restate.gather(*tool_promises.values())
         for tool_id, promise in tool_promises.items():
             output = await promise
-            messages.append(
-                {
-                    "role": "tool",
-                    "tool_call_id": tool_id,
-                    "content": str(output),
-                }
-            )
+            messages.append(tool_result(tool_id, "get_weather", output))

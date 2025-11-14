@@ -18,7 +18,7 @@ from .util.util import tool
 
 # Customer's question
 class Question(BaseModel):
-    text: str = "I can't log into my account. Keep getting invalid password errors."
+    message: str = "I can't log into my account. Keep getting invalid password errors."
 
 
 # Create the routing service
@@ -26,9 +26,9 @@ router = restate.Service("AgentRouter")
 
 # Our team of AI specialists
 SPECIALISTS = {
-    "billing": "Expert in payments, charges, and refunds",
-    "account": "Expert in login issues and security",
-    "product": "Expert in features and how-to guides",
+    "BillingAgent": "Expert in payments, charges, and refunds",
+    "AccountAgent": "Expert in login issues and security",
+    "ProductAgent": "Expert in features and how-to guides",
 }
 
 
@@ -38,11 +38,11 @@ async def answer_question(ctx: restate.Context, question: Question) -> str:
 
     # 1. First, decide if a specialist is needed
     routing_decision = await ctx.run_typed(
-        "pick_specialist",
+        "Pick specialist",
         llm_call,
         RunOptions(max_attempts=3),  # Retry up to 3 times if needed
         system="You are a customer service routing system. Choose the appropriate specialist, or respond directly if no specialist is needed.",
-        prompt=question.text,
+        prompt=question.message,
         tools=[tool(name=name, description=desc) for name, desc in SPECIALISTS.items()],
     )
 
@@ -55,11 +55,11 @@ async def answer_question(ctx: restate.Context, question: Question) -> str:
 
     # 4. Ask the specialist to answer
     answer = await ctx.run_typed(
-        f"ask_{specialist}",
+        f"Ask {specialist}",
         llm_call,
         RunOptions(max_attempts=3),
         system=f"You are a {SPECIALISTS.get(specialist, 'support')} specialist.",
-        prompt=question.text,
+        prompt=question.message,
     )
 
     return answer.content

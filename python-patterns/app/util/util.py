@@ -21,6 +21,14 @@ def tool(name: str, description: str, parameters=None):
         tool_def["function"]["parameters"] = parameters
     return tool_def
 
+def tool_result(tool_id: str, tool_name: str, output: str) -> dict:
+    return {
+        "role": "tool",
+        "tool_call_id": tool_id,
+        "name": tool_name,
+        "content": output,
+    }
+
 
 def print_evaluation(iteration: int, solution: str | None, evaluation: str | None):
     print(f"Iteration {iteration + 1}:")
@@ -214,36 +222,40 @@ async def get_weather(req: WeatherRequest) -> dict:
             raise Exception(f"HTTP error occurred: {e}") from e
 
 
+class Question(BaseModel):
+    message: str
+
+
 # Billing Support Agent
+# <start_here>
 billing_agent_svc = restate.Service("BillingAgent")
 
 
 @billing_agent_svc.handler("run")
-async def get_billing_support(ctx: restate.Context, question: str) -> str | None:
+async def get_billing_support(ctx: restate.Context, question: Question) -> str | None:
     result = await ctx.run_typed(
-        "billing_response",
+        "LLM call",
         llm_call,
         RunOptions(max_attempts=3),
         system=f"""You are a billing support specialist.
         Acknowledge the billing issue, explain charges clearly, provide next steps with timeline.""",
-        prompt=question.text,
+        prompt=question.message,
     )
     return result.content
-
+# <end_here>
 
 # Account Security Agent
 account_agent_svc = restate.Service("AccountAgent")
 
-
 @account_agent_svc.handler("run")
-async def get_account_support(ctx: restate.Context, question: str) -> str | None:
+async def get_account_support(ctx: restate.Context, question: Question) -> str | None:
     result = await ctx.run_typed(
-        "account_response",
+        "LLM call",
         llm_call,
         RunOptions(max_attempts=3),
         system=f"""You are an account security specialist.
         Prioritize account security and verification, provide clear recovery steps, include security tips.""",
-        prompt=question.text,
+        prompt=question.message,
     )
     return result.content
 
@@ -253,13 +265,13 @@ product_agent_svc = restate.Service("ProductAgent")
 
 
 @product_agent_svc.handler("run")
-async def get_product_support(ctx: restate.Context, question: str) -> str | None:
+async def get_product_support(ctx: restate.Context, question: Question) -> str | None:
     result = await ctx.run_typed(
-        "product_response",
+        "LLM call",
         llm_call,
         RunOptions(max_attempts=3),
         system=f"""You are a product specialist.
         Focus on feature education and best practices, include specific examples, suggest related features.""",
-        prompt=question.text,
+        prompt=question.message,
     )
     return result.content
