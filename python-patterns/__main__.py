@@ -1,4 +1,4 @@
-import hypercorn
+import hypercorn.asyncio
 import asyncio
 import restate
 

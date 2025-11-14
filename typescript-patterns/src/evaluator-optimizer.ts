@@ -30,23 +30,31 @@ async function improveUntilGood(
 
   for (let iteration = 0; iteration < maxIterations; iteration++) {
     // Generate solution (with context from previous attempts)
-    solution = await ctx.run(
-      `generate_v${iteration + 1}`,
-      async () =>
-        llmCall(`Task: ${message} - Previous attempts: ${attempts.join(", ")}`),
-      { maxRetryAttempts: 3 },
-    );
+    solution = (
+      await ctx.run(
+        `generate_v${iteration + 1}`,
+        async () =>
+          llmCall(
+            `Task: ${message} - Previous attempts: ${attempts.join(", ")}`,
+          ),
+        { maxRetryAttempts: 3 },
+      )
+    ).text;
     if (solution) {
       attempts.push(solution);
     }
 
     // Evaluate the solution
-    const evaluation = await ctx.run(
-      `evaluate_v${iteration + 1}`,
-      async () =>
-        llmCall(`${evaluationPrompt} Task: ${message} - Solution: ${solution}`),
-      { maxRetryAttempts: 3 },
-    );
+    const evaluation = (
+      await ctx.run(
+        `evaluate_v${iteration + 1}`,
+        async () =>
+          llmCall(
+            `${evaluationPrompt} Task: ${message} - Solution: ${solution}`,
+          ),
+        { maxRetryAttempts: 3 },
+      )
+    ).text;
     printEvaluation(iteration, solution, evaluation);
 
     if (evaluation && evaluation.startsWith("PASS")) {

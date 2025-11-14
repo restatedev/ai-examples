@@ -33,20 +33,24 @@ async function processReport(ctx: Context, report: { message: string }) {
   const sortedMetrics = await ctx.run(
     "Sort metrics",
     async () =>
-      llmCall(`Sort lines in descending order by value. Input: ${extract}`),
+      llmCall(
+        `Sort lines in descending order by value. Input: ${extract.text}`,
+      ),
     { maxRetryAttempts: 3 },
   );
 
   // Step 3: Format as table
-  return ctx.run(
+  const table = await ctx.run(
     "Format as table",
     async () =>
       llmCall(
         `Format the data as a markdown table with columns 
-         'Metric Name' and 'Value'. Input: ${sortedMetrics}`,
+         'Metric Name' and 'Value'. Input: ${sortedMetrics.text}`,
       ),
     { maxRetryAttempts: 3 },
   );
+
+  return table.text;
 }
 // <end_here>
 

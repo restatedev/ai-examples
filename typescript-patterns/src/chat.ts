@@ -19,10 +19,10 @@ async function onMessage(ctx: ObjectContext, { message }: { message: string }) {
 
   const result = await ctx.run("LLM call", async () => llmCall(messages));
 
-  messages.push({ role: "assistant", content: result });
+  messages.push({ role: "assistant", content: result.text });
   ctx.set("memory", messages);
 
-  return result;
+  return result.text;
 }
 
 export default restate.object({

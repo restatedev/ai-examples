@@ -27,21 +27,19 @@ async function run(ctx: Context, { message }: { message: string }) {
 
   while (true) {
     // Call LLM with durable execution
-    const response = await ctx.run(
-      "llm-call",
-      async () => llmCall(messages, tools),
-      { maxRetryAttempts: 3 },
-    );
-    messages.push(...response.messages);
+    const resp = await ctx.run("llm-call", () => llmCall(messages, tools), {
+      maxRetryAttempts: 3,
+    });
+    messages.push(...resp.messages);
 
-    if (!response.toolCalls || response.toolCalls.length === 0) {
-      return response.text;
+    if (!resp.toolCalls || resp.toolCalls.length === 0) {
+      return resp.text;
     }
 
     // Run all tool calls in parallel
     // Create parallel promises for all weather requests
     let toolPromises = [];
-    for (let { toolCallId, toolName, input } of response.toolCalls) {
+    for (let { toolCallId, toolName, input } of resp.toolCalls) {
       const { city } = input as { city: string };
       const promise = ctx.run(`Get weather ${city}`, () => fetchWeather(city));
       toolPromises.push({ toolCallId, toolName, promise });

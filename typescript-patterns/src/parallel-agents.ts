@@ -45,7 +45,8 @@ async function analyzeText(
   ];
 
   // Wait for all tasks to complete and return the results
-  return RestatePromise.all(tasks);
+  const results = await RestatePromise.all(tasks);
+  return results.map((res) => res.text);
 }
 // <end_here>
 

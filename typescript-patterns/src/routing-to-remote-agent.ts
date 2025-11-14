@@ -7,43 +7,45 @@
  * Flow: Customer Question → Classifier → Specialized Agent → Response
  */
 import * as restate from "@restatedev/restate-sdk";
-import { openai } from "@ai-sdk/openai";
-import { generateText, tool } from "ai";
+import { ModelMessage, tool } from "ai";
 import { z } from "zod";
 import { Context } from "@restatedev/restate-sdk";
 import { zodPrompt } from "./utils/utils";
+import llmCall from "./utils/llm";
 
 const examplePrompt =
   "I can't log into my account. Keep getting invalid password errors.";
 
-const SPECIALISTS = {
-  BillingAgent: "Expert in payments, charges, and refunds",
-  AccountAgent: "Expert in login issues and security",
-  ProductAgent: "Expert in features and how-to guides",
+const tools = {
+  BillingAgent: tool({
+    description: "Expert in payments, charges, and refunds",
+    inputSchema: z.object({}),
+  }),
+  AccountAgent: tool({
+    description: "Expert in login issues and security",
+    inputSchema: z.object({}),
+  }),
+  ProductAgent: tool({
+    description: "Expert in features and how-to guides",
+    inputSchema: z.object({}),
+  }),
 } as const;
-
-type Specialist = keyof typeof SPECIALISTS;
+type Specialist = keyof typeof tools;
 
 // <start_here>
 async function answerQuestion(ctx: Context, { message }: { message: string }) {
   // 1. First, decide if a specialist is needed
-  const specialistTools: Record<string, any> = {};
-  Object.entries(SPECIALISTS).forEach(([name, description]) => {
-    specialistTools[name] = tool({
-      description,
-      inputSchema: z.object({}),
-    });
-  });
+  const messages: ModelMessage[] = [
+    {
+      role: "system",
+      content:
+        "You are a routing agent. Route the question to a specialist or respond directly if no specialist is needed.",
+    },
+    { role: "user", content: message },
+  ];
   const routingDecision = await ctx.run(
     "pick_specialist",
-    async () =>
-      generateText({
-        model: openai("gpt-4o"),
-        system:
-          "You are a customer service routing system. Choose the appropriate specialist to handle this question, or respond directly if no specialist is needed.",
-        prompt: message,
-        tools: specialistTools,
-      }),
+    async () => llmCall(messages, tools),
     { maxRetryAttempts: 3 },
   );
 

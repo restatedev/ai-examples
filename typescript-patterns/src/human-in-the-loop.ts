@@ -10,30 +10,29 @@ import { notifyModerator, zodPrompt } from "./utils/utils";
 import { generateText, tool } from "ai";
 import { openai } from "@ai-sdk/openai";
 import z from "zod";
+import llmCall from "./utils/llm";
 
 const examplePrompt = "Write a poem about Durable Execution";
 
 // <start_here>
+const tools = {
+  getHumanReview: tool({
+    description: "Request human review if policy violation is uncertain.",
+    inputSchema: z.void(),
+  }),
+};
 async function moderate(ctx: Context, { message }: { message: string }) {
-  const result = await ctx.run(
+  const { text, toolCalls } = await ctx.run(
     "LLM call",
     async () =>
-      generateText({
-        model: openai("gpt-4o"),
-        prompt: `You are a content moderation agent. Decide if the content violates policy: ${message}`,
-        tools: {
-          getHumanReview: tool({
-            name: "getHumanReview",
-            description:
-              "Request human review if policy violation is uncertain.",
-            inputSchema: z.void(),
-          }),
-        },
-      }),
+      llmCall(
+        `You are a content moderation agent. Decide if the content violates policy: ${message}`,
+        tools,
+      ),
     { maxRetryAttempts: 3 },
   );
 
-  if (result.toolCalls?.[0]?.toolName === "getHumanReview") {
+  if (toolCalls?.[0]?.toolName === "getHumanReview") {
     // Create a recoverable approval promise
     const approval = ctx.awakeable<string>();
     await ctx.run("Notify moderator", () =>
@@ -46,7 +45,7 @@ async function moderate(ctx: Context, { message }: { message: string }) {
     return await approval.promise;
   }
 
-  return result;
+  return text;
 }
 // <end_here>
 
