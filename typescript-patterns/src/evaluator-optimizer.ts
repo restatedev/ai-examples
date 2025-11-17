@@ -19,10 +19,7 @@ const evaluationPrompt =
   `'IMPROVE: [specific issues to fix]' if it needs work. `;
 
 // <start_here>
-async function run(
-  ctx: Context,
-  { message }: { message: string },
-): Promise<string> {
+async function run(ctx: Context, { message }: { message: string }) {
   let solution: string | null = null;
   const attempts: string[] = [];
 

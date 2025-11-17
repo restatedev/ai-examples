@@ -16,29 +16,29 @@ racing_agent = Service("RacingAgent")
 
 @racing_agent.handler()
 async def run(ctx: Context, query: Question):
-    claude = ctx.service_call(deep_analysis, arg=query)
-    openai = ctx.service_call(quick_response, arg=query)
+    """Run two approaches in parallel and return the fastest response."""
+    # Start both service calls concurrently
+    slow_response = ctx.service_call(think_longer, arg=query)
+    quick_response = ctx.service_call(respond_quickly, arg=query)
 
-    done, pending = await restate.wait_completed(claude, openai)
-
-    # collect the completed results
-    results = [await f for f in done]
+    done, pending = await restate.wait_completed(slow_response, quick_response)
 
     # cancel the pending calls
     for f in pending:
         call_future = typing.cast(RestateDurableCallFuture, f)
         ctx.cancel_invocation(await call_future.invocation_id())
 
-    return results[0]
+    # return the fastest result
+    return await done[0]
 
 
 # <end_here>
 
 
 @racing_agent.handler()
-async def deep_analysis(ctx: Context, req: Question) -> str:
+async def think_longer(ctx: Context, req: Question) -> str:
     output = await ctx.run_typed(
-        "deep_analysis",
+        "Deep analysis",
         llm_call,
         RunOptions(max_attempts=3),
         prompt=f"Analyze this thoroughly: {req}",
@@ -47,11 +47,11 @@ async def deep_analysis(ctx: Context, req: Question) -> str:
 
 
 @racing_agent.handler()
-async def quick_response(ctx: Context, req: Question) -> str:
+async def respond_quickly(ctx: Context, req: Question) -> str:
     output = await ctx.run_typed(
-        "quick_response",
+        "Quick response",
         llm_call,
-        RunOptions(max_attempts=1),
+        RunOptions(max_attempts=3),
         prompt=f"Quick answer: {req}",
     )
     return output.content

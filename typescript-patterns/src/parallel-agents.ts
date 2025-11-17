@@ -20,10 +20,7 @@ const examplePrompt =
   "Our market share increased to 23%, and we're well-positioned for continued growth in Q4.";
 
 // <start_here>
-async function analyze(
-  ctx: Context,
-  { message }: { message: string },
-): Promise<string[]> {
+async function analyze(ctx: Context, { message }: { message: string }) {
   // Create parallel tasks - each runs independently
   const tasks = [
     ctx.run(

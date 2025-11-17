@@ -8,6 +8,7 @@ import parallelAgents from "./parallel-agents";
 import routingToAgent from "./routing-to-agent";
 import routingToRemoteAgent from "./routing-to-remote-agent";
 import routingToTools from "./routing-to-tools";
+import racingAgent from "./racing-agents";
 import {
   crmService,
   accountAgent,
@@ -26,6 +27,7 @@ restate.serve({
     routingToAgent,
     routingToRemoteAgent,
     routingToTools,
+    racingAgent,
     crmService,
     accountAgent,
     billingAgent,
