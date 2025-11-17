@@ -18,7 +18,7 @@ const examplePrompt = "Write a poem about Durable Execution";
 const tools = {
   getHumanReview: tool({
     description: "Request human review if policy violation is uncertain.",
-    inputSchema: z.void(),
+    inputSchema: z.object({}),
   }),
 };
 async function moderate(ctx: Context, { message }: { message: string }) {

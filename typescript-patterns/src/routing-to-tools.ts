@@ -11,18 +11,19 @@ import { openai } from "@ai-sdk/openai";
 import { generateText, ModelMessage, tool } from "ai";
 import { z } from "zod";
 import {
-    fetchServiceStatus,
-    createTicket,
-    queryUserDb,
-    SupportTicket,
-    zodPrompt,
-    zodQuestion,
-    toolResult, crmService,
+  fetchServiceStatus,
+  createTicket,
+  queryUserDb,
+  SupportTicket,
+  zodPrompt,
+  zodQuestion,
+  toolResult,
+  crmService,
 } from "./utils/utils";
 import { Context } from "@restatedev/restate-sdk";
 import llmCall from "./utils/llm";
 
-const examplePrompt = "My API calls are failing, what's wrong with my account?";
+const examplePrompt = "On which plan am I?";
 
 // <start_here>
 // TOOLS
@@ -30,12 +31,11 @@ const examplePrompt = "My API calls are failing, what's wrong with my account?";
 const tools = {
   queryUserDatabase: tool({
     description: "Get user account and billing info",
-    inputSchema: z.void(),
+    inputSchema: z.object({}),
   }),
   createSupportTicket: tool({
     description: "Create support tickets",
     inputSchema: z.object({
-      user_id: z.string().describe("User ID creating the ticket"),
       description: z.string().describe("Detailed description of the issue"),
     }),
   }),
@@ -43,7 +43,16 @@ const tools = {
 
 // AGENT
 async function route(ctx: Context, req: { message: string; userId: string }) {
-  const messages: ModelMessage[] = [{ role: "user", content: req.message }];
+  const messages: ModelMessage[] = [
+    {
+      role: "system",
+      content:
+        "You are a support agent. " +
+        "Use the available tools to answer the user's question. " +
+        "If you don't know the answer, create a support ticket",
+    },
+    { role: "user", content: req.message },
+  ];
 
   while (true) {
     // Call the LLM using your favorite AI SDK
@@ -62,7 +71,7 @@ async function route(ctx: Context, req: { message: string; userId: string }) {
       switch (toolName) {
         case "queryUserDatabase":
           // Example of a local tool
-          output = await ctx.run(toolName, () => queryUserDb(req.userId));
+          output = await ctx.run("Query DB", () => queryUserDb(req.userId));
           break;
         case "createSupportTicket":
           // Example of a remote tool/workflow

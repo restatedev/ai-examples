@@ -18,13 +18,13 @@ from .util.util import (
     SupportTicket,
     tool,
     tool_result,
-    create_ticket, create_support_ticket,
+    create_support_ticket,
 )
 
 
 class Question(BaseModel):
     user_id: str = "user_12345"
-    message: str = "My API calls are failing, what's wrong with my account?"
+    message: str = "On which plan am I?"
 
 
 # <start_here>
