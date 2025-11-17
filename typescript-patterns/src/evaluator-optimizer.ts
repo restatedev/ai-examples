@@ -3,8 +3,6 @@
  *
  * Generate → Evaluate → Improve loop until quality criteria are met.
  * Restate persists each iteration, resuming from the last completed step on failure.
- *
- * Generate � Evaluate � [Pass/Improve] � Final Result
  */
 import * as restate from "@restatedev/restate-sdk";
 import { Context } from "@restatedev/restate-sdk";
@@ -34,6 +32,7 @@ async function run(
       await ctx.run(
         `generate_v${iteration + 1}`,
         async () =>
+          // Use your preferred LLM SDK here
           llmCall(
             `Task: ${message} - Previous attempts: ${attempts.join(", ")}`,
           ),

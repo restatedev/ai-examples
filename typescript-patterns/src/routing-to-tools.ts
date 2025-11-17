@@ -26,7 +26,6 @@ import llmCall from "./utils/llm";
 const examplePrompt = "On which plan am I?";
 
 // <start_here>
-// TOOLS
 // Define your tools as your AI SDK requires (here Vercel AI SDK)
 const tools = {
   queryUserDatabase: tool({
@@ -41,14 +40,12 @@ const tools = {
   }),
 };
 
-// AGENT
 async function route(ctx: Context, req: { message: string; userId: string }) {
   const messages: ModelMessage[] = [
     {
       role: "system",
       content:
-        "You are a support agent. " +
-        "Use the available tools to answer the user's question. " +
+        "You are a support agent. Use the available tools to answer the user's question. " +
         "If you don't know the answer, create a support ticket",
     },
     { role: "user", content: req.message },
@@ -58,6 +55,7 @@ async function route(ctx: Context, req: { message: string; userId: string }) {
     // Call the LLM using your favorite AI SDK
     const result = await ctx.run(
       "LLM call",
+      // Use your preferred LLM SDK here
       async () => llmCall(messages, tools),
       { maxRetryAttempts: 3 },
     );

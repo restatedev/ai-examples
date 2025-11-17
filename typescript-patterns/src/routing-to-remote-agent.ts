@@ -7,32 +7,23 @@
  * Flow: Customer Question → Classifier → Specialized Agent → Response
  */
 import * as restate from "@restatedev/restate-sdk";
-import { ModelMessage, tool } from "ai";
-import { z } from "zod";
+import { ModelMessage } from "ai";
 import { Context } from "@restatedev/restate-sdk";
-import { zodPrompt } from "./utils/utils";
+import { createTools, zodPrompt } from "./utils/utils";
 import llmCall from "./utils/llm";
 
 const examplePrompt =
   "I can't log into my account. Keep getting invalid password errors.";
 
-const tools = {
-  BillingAgent: tool({
-    description: "Expert in payments, charges, and refunds",
-    inputSchema: z.object({}),
-  }),
-  AccountAgent: tool({
-    description: "Expert in login issues and security",
-    inputSchema: z.object({}),
-  }),
-  ProductAgent: tool({
-    description: "Expert in features and how-to guides",
-    inputSchema: z.object({}),
-  }),
-} as const;
-type Specialist = keyof typeof tools;
-
 // <start_here>
+// Define your agents as tools as your AI SDK requires (here Vercel AI SDK)
+const SPECIALISTS = {
+  BillingAgent: { description: "Expert in payments, charges, and refunds" },
+  AccountAgent: { description: "Expert in login issues and security" },
+  ProductAgent: { description: "Expert in features and how-to guides" },
+} as const;
+type Specialist = keyof typeof SPECIALISTS;
+
 async function answer(ctx: Context, { message }: { message: string }) {
   // 1. First, decide if a specialist is needed
   const messages: ModelMessage[] = [
@@ -44,8 +35,9 @@ async function answer(ctx: Context, { message }: { message: string }) {
     { role: "user", content: message },
   ];
   const routingDecision = await ctx.run(
-    "pick_specialist",
-    async () => llmCall(messages, tools),
+    "Pick specialist",
+    // Use your preferred LLM SDK here - specify agents as tools
+    async () => llmCall(messages, createTools(SPECIALISTS)),
     { maxRetryAttempts: 3 },
   );
 
@@ -62,6 +54,8 @@ async function answer(ctx: Context, { message }: { message: string }) {
     service: specialist,
     method: "run",
     parameter: message,
+    inputSerde: restate.serde.json,
+    outputSerde: restate.serde.json,
   });
 }
 // <end_here>

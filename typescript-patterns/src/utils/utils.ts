@@ -3,7 +3,7 @@ import { serde } from "@restatedev/restate-sdk-zod";
 import * as restate from "@restatedev/restate-sdk";
 import llmCall from "./llm";
 import { Context, TerminalError } from "@restatedev/restate-sdk";
-import { ModelMessage } from "ai";
+import { ModelMessage, tool } from "ai";
 
 export function zodQuestion(examplePrompt: string) {
   return serde.zod(
@@ -34,6 +34,19 @@ export function toolResult(toolCallId: string, toolName: string, output: any) {
       },
     ],
   } as ModelMessage;
+}
+
+export function createTools<T extends Record<string, { description: string }>>(
+  specialists: T,
+): { [K in keyof T]: ReturnType<typeof tool> } {
+  const tools: any = {};
+  for (const key in specialists) {
+    tools[key] = tool({
+      description: specialists[key].description,
+      inputSchema: z.object({}),
+    });
+  }
+  return tools as { [K in keyof T]: ReturnType<typeof tool> };
 }
 
 export function printEvaluation(
@@ -214,7 +227,7 @@ export const billingAgent = restate.service({
   handlers: {
     run: async (ctx: Context, question: string): Promise<string> => {
       const { text } = await ctx.run(
-        "account_response",
+        "LLM call",
         async () =>
           llmCall(`You are a billing support specialist.
             Acknowledge the billing issue, explain charges clearly, provide next steps with timeline.
@@ -233,7 +246,7 @@ export const accountAgent = restate.service({
   handlers: {
     run: async (ctx: Context, question: string): Promise<string> => {
       const { text } = await ctx.run(
-        "account_response",
+        "LLM call",
         async () =>
           llmCall(`You are an account security specialist.
             Prioritize account security and verification, provide clear recovery steps, include security tips.
@@ -251,7 +264,7 @@ export const productAgent = restate.service({
   handlers: {
     run: async (ctx: Context, question: string): Promise<string> => {
       const { text } = await ctx.run(
-        "product_response",
+        "LLM call",
         async () =>
           llmCall(`You are a product specialist.
             Focus on feature education and best practices, include specific examples, suggest related features.

@@ -24,6 +24,7 @@ async function process(ctx: Context, report: { message: string }) {
   const extract = await ctx.run(
     "Extract metrics",
     async () =>
+      // Use your preferred LLM SDK here
       llmCall(`Extract numerical values and their metrics from the text. 
             Format as 'Metric: Value' per line. Input: ${report.message}`),
     { maxRetryAttempts: 3 },

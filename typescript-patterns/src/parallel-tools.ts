@@ -26,7 +26,7 @@ async function run(ctx: Context, { message }: { message: string }) {
   const messages: ModelMessage[] = [{ role: "user", content: message }];
 
   while (true) {
-    // Call LLM with durable execution
+    // Use your preferred LLM SDK here
     const resp = await ctx.run("llm-call", () => llmCall(messages, tools), {
       maxRetryAttempts: 3,
     });

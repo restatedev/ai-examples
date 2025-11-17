@@ -25,6 +25,7 @@ async function moderate(ctx: Context, { message }: { message: string }) {
   const { text, toolCalls } = await ctx.run(
     "LLM call",
     async () =>
+      // Use your preferred LLM SDK here
       llmCall(
         `You are a content moderation agent. Decide if the content violates policy: ${message}`,
         tools,

@@ -7,46 +7,40 @@
  * Flow: Customer Question → Classifier → Specialized Agent → Response
  */
 import * as restate from "@restatedev/restate-sdk";
-import { tool } from "ai";
-import { z } from "zod";
 import { Context } from "@restatedev/restate-sdk";
-import { zodPrompt } from "./utils/utils";
+import { createTools, zodPrompt } from "./utils/utils";
 import llmCall from "./utils/llm";
 
 const examplePrompt =
   "I can't log into my account. Keep getting invalid password errors.";
 
 // <start_here>
-const tools = {
-  billingAgent: tool({
+const SPECIALISTS = {
+  billingAgent: {
     description: "Expert in payments, charges, and refunds",
-    inputSchema: z.object({}),
-  }),
-  accountAgent: tool({
+    prompt:
+      "You are a billing support agent specializing in payments, charges, and refunds.",
+  },
+  accountAgent: {
     description: "Expert in login issues and security",
-    inputSchema: z.object({}),
-  }),
-  productAgent: tool({
+    prompt:
+      "You are an account support agent specializing in login issues and security.",
+  },
+  productAgent: {
     description: "Expert in features and how-to guides",
-    inputSchema: z.object({}),
-  }),
+    prompt:
+      "You are a product support agent specializing in features and how-to guides.",
+  },
 } as const;
-type Specialist = keyof typeof tools;
 
-const PROMPTS = {
-  billingAgent:
-    "You are a billing support agent specializing in payments, charges, and refunds.",
-  accountAgent:
-    "You are an account support agent specializing in login issues and security.",
-  productAgent:
-    "You are a product support agent specializing in features and how-to guides.",
-};
+type Specialist = keyof typeof SPECIALISTS;
 
 async function answer(ctx: Context, { message }: { message: string }) {
   // 1. First, decide if a specialist is needed
   const routingDecision = await ctx.run(
     "Pick specialist",
-    async () => llmCall(message, tools),
+    // Use your preferred LLM SDK here - specify agents as tools
+    async () => llmCall(message, createTools(SPECIALISTS)),
     { maxRetryAttempts: 3 },
   );
 
@@ -64,7 +58,7 @@ async function answer(ctx: Context, { message }: { message: string }) {
     async () =>
       llmCall([
         { role: "user", content: message },
-        { role: "system", content: PROMPTS[specialist] },
+        { role: "system", content: SPECIALISTS[specialist].prompt },
       ]),
     { maxRetryAttempts: 3 },
   );
