@@ -1,11 +1,12 @@
 import restate
+from google.adk import Runner
 from google.genai import types as genai_types
 from app.utils.models import WeatherResponse, WeatherPrompt
 from app.utils.utils import call_weather_api
 from google.adk.tools.tool_context import ToolContext
 from google.adk.agents.llm_agent import Agent
-from middleware.middleware import durable_model_calls
-from middleware.restate_runner import create_restate_runner
+from middleware.restate_plugin import RestatePlugin
+from middleware.restate_session_service import RestateSessionService
 from middleware.restate_tools import restate_tools
 
 APP_NAME = "agents"
@@ -28,14 +29,25 @@ async def run(ctx: restate.ObjectContext, prompt: WeatherPrompt) -> str:
     agent = Agent(
         # The durable_model_calls middleware persists each LLM response in Restate,
         #  so they can be restored on retries without re-calling the LLM
-        model=durable_model_calls(ctx, "gemini-2.5-flash"),
+        model="gemini-2.0-flash",
         name="weather_agent",
         description="Agent that provides weather updates for cities.",
         instruction="You are a helpful agent that provides weather updates. Use the get_weather tool to fetch current weather information.",
-        tools=restate_tools(get_weather),
+        tools=[get_weather],
     )
 
-    runner = await create_restate_runner(ctx, APP_NAME, user_id, agent)
+    session_service = RestateSessionService(ctx)
+    await session_service.create_session(
+        app_name=APP_NAME, user_id=user_id, session_id=ctx.key()
+    )
+
+    # Thin wrapper around the ADK runner to persist UUIDs in Restate
+    runner = Runner(
+        agent=agent,
+        app_name=APP_NAME,
+        session_service=session_service,
+        plugins=[RestatePlugin(ctx)]
+    )
     events = runner.run_async(
         user_id=user_id,
         session_id=ctx.key(),
