@@ -64,10 +64,9 @@ async def run(ctx: restate.ObjectContext, req: WeatherPrompt) -> str:
                 role="user", parts=[genai_types.Part.from_text(text=req.message)]
             ),
         )
-
-    final_response = ""
-    async for event in events:
-        if event.is_final_response() and event.content and event.content.parts:
-            final_response = event.content.parts[0].text
+        final_response = ""
+        async for event in events:
+            if event.is_final_response() and event.content and event.content.parts:
+                final_response = event.content.parts[0].text
 
     return final_response

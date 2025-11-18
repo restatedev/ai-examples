@@ -36,10 +36,13 @@ async def human_approval(tool_context: ToolContext, claim: InsuranceClaim) -> st
 
 # AGENT
 agent = Agent(
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     name="claim_approval_agent",
     description="Insurance claim evaluation agent that handles human approval workflows.",
-    instruction="You are an insurance claim evaluation agent. Use these rules: if the amount is more than 1000, ask for human approval; if the amount is less than 1000, decide by yourself. Use the human_approval tool when needed.",
+    instruction="You are an insurance claim evaluation agent. Use these rules: "
+    "if the amount is more than 1000, ask for human approval; "
+    "if the amount is less than 1000, decide by yourself. "
+    "Use the human_approval tool when needed.",
     tools=[human_approval],
 )
 
@@ -70,10 +73,9 @@ async def run(ctx: restate.ObjectContext, req: ClaimPrompt) -> str:
                 role="user", parts=[genai_types.Part.from_text(text=req.message)]
             ),
         )
-
-    final_response = ""
-    async for event in events:
-        if event.is_final_response() and event.content and event.content.parts:
-            final_response = event.content.parts[0].text
+        final_response = ""
+        async for event in events:
+            if event.is_final_response() and event.content and event.content.parts:
+                final_response = event.content.parts[0].text
 
     return final_response

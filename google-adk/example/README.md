@@ -14,14 +14,20 @@ AI agent examples using [Restate](https://restate.dev) for durable execution and
 
 ## Quick Start
 
-1. Run the application:
+Create a `.env` file with your Google API key:
+```bash
+GOOGLE_API_KEY=your-key
+GOOGLE_GENAI_USE_VERTEXAI=FALSE
+````
+
+Run the application:
 ```bash
 uv run . 
 ```
 
 The agent runs on `http://localhost:9080`
 
-2. Start Restate:
+Start Restate:
 ```bash
 docker run --name restate_dev --rm \
 -p 8080:8080 -p 9070:9070 -p 9071:9071 \
@@ -29,13 +35,13 @@ docker run --name restate_dev --rm \
 docker.restate.dev/restatedev/restate:latest
 ```
 
-3. Go to the Restate UI at `http://localhost:9070`. Click on `register deployment`. And fill in the agent url `http://host.docker.internal:9080`.
+Go to the Restate UI at `http://localhost:9070`. Click on `register deployment`. And fill in the agent url `http://host.docker.internal:9080`.
 
 ![Register service](./docs/images/register_deployment.png)
 
-4. Click on one of the handlers of the registered services and send the default request.
+Click on one of the handlers of the registered services and send the default request.
 
 ![Send request](./docs/images/request.png)
 
-5. In the invocations tab, you see the execution journal when clicking on the invocation ID:
+In the invocations tab, you see the execution journal when clicking on the invocation ID:
 ![See journal](./docs/images/journal.png)
