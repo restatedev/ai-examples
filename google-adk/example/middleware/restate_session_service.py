@@ -27,21 +27,13 @@ class RestateSessionService(BaseSessionService):
         if session_id is None:
             raise restate.TerminalError("No session ID provided.")
 
-        ongoing_session = await self.ctx.get("session", type_hint=Session)
-
-        if ongoing_session is not None:
-            ongoing_session.state["restate_context"] = self.ctx
-            return ongoing_session
-
-        session = Session(
+        session = await self.ctx.get("session", type_hint=Session) or Session(
             app_name=app_name,
             user_id=user_id,
             id=session_id,
             state=state or {},
         )
         self.ctx.set("session", session)
-
-        session.state["restate_context"] = self.ctx
         return session
 
     async def get_session(
@@ -52,13 +44,7 @@ class RestateSessionService(BaseSessionService):
         session_id: str,
         config: Optional[GetSessionConfig] = None,
     ) -> Optional[Session]:
-        session = await self.ctx.get("session", type_hint=Session)
-
-        if session is None:
-            return None
-
-        session.state["restate_context"] = self.ctx
-        return session
+        return await self.ctx.get("session", type_hint=Session)
 
     async def list_sessions(
         self, *, app_name: str, user_id: Optional[str] = None
@@ -96,8 +82,7 @@ class RestateSessionService(BaseSessionService):
         session.events.append(event)
 
         session_to_store = session.model_copy()
+        # Remove restate-specific context that got added by the plugin before storing
         session_to_store.state.pop("restate_context", None)
         self.ctx.set("session", session_to_store)
-
-        session.state["restate_context"] = self.ctx
         return event

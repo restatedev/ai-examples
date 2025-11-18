@@ -10,24 +10,31 @@ from google.adk.plugins import BasePlugin
 from google.adk.tools import BaseTool, ToolContext
 from google.genai import types
 
-
 class RestatePlugin(BasePlugin):
     """A plugin to integrate Restate with the ADK framework."""
 
     def __init__(self, ctx: restate.ObjectContext):
         self._lock = asyncio.Lock()
         self.ctx = ctx
+        self.old_uuid = uuid.uuid4
         super().__init__(name="restate_plugin")
 
     async def before_run_callback(
        self, *, invocation_context: InvocationContext
     ) -> Optional[types.Content]:
       # Patch uuid.uuid4 to use restate's uuid generator (pending better solution)
+
       def new_uuid():
-          new_id = self.ctx.run_typed("uuid", lambda: str(uuid.uuid4()))
+          new_id = self.ctx.uuid()
           return new_id
 
       uuid.uuid4 = new_uuid
+      return None
+
+    async def after_run_callback(
+       self, *, invocation_context: InvocationContext
+    ) -> Optional[types.Content]:
+      uuid.uuid4 = self.old_uuid
       return None
 
 
@@ -54,6 +61,7 @@ class RestatePlugin(BasePlugin):
       tool_context: ToolContext,
   ) -> Optional[dict]:
         # TODO how does this work for built-in tools that may not go through this path?
+        tool_context.session.state["restate_context"] = self.ctx
         async with self._lock:
             result = await tool.run_async(args=tool_args, tool_context=tool_context)
             return result

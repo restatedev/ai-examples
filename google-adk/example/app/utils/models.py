@@ -8,6 +8,7 @@ from pydantic import BaseModel, ConfigDict
 
 
 class WeatherPrompt(BaseModel):
+    user_id: str = "user-123"
     message: str = "What is the weather like in San Francisco?"
 
 

@@ -1,19 +1,19 @@
+from datetime import timedelta
+
 import restate
-
 from google.adk import Runner
-from google.adk.sessions import InMemorySessionService
 from google.genai import types as genai_types
-
 from app.utils.models import WeatherResponse, WeatherPrompt
 from app.utils.utils import call_weather_api
 from google.adk.tools.tool_context import ToolContext
 from google.adk.agents.llm_agent import Agent
 from middleware.restate_plugin import RestatePlugin
+from middleware.restate_session_service import RestateSessionService
 
 APP_NAME = "agents"
 
+agent_service = restate.VirtualObject("StatefulWeatherAgent", inactivity_timeout=timedelta(milliseconds=0))
 
-agent_service = restate.Service("WeatherAgent")
 
 async def get_weather(tool_context: ToolContext, city: str) -> WeatherResponse:
     """Get the current weather for a given city."""
@@ -25,7 +25,7 @@ async def get_weather(tool_context: ToolContext, city: str) -> WeatherResponse:
 
 @agent_service.handler()
 async def run(ctx: restate.ObjectContext, req: WeatherPrompt) -> str:
-    session_id = str(ctx.uuid())
+    session_id = ctx.key()
 
     agent = Agent(
         model="gemini-2.0-flash",
@@ -35,12 +35,12 @@ async def run(ctx: restate.ObjectContext, req: WeatherPrompt) -> str:
         tools=[get_weather],
     )
 
-    session_service = InMemorySessionService()
+    # Use Restate session service to persist session state in Restate
+    session_service = RestateSessionService(ctx)
     await session_service.create_session(
-        app_name=APP_NAME,
-        user_id=req.user_id,
-        session_id=session_id
+        app_name=APP_NAME, user_id=req.user_id, session_id=session_id
     )
+
     runner = Runner(
         agent=agent,
         app_name=APP_NAME,
@@ -50,7 +50,7 @@ async def run(ctx: restate.ObjectContext, req: WeatherPrompt) -> str:
     )
     events = runner.run_async(
         user_id=req.user_id,
-        session_id=session_id,
+        session_id=ctx.key(),
         new_message=genai_types.Content(
             role="user", parts=[genai_types.Part.from_text(text=req.message)]
         ),
