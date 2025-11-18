@@ -1,14 +1,14 @@
 import asyncio
-import uuid
 from typing import Optional, Any
 
 import restate
 from google.adk.agents import InvocationContext
 from google.adk.agents.callback_context import CallbackContext
+from google.adk.events import Event
 from google.adk.models import LlmRequest, LlmResponse, LLMRegistry
 from google.adk.plugins import BasePlugin
 from google.adk.tools import BaseTool, ToolContext
-from google.genai import types
+
 
 class RestatePlugin(BasePlugin):
     """A plugin to integrate Restate with the ADK framework."""
@@ -16,30 +16,18 @@ class RestatePlugin(BasePlugin):
     def __init__(self, ctx: restate.ObjectContext):
         self._lock = asyncio.Lock()
         self.ctx = ctx
-        self.old_uuid = uuid.uuid4
         super().__init__(name="restate_plugin")
 
-    async def before_run_callback(
-       self, *, invocation_context: InvocationContext
-    ) -> Optional[types.Content]:
-      # Patch uuid.uuid4 to use restate's uuid generator (pending better solution)
-
-      def new_uuid():
-          new_id = self.ctx.uuid()
-          return new_id
-
-      uuid.uuid4 = new_uuid
-      return None
-
-    async def after_run_callback(
-       self, *, invocation_context: InvocationContext
-    ) -> Optional[types.Content]:
-      uuid.uuid4 = self.old_uuid
-      return None
-
+    async def on_event_callback(
+        self, *, invocation_context: InvocationContext, event: Event
+    ) -> Optional[Event]:
+        # TODO do check non-deterministic events by ignoring ID and timestamp fields
+        return await self.ctx.run_typed(
+            "persist event", lambda: event, restate.RunOptions(type_hint=Event)
+        )
 
     async def before_model_callback(
-            self, *, callback_context: CallbackContext, llm_request: LlmRequest
+        self, *, callback_context: CallbackContext, llm_request: LlmRequest
     ) -> Optional[LlmResponse]:
 
         model = LLMRegistry.new_llm(llm_request.model)
@@ -54,12 +42,12 @@ class RestatePlugin(BasePlugin):
         )
 
     async def before_tool_callback(
-      self,
-      *,
-      tool: BaseTool,
-      tool_args: dict[str, Any],
-      tool_context: ToolContext,
-  ) -> Optional[dict]:
+        self,
+        *,
+        tool: BaseTool,
+        tool_args: dict[str, Any],
+        tool_context: ToolContext,
+    ) -> Optional[dict]:
         # TODO how does this work for built-in tools that may not go through this path?
         tool_context.session.state["restate_context"] = self.ctx
         async with self._lock:

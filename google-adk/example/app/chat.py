@@ -1,41 +1,52 @@
 import restate
+from google.adk import Runner
 from google.genai import types as genai_types
-from pydantic import BaseModel
 
-from middleware.middleware import durable_model_calls
-from middleware.restate_runner import create_restate_runner
+from app.utils.models import ChatMessage
 from google.adk.agents.llm_agent import Agent
+
+from middleware.restate_plugin import RestatePlugin
+from middleware.restate_session_service import RestateSessionService
+from middleware.restate_utils import restate_overrides
 
 APP_NAME = "agents"
 
-
-class ChatMessage(BaseModel):
-    message: str
-
+# AGENT
+agent = Agent(
+    model="gemini-2.5-flash",
+    name="assistant",
+    description="A helpful assistant that can answer questions.",
+    instruction="You are a helpful assistant. Be concise and helpful.",
+)
 
 chat = restate.VirtualObject("Chat")
 
 
+# HANDLER
 @chat.handler()
-async def message(ctx: restate.ObjectContext, chat_message: ChatMessage) -> str:
-    user_id = "user"
-    agent = Agent(
-        model=durable_model_calls(ctx, "gemini-2.5-flash"),
-        name="assistant",
-        description="A helpful assistant that can answer questions.",
-        instruction="You are a helpful assistant. Be concise and helpful.",
-    )
-
+async def message(ctx: restate.ObjectContext, req: ChatMessage) -> str:
     # Restate runner which uses RestateSessionService to persist session state in Restate
-
-    runner = await create_restate_runner(ctx, APP_NAME, user_id, agent)
-    events = runner.run_async(
-        user_id=user_id,
-        session_id=ctx.key(),
-        new_message=genai_types.Content(
-            role="user", parts=[genai_types.Part.from_text(text=chat_message.message)]
-        ),
+    session_id = ctx.key()
+    session_service = RestateSessionService(ctx)
+    await session_service.create_session(
+        app_name=APP_NAME, user_id=req.user_id, session_id=session_id
     )
+
+    runner = Runner(
+        agent=agent,
+        app_name=APP_NAME,
+        session_service=session_service,
+        # Enables retries and recovery for model calls and tool executions
+        plugins=[RestatePlugin(ctx)],
+    )
+    with restate_overrides(ctx):
+        events = runner.run_async(
+            user_id=req.user_id,
+            session_id=session_id,
+            new_message=genai_types.Content(
+                role="user", parts=[genai_types.Part.from_text(text=req.message)]
+            ),
+        )
 
     final_response = ""
     async for event in events:

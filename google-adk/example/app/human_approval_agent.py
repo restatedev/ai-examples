@@ -1,18 +1,20 @@
 import restate
+from google.adk import Runner
 from google.adk.agents.llm_agent import Agent
 from google.adk.tools.tool_context import ToolContext
 from google.genai import types as genai_types
 
 from app.utils.models import ClaimPrompt, InsuranceClaim
 from app.utils.utils import request_human_review
-from middleware.middleware import durable_model_calls
-from middleware.restate_runner import RestateRunner, create_restate_runner
+
+from middleware.restate_plugin import RestatePlugin
 from middleware.restate_session_service import RestateSessionService
-from middleware.restate_tools import restate_tools
+from middleware.restate_utils import restate_overrides
 
 APP_NAME = "agents"
 
 
+# TOOLS
 async def human_approval(tool_context: ToolContext, claim: InsuranceClaim) -> str:
     """Ask for human approval for high-value claims."""
     restate_context = tool_context.session.state["restate_context"]
@@ -32,29 +34,42 @@ async def human_approval(tool_context: ToolContext, claim: InsuranceClaim) -> st
     return await approval_promise
 
 
+# AGENT
+agent = Agent(
+    model="gemini-2.0-flash",
+    name="claim_approval_agent",
+    description="Insurance claim evaluation agent that handles human approval workflows.",
+    instruction="You are an insurance claim evaluation agent. Use these rules: if the amount is more than 1000, ask for human approval; if the amount is less than 1000, decide by yourself. Use the human_approval tool when needed.",
+    tools=[human_approval],
+)
+
 agent_service = restate.VirtualObject("HumanClaimApprovalAgent")
 
 
+# HANDLER
 @agent_service.handler()
-async def run(ctx: restate.ObjectContext, prompt: ClaimPrompt) -> str:
-    user_id = "user"
-
-    agent = Agent(
-        model=durable_model_calls(ctx, "gemini-2.5-flash"),
-        name="claim_approval_agent",
-        description="Insurance claim evaluation agent that handles human approval workflows.",
-        instruction="You are an insurance claim evaluation agent. Use these rules: if the amount is more than 1000, ask for human approval; if the amount is less than 1000, decide by yourself. Use the human_approval tool when needed.",
-        tools=restate_tools(human_approval),
+async def run(ctx: restate.ObjectContext, req: ClaimPrompt) -> str:
+    session_id = ctx.key()
+    session_service = RestateSessionService(ctx)
+    await session_service.create_session(
+        app_name=APP_NAME, user_id=req.user_id, session_id=session_id
     )
 
-    runner = await create_restate_runner(ctx, APP_NAME, user_id, agent)
-    events = runner.run_async(
-        user_id=user_id,
-        session_id=ctx.key(),
-        new_message=genai_types.Content(
-            role="user", parts=[genai_types.Part.from_text(text=prompt.message)]
-        ),
+    runner = Runner(
+        agent=agent,
+        app_name=APP_NAME,
+        session_service=session_service,
+        # Enables retries and recovery for model calls and tool executions
+        plugins=[RestatePlugin(ctx)],
     )
+    with restate_overrides(ctx):
+        events = runner.run_async(
+            user_id=req.user_id,
+            session_id=session_id,
+            new_message=genai_types.Content(
+                role="user", parts=[genai_types.Part.from_text(text=req.message)]
+            ),
+        )
 
     final_response = ""
     async for event in events:

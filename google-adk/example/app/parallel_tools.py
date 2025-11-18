@@ -1,16 +1,16 @@
 import restate
+from google.adk import Runner
 from google.adk.agents.llm_agent import Agent
 from google.adk.tools.tool_context import ToolContext
 from google.genai import types as genai_types
-from pydantic import BaseModel
 from typing import List
 
 from app.utils.models import InsuranceClaim
 from app.utils.utils import check_eligibility, compare_to_standard_rates, check_fraud
-from middleware.middleware import durable_model_calls
-from middleware.restate_runner import RestateRunner, create_restate_runner
+
+from middleware.restate_plugin import RestatePlugin
 from middleware.restate_session_service import RestateSessionService
-from middleware.restate_tools import restate_tools
+from middleware.restate_utils import restate_overrides
 
 APP_NAME = "agents"
 
@@ -31,6 +31,15 @@ async def calculate_metrics(
     return [await result for result in results_done]
 
 
+# AGENT
+agent = Agent(
+    model="gemini-2.0-flash",
+    name="parallel_tools_agent",
+    description="Analyzes insurance claims using parallel tool execution.",
+    instruction="You are a claim analysis agent that analyzes insurance claims. Use your tools to calculate key metrics and decide whether to approve the claim.",
+    tools=[calculate_metrics],
+)
+
 agent_service = restate.VirtualObject("ParallelToolClaimAgent")
 
 
@@ -38,28 +47,33 @@ agent_service = restate.VirtualObject("ParallelToolClaimAgent")
 async def run(ctx: restate.ObjectContext, claim: InsuranceClaim) -> str:
     user_id = "user"
 
-    agent = Agent(
-        model=durable_model_calls(ctx, "gemini-2.5-flash"),
-        name="parallel_tools_agent",
-        description="Analyzes insurance claims using parallel tool execution.",
-        instruction="You are a claim analysis agent that analyzes insurance claims. Use your tools to calculate key metrics and decide whether to approve the claim.",
-        tools=restate_tools(calculate_metrics),
+    session_id = ctx.key()
+    session_service = RestateSessionService(ctx)
+    await session_service.create_session(
+        app_name=APP_NAME, user_id=claim.user_id, session_id=session_id
     )
 
-    runner = await create_restate_runner(ctx, APP_NAME, user_id, agent)
-    events = runner.run_async(
-        user_id=user_id,
-        session_id=ctx.key(),
-        new_message=genai_types.Content(
-            role="user",
-            parts=[
-                genai_types.Part.from_text(
-                    text=f"Analyze the claim {claim.model_dump_json()}. "
-                    "Use your tools to calculate key metrics and decide whether to approve."
-                )
-            ],
-        ),
+    runner = Runner(
+        agent=agent,
+        app_name=APP_NAME,
+        session_service=session_service,
+        # Enables retries and recovery for model calls and tool executions
+        plugins=[RestatePlugin(ctx)],
     )
+    with restate_overrides(ctx):
+        events = runner.run_async(
+            user_id=user_id,
+            session_id=ctx.key(),
+            new_message=genai_types.Content(
+                role="user",
+                parts=[
+                    genai_types.Part.from_text(
+                        text=f"Analyze the claim {claim.model_dump_json()}. "
+                        "Use your tools to calculate key metrics and decide whether to approve."
+                    )
+                ],
+            ),
+        )
 
     final_response = ""
     async for event in events:

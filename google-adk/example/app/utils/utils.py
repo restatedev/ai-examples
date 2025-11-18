@@ -1,10 +1,9 @@
 import httpx
 import restate
-from google.adk import Agent
+from google.adk import Agent, Runner
 from restate import TerminalError
 from google.genai import types as genai_types
 
-from app.multi_agent import APP_NAME
 from app.utils.models import (
     WeatherResponse,
     InsuranceClaim,
@@ -12,13 +11,12 @@ from app.utils.models import (
     FlightBooking,
     HotelBooking,
 )
-from middleware.middleware import durable_model_calls
-from middleware.restate_runner import RestateRunner, create_restate_runner
+from middleware.restate_plugin import RestatePlugin
 from middleware.restate_session_service import RestateSessionService
 
 
 async def call_weather_api(city: str) -> WeatherResponse:
-    # fail_on_denver(city)
+    fail_on_denver(city)
     weather_data = await fetch_weather(city)
     return parse_weather_data(weather_data)
 
@@ -93,12 +91,24 @@ async def run_eligibility_agent(
 ) -> str:
     user_id = "user123"
     agent = Agent(
-        model=durable_model_calls(ctx, "gemini-2.5-flash"),
+        model="gemini-2.5-flash",
         name="EligibilityAgent",
         description="Decide whether the following claim is eligible for reimbursement.",
         instruction="Respond with eligible if it's a medical claim, and not eligible otherwise.",
     )
-    runner = await create_restate_runner(ctx, APP_NAME, user_id, agent)
+    session_id = ctx.key()
+    session_service = RestateSessionService(ctx)
+    await session_service.create_session(
+        app_name=APP_NAME, user_id=claim.user_id, session_id=session_id
+    )
+
+    runner = Runner(
+        agent=agent,
+        app_name=APP_NAME,
+        session_service=session_service,
+        # Enables retries and recovery for model calls and tool executions
+        plugins=[RestatePlugin(ctx)],
+    )
     events = runner.run_async(
         user_id=user_id,
         session_id=ctx.key(),
@@ -127,12 +137,24 @@ async def run_rate_comparison_agent(
 ) -> str:
     user_id = "user123"
     agent = Agent(
-        model=durable_model_calls(ctx, "gemini-2.5-flash"),
+        model="gemini-2.5-flash",
         name="RateComparisonAgent",
         description="Decide whether the cost of the claim is reasonable given the treatment.",
         instruction="Respond with reasonable or not reasonable.",
     )
-    runner = await create_restate_runner(ctx, APP_NAME, user_id, agent)
+    session_id = ctx.key()
+    session_service = RestateSessionService(ctx)
+    await session_service.create_session(
+        app_name=APP_NAME, user_id=claim.user_id, session_id=session_id
+    )
+
+    runner = Runner(
+        agent=agent,
+        app_name=APP_NAME,
+        session_service=session_service,
+        # Enables retries and recovery for model calls and tool executions
+        plugins=[RestatePlugin(ctx)],
+    )
     events = runner.run_async(
         user_id=user_id,
         session_id=ctx.key(),
@@ -159,12 +181,24 @@ fraud_agent_service = restate.VirtualObject("FraudAgent")
 async def run_fraud_agent(ctx: restate.ObjectContext, claim: InsuranceClaim) -> str:
     user_id = "user123"
     agent = Agent(
-        model=durable_model_calls(ctx, "gemini-2.5-flash"),
+        model="gemini-2.5-flash",
         name="FraudCheckAgent",
         description="Decide whether the claim is fraudulent.",
         instruction="Always respond with low risk, medium risk, or high risk.",
     )
-    runner = await create_restate_runner(ctx, APP_NAME, user_id, agent)
+    session_id = ctx.key()
+    session_service = RestateSessionService(ctx)
+    await session_service.create_session(
+        app_name=APP_NAME, user_id=claim.user_id, session_id=session_id
+    )
+
+    runner = Runner(
+        agent=agent,
+        app_name=APP_NAME,
+        session_service=session_service,
+        # Enables retries and recovery for model calls and tool executions
+        plugins=[RestatePlugin(ctx)],
+    )
     events = runner.run_async(
         user_id=user_id,
         session_id=ctx.key(),

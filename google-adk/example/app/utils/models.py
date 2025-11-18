@@ -13,10 +13,12 @@ class WeatherPrompt(BaseModel):
 
 
 class ClaimPrompt(BaseModel):
+    user_id: str = "user-123"
     message: str = "Process my hospital bill of 3000USD for a broken leg."
 
 
 class ChatMessage(BaseModel):
+    user_id: str = "user-123"
     message: str = "Make a poem about durable execution."
 
 
@@ -24,6 +26,7 @@ class InsuranceClaim(BaseModel):
     """Insurance claim data structure."""
 
     model_config = ConfigDict(populate_by_name=True, alias_generator=camelize)
+    user_id: str = "user-123"
     date: str = "2024-10-01"
     amount: float = 3000
     category: str = "orthopedic"
