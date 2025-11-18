@@ -49,10 +49,11 @@ The state can be queried from the outside. Stateful sessions are long-lived and 
 
 ### Chaining LLM calls
 [<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](app/chaining.py)
+[<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/read-guide.svg">](https://docs.restate.dev/ai/patterns/prompt-chaining)
 
 Build fault-tolerant processing pipelines where each step transforms the previous step's output.
 
-In the UI (`http://localhost:9070`), click on the `process_report` handler of the `CallChainingService` to open the playground and send a default request:
+In the UI (`http://localhost:9070`), click on the `process` handler of the `CallChainingService` to open the playground and send a default request:
 <img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/chaining_playground.png" alt="Chaining LLM calls - UI"/>
 
 You see in the Invocations Tab of the UI how the LLM is called multiple times, and how the results are refined step by step:
@@ -61,18 +62,20 @@ You see in the Invocations Tab of the UI how the LLM is called multiple times, a
 
 ### Tool routing
 [<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](app/routing_to_tool.py)
+[<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/read-guide.svg">](https://docs.restate.dev/ai/patterns/tools)
 
 Automatically route requests to tools based on LLM outputs. The agent keeps calling the LLM and executing tools until a final answer is returned.
 
-In the UI (`http://localhost:9070`), click on the `route` handler of the `ToolRouterService` to open the playground and send a default request:
-<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/route-to-tools-playground.png" alt="Dynamic routing LLM calls - UI"/>
+In the UI (`http://localhost:9070`), click on the `route` handler of the `ToolRouter` service to open the playground and send a default request:
+<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/route_local_tools_playground.png" alt="Dynamic routing LLM calls - UI"/>
 
 In the UI, you can see how the LLM decides to forward the request to the technical support tools, and how the response is processed:
 
-<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/route-to-tools.png" alt="Dynamic routing based on LLM output - UI"/>
+<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/route_local_tools.png" alt="Dynamic routing based on LLM output - UI"/>
 
 ### Parallel tool execution
 [<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](app/parallel_tools.py)
+[<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/read-guide.svg">](https://docs.restate.dev/ai/patterns/durable-webhooks)
 
 Execute multiple tools in parallel with durable results that persist across failures.
 
@@ -81,24 +84,26 @@ In the UI (`http://localhost:9070`), click on the `run` handler of the `Parallel
 
 You see in the UI how the different tools are executed in parallel:
 
-<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/parallel.png" alt="Parallel tool calls - UI"/>
+<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/parallel_tools.png" alt="Parallel tool calls - UI"/>
 
 Once all tools are done, the results are aggregated and returned to the client.
 
 ### Multi-agent routing
 [<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](app/routing_to_agent.py)
+[<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/read-guide.svg">](https://docs.restate.dev/ai/patterns/multi-agent)
 
 Route requests to specialized agents based on LLM outputs. Routing decisions are persisted and can be retried.
 
-In the UI (`http://localhost:9070`), click on the `route` handler of the `AgentRouterService` to open the playground and send a default request:
-<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/route-to-agent-playground.png" alt="Multi-agent routing - UI"/>
+In the UI (`http://localhost:9070`), click on the `answer` handler of the `AgentRouter` service to open the playground and send a default request:
+<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/routing_local_agent_playground.png" alt="Multi-agent routing - UI"/>
 
 In the UI, you can see how the LLM decides to forward the request to the specialized support agents, and how the response is processed:
 
-<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/route-to-agent.png" alt="Multi-agent routing - UI"/>
+<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/routing_local_agent.png" alt="Multi-agent routing - UI"/>
 
 ### Remote agent routing
 [<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](app/routing_to_remote_agent.py)
+[<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/read-guide.svg">](https://docs.restate.dev/ai/patterns/multi-agent)
 
 Route requests to remote agents with resilient communication. 
 Restate proxies requests to remote agents, persisting routing decisions and results. 
@@ -106,39 +111,21 @@ In case of failures, Restate retries failed executions.
 
 ### Parallel agent processing
 [<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](app/parallel_agents.py)
+[<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/read-guide.svg">](https://docs.restate.dev/ai/patterns/parallelization)
 
 Run multiple, specialized agents in parallel and aggregate their results. If any agent fails, Restate retries only the failed agents while preserving completed results.
 
-In the UI (`http://localhost:9070`), click on the `analyze_text` handler of the `ParallelAgentsService` to open the playground and send a default request:
+In the UI (`http://localhost:9070`), click on the `analyze` handler of the `ParallelAgentsService` to open the playground and send a default request:
+<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/parallel_agents_playground.png" alt="Parallel agents - UI"/>
 
-You see in the UI how the different agents are executed in parallel.
+You see in the UI how the different agents are executed in parallel:
+<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/parallel_agents.png" alt="Parallel agents - UI"/>
 
 Once all agents are done, the results are aggregated and returned to the client.
 
-### Orchestrator-worker pattern
-[<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](app/orchestrator_workers.py)
-
-Break down complex tasks into specialized subtasks and execute them in parallel. If any worker fails, Restate retries only that worker while preserving other completed work.
-
-In the UI (`http://localhost:9070`), click on the `process_text` handler of the `Orchestrator` to open the playground and send a default request:
-<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/orchestrator-playground.png" alt="Orchestrator LLM calls - UI"/>
-
-In the UI, you can see how the LLM split the task in three parts and how each of the worker LLMs execute their tasks in parallel:
-<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/orchestrator.png" alt="Orchestrator-worker pattern - UI"/>
-
-### Evaluator-optimizer pattern
-[<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](app/evaluator_optimizer.py)
-
-Generate → Evaluate → Improve loop until quality criteria are met. Restate persists each iteration, resuming from the last completed step on failure.
-
-In the UI (`http://localhost:9070`), click on the `improve_until_good` handler of the `EvaluatorOptimizer` to open the playground and send a default request:
-<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/evaluator-playground.png" alt="Evaluator-optimizer pattern - UI"/>
-
-In the UI, you can see how the LLM generates a response, and how the evaluator LLM evaluates it and asks for improvements until the response is satisfactory:
-<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/evaluator.png" alt="Evaluator-optimizer pattern - UI"/>
-
 ### Human-in-the-loop pattern
 [<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](app/human_in_the_loop.py)
+[<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/read-guide.svg">](https://docs.restate.dev/ai/patterns/human-in-the-loop)
 
 Implement resilient human approval steps that suspend execution until feedback is received. Durable promises survive crashes and can be recovered across process restarts.
 
@@ -155,6 +142,7 @@ You can see how the feedback gets incorporated in the Invocations tab in the Res
 
 ### Chat sessions
 [<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](app/chat.py)
+[<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/read-guide.svg">](https://docs.restate.dev/ai/patterns/sessions-and-chat)
 
 Long-lived, stateful chat sessions that maintain conversation state across multiple requests. Sessions survive failures and can be resumed at any time.
 
@@ -171,3 +159,26 @@ In the invocations tab, you can see how the memory was loaded and stored in Rest
 
 Go to the state tab of the UI to see the state of the chat session:
 <img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/chat-state.png" alt="Chat" width="900px"/>
+
+
+### Orchestrator-worker pattern
+[<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](app/orchestrator_workers.py)
+
+Break down complex tasks into specialized subtasks and execute them in parallel. If any worker fails, Restate retries only that worker while preserving other completed work.
+
+In the UI (`http://localhost:9070`), click on the `process` handler of the `Orchestrator` to open the playground and send a default request:
+<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/orchestrator-playground.png" alt="Orchestrator LLM calls - UI"/>
+
+In the UI, you can see how the LLM split the task in three parts and how each of the worker LLMs execute their tasks in parallel:
+<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/orchestrator.png" alt="Orchestrator-worker pattern - UI"/>
+
+### Evaluator-optimizer pattern
+[<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](app/evaluator_optimizer.py)
+
+Generate → Evaluate → Improve loop until quality criteria are met. Restate persists each iteration, resuming from the last completed step on failure.
+
+In the UI (`http://localhost:9070`), click on the `run` handler of the `EvaluatorOptimizer` to open the playground and send a default request:
+<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/evaluator-playground.png" alt="Evaluator-optimizer pattern - UI"/>
+
+In the UI, you can see how the LLM generates a response, and how the evaluator LLM evaluates it and asks for improvements until the response is satisfactory:
+<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/evaluator.png" alt="Evaluator-optimizer pattern - UI"/>
