@@ -78,7 +78,7 @@ In the UI, you can see how the LLM decides to forward the request to the technic
 
 ### Parallel tool execution
 [<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](app/parallel_tools.py)
-[<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/read-guide.svg">](https://docs.restate.dev/ai/patterns/durable-webhooks)
+[<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/read-guide.svg">](https://docs.restate.dev/ai/patterns/parallelization)
 
 Execute multiple tools in parallel with durable results that persist across failures.
 
