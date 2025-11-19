@@ -27,7 +27,7 @@ The Restate approach works **independent of specific SDKs** but **integrates eas
 | **Multi-agent orchestration**      | Reliable RPC, queuing, and scheduling between agents running in separate processes.         |
 
 
-<img src="/doc/img/patterns/parallel_tools.png" alt="Restate UI - trace of agent with parallel tools" width="600px"/>
+<img src="/doc/img/patterns/parallel_tools.png" alt="Restate UI - trace of agent with parallel tools" width="900px"/>
 <br/>
 <caption><em>Restate UI showing an agent execution with parallel tool calls</em></caption>
 
