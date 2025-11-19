@@ -2,7 +2,7 @@ import restate
 from google.adk import Runner
 from google.adk.agents.llm_agent import Agent
 from google.adk.tools.tool_context import ToolContext
-from google.genai import types as genai_types
+from google.genai.types import Content, Part
 from typing import List
 
 from app.utils.models import InsuranceClaim
@@ -64,10 +64,10 @@ async def run(ctx: restate.ObjectContext, claim: InsuranceClaim) -> str:
         events = runner.run_async(
             user_id=user_id,
             session_id=ctx.key(),
-            new_message=genai_types.Content(
+            new_message=Content(
                 role="user",
                 parts=[
-                    genai_types.Part.from_text(
+                    Part.from_text(
                         text=f"Analyze the claim {claim.model_dump_json()}. "
                         "Use your tools to calculate key metrics and decide whether to approve."
                     )

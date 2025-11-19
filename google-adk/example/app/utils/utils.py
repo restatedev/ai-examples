@@ -2,7 +2,7 @@ import httpx
 import restate
 from google.adk import Agent, Runner
 from restate import TerminalError
-from google.genai import types as genai_types
+from google.genai.types import Content, Part
 
 from app.utils.models import (
     WeatherResponse,
@@ -112,11 +112,9 @@ async def run_eligibility_agent(
     events = runner.run_async(
         user_id=user_id,
         session_id=ctx.key(),
-        new_message=genai_types.Content(
+        new_message=Content(
             role="user",
-            parts=[
-                genai_types.Part.from_text(text=f"Claim: {claim.model_dump_json()}")
-            ],
+            parts=[Part.from_text(text=f"Claim: {claim.model_dump_json()}")],
         ),
     )
 
@@ -158,11 +156,9 @@ async def run_rate_comparison_agent(
     events = runner.run_async(
         user_id=user_id,
         session_id=ctx.key(),
-        new_message=genai_types.Content(
+        new_message=Content(
             role="user",
-            parts=[
-                genai_types.Part.from_text(text=f"Claim: {claim.model_dump_json()}")
-            ],
+            parts=[Part.from_text(text=f"Claim: {claim.model_dump_json()}")],
         ),
     )
 
@@ -202,11 +198,9 @@ async def run_fraud_agent(ctx: restate.ObjectContext, claim: InsuranceClaim) -> 
     events = runner.run_async(
         user_id=user_id,
         session_id=ctx.key(),
-        new_message=genai_types.Content(
+        new_message=Content(
             role="user",
-            parts=[
-                genai_types.Part.from_text(text=f"Claim: {claim.model_dump_json()}")
-            ],
+            parts=[Part.from_text(text=f"Claim: {claim.model_dump_json()}")],
         ),
     )
 

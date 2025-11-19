@@ -1,8 +1,7 @@
 import restate
 from google.adk import Runner
 from google.adk.agents.llm_agent import Agent
-from google.adk.models.lite_llm import LiteLlm
-from google.genai import types as genai_types
+from google.genai.types import Content, Part
 
 from app.utils.models import InsuranceClaim
 from app.utils.utils import (
@@ -58,20 +57,16 @@ async def run(ctx: restate.ObjectContext, claim: InsuranceClaim) -> str:
         # Enables retries and recovery for model calls and tool executions
         plugins=[RestatePlugin(ctx)],
     )
+    prompt = (
+        f"Decide about claim: {claim.model_dump_json()}. "
+        f"Base your decision on the following analyses: "
+        f"Eligibility: {eligibility_result} Cost: {cost_result} Fraud: {fraud_result}"
+    )
     with restate_overrides(ctx):
         events = runner.run_async(
             user_id=user_id,
             session_id=ctx.key(),
-            new_message=genai_types.Content(
-                role="user",
-                parts=[
-                    genai_types.Part.from_text(
-                        text=f"Decide about claim: {claim.model_dump_json()}. "
-                        "Base your decision on the following analyses: "
-                        f"Eligibility: {eligibility_result} Cost: {cost_result} Fraud: {fraud_result}"
-                    )
-                ],
-            ),
+            new_message=Content(role="user", parts=[Part.from_text(text=prompt)]),
         )
 
         final_response = ""

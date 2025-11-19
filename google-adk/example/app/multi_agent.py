@@ -1,7 +1,7 @@
 import restate
 from google.adk import Runner
 from google.adk.agents.llm_agent import Agent
-from google.genai import types as genai_types
+from google.genai.types import Content, Part
 
 from app.utils.models import InsuranceClaim
 
@@ -61,11 +61,9 @@ async def run(ctx: restate.ObjectContext, claim: InsuranceClaim) -> str:
         events = runner.run_async(
             user_id=claim.user_id,
             session_id=ctx.key(),
-            new_message=genai_types.Content(
+            new_message=Content(
                 role="user",
-                parts=[
-                    genai_types.Part.from_text(text=f"Claim: {claim.model_dump_json()}")
-                ],
+                parts=[Part.from_text(text=f"Claim: {claim.model_dump_json()}")],
             ),
         )
 

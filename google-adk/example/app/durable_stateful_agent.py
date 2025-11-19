@@ -2,7 +2,7 @@ from datetime import timedelta
 
 import restate
 from google.adk import Runner
-from google.genai import types as genai_types
+from google.genai.types import Content, Part
 from app.utils.models import WeatherResponse, WeatherPrompt
 from app.utils.utils import call_weather_api
 from google.adk.tools.tool_context import ToolContext
@@ -60,9 +60,7 @@ async def run(ctx: restate.ObjectContext, req: WeatherPrompt) -> str:
         events = runner.run_async(
             user_id=req.user_id,
             session_id=session_id,
-            new_message=genai_types.Content(
-                role="user", parts=[genai_types.Part.from_text(text=req.message)]
-            ),
+            new_message=Content(role="user", parts=[Part.from_text(text=req.message)]),
         )
         final_response = ""
         async for event in events:
