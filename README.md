@@ -35,13 +35,13 @@ The Restate approach works **independent of specific SDKs** but **integrates eas
 ## Full Example Catalog
 
 ### Agent SDK Integrations  
-| Integration | Example | Description | Code | Docs |
-|-------------|---------|-------------|------|------|
-| **Vercel AI SDK** | **Template** | A minimal example of how to use Restate with the Vercel AI SDK | [<img src="https://skillicons.dev/icons?i=ts&theme=light" width="20" height="20">](vercel-ai/template) | [📖](https://docs.restate.dev/get_started/quickstart?sdk=ts&integration=vercel-ai) |
+| Integration | Example | Description | Code | Docs                                                 |
+|-------------|---------|-------------|------|------------------------------------------------------|
+| **Vercel AI SDK** | **Template** | A minimal example of how to use Restate with the Vercel AI SDK | [<img src="https://skillicons.dev/icons?i=ts&theme=light" width="20" height="20">](vercel-ai/template) | [📖](https://docs.restate.dev/ai-quickstart)         |
 | | **Tour of Agents** | A step-by-step tutorial showing how to build resilient agents | [<img src="https://skillicons.dev/icons?i=ts&theme=light" width="20" height="20">](vercel-ai/tour-of-agents) | [📖](https://docs.restate.dev/tour/vercel-ai-agents) |
-| | **Examples** | More advanced examples that can be deployed as a Next.js app on Vercel | [<img src="https://skillicons.dev/icons?i=ts&theme=light" width="20" height="20">](vercel-ai/examples) | - |
-| **OpenAI Agents SDK** | **Template** | A minimal example of how to use Restate with the OpenAI Agents SDK | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="20" height="20">](openai-agents/template) | [📖](https://docs.restate.dev/get_started/quickstart?sdk=python&integration=openai-agents) |
-| | **Tour of Agents** | A step-by-step tutorial showing how to build resilient agents | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="20" height="20">](openai-agents/tour-of-agents) | [📖](https://docs.restate.dev/tour/openai-agents) |
+| | **Examples** | More advanced examples that can be deployed as a Next.js app on Vercel | [<img src="https://skillicons.dev/icons?i=ts&theme=light" width="20" height="20">](vercel-ai/examples) | -                                                    |
+| **OpenAI Agents SDK** | **Template** | A minimal example of how to use Restate with the OpenAI Agents SDK | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="20" height="20">](openai-agents/template) | [📖](https://docs.restate.dev/ai-quickstart)         |
+| | **Tour of Agents** | A step-by-step tutorial showing how to build resilient agents | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="20" height="20">](openai-agents/tour-of-agents) | [📖](https://docs.restate.dev/tour/openai-agents)    |
 
 ### Composable AI Patterns
 | Pattern                | Description | Code | Docs |
