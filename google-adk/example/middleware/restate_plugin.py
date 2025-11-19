@@ -12,7 +12,6 @@ from google.adk.tools.base_toolset import BaseToolset
 from google.genai import types
 
 from middleware.middleware import durable_model_calls
-from middleware.restate_utils import restate_overrides
 
 
 class RestatePlugin(BasePlugin):
@@ -38,15 +37,6 @@ class RestatePlugin(BasePlugin):
         # because all errors in plugins are turned into RuntimeErrors by the ADK.
         if isinstance(agent, LlmAgent):
             agent.tools = await _as_sequential_tools(agent.tools)
-
-        agent_run_async = agent._run_async_impl
-        @wraps(agent_run_async)
-        def wrapper(*args, **kwargs):
-            with restate_overrides(self.ctx):
-                result = agent_run_async(*args, **kwargs)
-                return result
-
-        agent._run_async_impl = wrapper
         return None
 
     async def before_tool_callback(

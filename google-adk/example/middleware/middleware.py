@@ -25,7 +25,12 @@ def durable_model_calls(ctx: restate.Context, model: str | BaseLlm):
             async def call_llm() -> LlmResponse:
                 # Without streaming the generator will yield only one response
                 a_gen = model.generate_content_async(llm_request, stream=False)
-                return await anext(a_gen)
+                try:
+                    # Fetch only the first yielded response
+                    result = await anext(a_gen)
+                    return result
+                finally:
+                    await a_gen.aclose()
 
             yield await ctx.run_typed(
                 "call LLM", call_llm, restate.RunOptions(max_attempts=3)

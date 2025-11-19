@@ -1,6 +1,7 @@
 import restate
 from google.adk import Runner
 from google.adk.agents.llm_agent import Agent
+from google.adk.apps import App
 from google.adk.tools.tool_context import ToolContext
 from google.genai.types import Content, Part
 
@@ -57,22 +58,17 @@ async def run(ctx: restate.ObjectContext, req: ClaimPrompt) -> str:
     await session_service.create_session(
         app_name=APP_NAME, user_id=req.user_id, session_id=session_id
     )
-
-    runner = Runner(
-        agent=agent,
-        app_name=APP_NAME,
-        session_service=session_service,
-        # Enables retries and recovery for model calls and tool executions
-        plugins=[RestatePlugin(ctx)],
-    )
-    events = runner.run_async(
-        user_id=req.user_id,
-        session_id=session_id,
-        new_message=Content(role="user", parts=[Part.from_text(text=req.message)]),
-    )
-    final_response = ""
-    async for event in events:
-        if event.is_final_response() and event.content and event.content.parts:
-            final_response = event.content.parts[0].text
+    app = App(name=APP_NAME, root_agent=agent, plugins=[RestatePlugin(ctx)])
+    runner = Runner(app=app, session_service=session_service)
+    with restate_overrides(ctx):
+        events = runner.run_async(
+            user_id=req.user_id,
+            session_id=session_id,
+            new_message=Content(role="user", parts=[Part.from_text(text=req.message)]),
+        )
+        final_response = ""
+        async for event in events:
+            if event.is_final_response() and event.content and event.content.parts:
+                final_response = event.content.parts[0].text
 
     return final_response

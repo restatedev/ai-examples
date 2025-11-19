@@ -2,6 +2,7 @@ from datetime import timedelta
 
 import restate
 from google.adk import Runner
+from google.adk.apps import App
 from google.genai.types import Content, Part
 from app.utils.models import WeatherResponse, WeatherPrompt
 from app.utils.utils import call_weather_api
@@ -29,37 +30,33 @@ async def get_weather(tool_context: ToolContext, city: str) -> WeatherResponse:
 
 
 # AGENT
-agent = Agent(
-    model="gemini-2.5-flash",
-    name="weather_agent",
-    description="Agent that provides weather updates for cities.",
-    instruction="You are a helpful agent that provides weather updates. Use the get_weather tool to fetch current weather information.",
-    tools=[get_weather],
-)
+
 
 
 # HANDLER
 @agent_service.handler()
 async def run(ctx: restate.ObjectContext, req: WeatherPrompt) -> str:
+    agent = Agent(
+        model="gemini-2.5-flash",
+        name="weather_agent",
+        description="Agent that provides weather updates for cities.",
+        instruction="You are a helpful agent that provides weather updates. Use the get_weather tool to fetch current weather information.",
+        tools=[get_weather],
+    )
 
     # Use Restate session service to persist session state in Restate
-    session_id = ctx.key()
     session_service = RestateSessionService(ctx)
     await session_service.create_session(
-        app_name=APP_NAME, user_id=req.user_id, session_id=session_id
+        app_name=APP_NAME, user_id=req.user_id, session_id=ctx.key()
     )
 
-    runner = Runner(
-        agent=agent,
-        app_name=APP_NAME,
-        session_service=session_service,
-        # Enables retries and recovery for model calls and tool executions
-        plugins=[RestatePlugin(ctx)],
-    )
+    app = App(name=APP_NAME, root_agent=agent, plugins=[RestatePlugin(ctx)])
+    runner = Runner(app=app, session_service=session_service)
+
     with restate_overrides(ctx):
         events = runner.run_async(
             user_id=req.user_id,
-            session_id=session_id,
+            session_id=ctx.key(),
             new_message=Content(role="user", parts=[Part.from_text(text=req.message)]),
         )
         final_response = ""
