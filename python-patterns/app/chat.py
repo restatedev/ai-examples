@@ -22,12 +22,12 @@ chat = restate.VirtualObject("Chat")
 
 
 @chat.handler()
-async def message(ctx: restate.ObjectContext, message: ChatMessage) -> str | None:
+async def message(ctx: restate.ObjectContext, msg: ChatMessage) -> str | None:
     """A long-lived stateful chat session that allows for ongoing conversation."""
 
     # Retrieve conversation memory from Restate
     memory = await ctx.get("memory", type_hint=list[dict]) or []
-    memory.append({"role": "user", "content": message.message})
+    memory.append({"role": "user", "content": msg.message})
 
     result = await ctx.run_typed(
         "LLM call",

@@ -23,35 +23,25 @@ async function run(ctx: Context, { message }: { message: string }) {
   let solution: string | null = null;
   const attempts: string[] = [];
 
-  for (let iteration = 0; iteration < maxIterations; iteration++) {
+  for (let i = 0; i < maxIterations; i++) {
     // Generate solution (with context from previous attempts)
-    solution = (
-      await ctx.run(
-        `generate_v${iteration + 1}`,
-        async () =>
-          // Use your preferred LLM SDK here
-          llmCall(
-            `Task: ${message} - Previous attempts: ${attempts.join(", ")}`,
-          ),
-        { maxRetryAttempts: 3 },
-      )
-    ).text;
-    if (solution) {
-      attempts.push(solution);
-    }
+    const taskPrompt = `Task: ${message} - Previous attempts: ${attempts.join(", ")}`;
+    const solution = await ctx.run(
+      `Generate v${i}`,
+      // Use your preferred LLM SDK here
+      async () => llmCall(taskPrompt).then((res) => res.text),
+      { maxRetryAttempts: 3 },
+    );
+    attempts.push(solution);
 
     // Evaluate the solution
-    const evaluation = (
-      await ctx.run(
-        `evaluate_v${iteration + 1}`,
-        async () =>
-          llmCall(
-            `${evaluationPrompt} Task: ${message} - Solution: ${solution}`,
-          ),
-        { maxRetryAttempts: 3 },
-      )
-    ).text;
-    printEvaluation(iteration, solution, evaluation);
+    const evalPrompt = `${evaluationPrompt} Task: ${message} - Solution: ${solution}`;
+    const evaluation = await ctx.run(
+      `Evaluate v${i}`,
+      async () => llmCall(evalPrompt).then((res) => res.text),
+      { maxRetryAttempts: 3 },
+    );
+    printEvaluation(i, solution, evaluation);
 
     if (evaluation && evaluation.startsWith("PASS")) {
       return solution;

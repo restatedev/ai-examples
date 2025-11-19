@@ -25,9 +25,8 @@ async function analyze(ctx: Context, { message }: { message: string }) {
   const tasks = [
     ctx.run(
       "Analyze sentiment",
-      async () =>
-        // Use your preferred LLM SDK here
-        llmCall(`Analyze sentiment (positive/negative/neutral): ${message}`),
+      // Use your preferred LLM SDK here
+      async () => llmCall(`Analyze sentiment: ${message}`),
       { maxRetryAttempts: 3 },
     ),
     ctx.run(

@@ -23,23 +23,24 @@ const tools = {
 };
 
 async function run(ctx: Context, { message }: { message: string }) {
-  const messages: ModelMessage[] = [{ role: "user", content: message }];
+  const history: ModelMessage[] = [{ role: "user", content: message }];
 
   while (true) {
     // Use your preferred LLM SDK here
-    const resp = await ctx.run("llm-call", () => llmCall(messages, tools), {
-      maxRetryAttempts: 3,
-    });
-    messages.push(...resp.messages);
+    let { text, toolCalls, messages } = await ctx.run(
+      "LLM call",
+      async () => llmCall(history, tools),
+      { maxRetryAttempts: 3 },
+    );
+    history.push(...messages);
 
-    if (!resp.toolCalls || resp.toolCalls.length === 0) {
-      return resp.text;
+    if (!toolCalls || toolCalls.length === 0) {
+      return text;
     }
 
     // Run all tool calls in parallel
-    // Create parallel promises for all weather requests
     let toolPromises = [];
-    for (let { toolCallId, toolName, input } of resp.toolCalls) {
+    for (let { toolCallId, toolName, input } of toolCalls) {
       const { city } = input as { city: string };
       const promise = ctx.run(`Get weather ${city}`, () => fetchWeather(city));
       toolPromises.push({ toolCallId, toolName, promise });

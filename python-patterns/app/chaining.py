@@ -22,7 +22,7 @@ Customer churn decreased to 5% from 8%."""
 
 
 class Report(BaseModel):
-    text: str = example_prompt
+    message: str = example_prompt
 
 
 call_chaining_svc = restate.Service("CallChainingService")
@@ -39,7 +39,7 @@ async def process(ctx: restate.Context, report: Report) -> str | None:
         RunOptions(max_attempts=3),  # Avoid infinite retries
         prompt=(
             "Extract numerical values and their metrics from the text. "
-            f"Format as 'Metric: Value' per line. Input: {report.text}"
+            f"Format as 'Metric Name: Value' per line. Input: {report.message}"
         ),
     )
 
@@ -48,7 +48,7 @@ async def process(ctx: restate.Context, report: Report) -> str | None:
         "Sort metrics",
         llm_call,
         RunOptions(max_attempts=3),
-        prompt=f"Sort lines in descending order by value. Input: {extract}",
+        prompt=f"Sort lines in descending order by value: {extract}",
     )
 
     # Step 3: Format as table
@@ -56,10 +56,7 @@ async def process(ctx: restate.Context, report: Report) -> str | None:
         "Format as table",
         llm_call,
         RunOptions(max_attempts=3),
-        prompt=(
-            "Format the data as a markdown table with columns "
-            f"'Metric Name' and 'Value'. Input: {sorted_metrics}"
-        ),
+        prompt=f"Format the data as a markdown table:{sorted_metrics}"
     )
 
     return table.content

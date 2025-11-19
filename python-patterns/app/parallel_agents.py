@@ -17,7 +17,7 @@ from .util.litellm_call import llm_call
 
 
 class Text(BaseModel):
-    content: str = (
+    message: str = (
         "Our Q3 results exceeded all expectations! Customer satisfaction reached 95%, revenue grew "
         "by 40% year-over-year, and we successfully launched three new product features. "
         "The team worked incredibly hard to deliver these outcomes despite supply chain challenges. "

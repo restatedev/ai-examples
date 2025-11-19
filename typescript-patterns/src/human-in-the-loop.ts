@@ -21,29 +21,25 @@ const tools = {
     inputSchema: z.object({}),
   }),
 };
+
 async function moderate(ctx: Context, { message }: { message: string }) {
+  const prompt = `You are a content moderation agent. Decide if the content violates policy: ${message}`;
   const { text, toolCalls } = await ctx.run(
     "LLM call",
-    async () =>
-      // Use your preferred LLM SDK here
-      llmCall(
-        `You are a content moderation agent. Decide if the content violates policy: ${message}`,
-        tools,
-      ),
+    // Use your preferred LLM SDK here
+    async () => llmCall(prompt, tools),
     { maxRetryAttempts: 3 },
   );
 
   if (toolCalls?.[0]?.toolName === "getHumanReview") {
     // Create a recoverable approval promise
     const approval = ctx.awakeable<string>();
-    await ctx.run("Notify moderator", () =>
-      notifyModerator(message, approval.id),
-    );
+    await ctx.run("Ask review", () => notifyModerator(message, approval.id));
 
     // Suspend until moderator resolves the approval
     // Check the service logs to see how to resolve it over HTTP, e.g.:
     // curl http://localhost:8080/restate/awakeables/sign_.../resolve --json '"approved"'
-    return await approval.promise;
+    return approval.promise;
   }
 
   return text;

@@ -23,10 +23,10 @@ async function process(ctx: Context, report: { message: string }) {
   // Step 1: Extract metrics
   const extract = await ctx.run(
     "Extract metrics",
+    // Use your preferred LLM SDK here
     async () =>
-      // Use your preferred LLM SDK here
       llmCall(`Extract numerical values and their metrics from the text. 
-            Format as 'Metric: Value' per line. Input: ${report.message}`),
+            Format as 'Metric Name: Value' per line. Input: ${report.message}`),
     { maxRetryAttempts: 3 },
   );
 
@@ -34,9 +34,7 @@ async function process(ctx: Context, report: { message: string }) {
   const sortedMetrics = await ctx.run(
     "Sort metrics",
     async () =>
-      llmCall(
-        `Sort lines in descending order by value. Input: ${extract.text}`,
-      ),
+      llmCall(`Sort lines in descending order by value: ${extract.text}`),
     { maxRetryAttempts: 3 },
   );
 
@@ -44,10 +42,7 @@ async function process(ctx: Context, report: { message: string }) {
   const table = await ctx.run(
     "Format as table",
     async () =>
-      llmCall(
-        `Format the data as a markdown table with columns 
-         'Metric Name' and 'Value'. Input: ${sortedMetrics.text}`,
-      ),
+      llmCall(`Format the data as a markdown table: ${sortedMetrics.text}`),
     { maxRetryAttempts: 3 },
   );
 
