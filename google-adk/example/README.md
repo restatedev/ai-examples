@@ -38,7 +38,9 @@ Go to the Restate UI at `http://localhost:9070`. Click on `register deployment`.
 
 ![Register service](./docs/images/register_deployment.png)
 
-Click on one of the handlers of the registered services and send the default request. For example, click on the `run` handler of the `WeatherAgent` service and send the request:
+Click on one of the handlers of the registered services and send the default request (if prompted to do so, add a session key in the key field). 
+
+For example, click on the `run` handler of the `WeatherAgent` service and send the request:
 
 ![Send request](./docs/images/request.png)
 
