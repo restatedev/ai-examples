@@ -9,7 +9,7 @@ The patterns included here:
 - [Tool routing](app/routing_to_tool.py): Automatically route requests to tools based on LLM outputs.
 - [Parallel tool execution](app/parallel_tools.py): Execute multiple tools in parallel with durable results that persist across failures.
 - [Multi-agent routing](app/routing_to_agent.py): Route requests to specialized agents based on LLM outputs.
-- [Remote agent routing](src/routing-to-remote-agent.ts): Deploy/scale agents separately and route requests with resilient communication.
+- [Remote agent routing](app/routing_to_remote_agent.py): Deploy/scale agents separately and route requests with resilient communication.
 - [Parallel agent processing](app/parallel_agents.py): Run multiple, specialized agents in parallel and aggregate their results.
 - [Racing agents](app/racing_agents.py): Race multiple agents and return the result from whichever completes first successfully.
 - [Orchestrator-worker pattern](app/orchestrator_workers.py): Break down complex tasks into specialized subtasks and execute them in parallel.
