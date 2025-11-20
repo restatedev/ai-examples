@@ -574,7 +574,7 @@ requires-dist = [
     { name = "hypercorn" },
     { name = "litellm" },
     { name = "pydantic", specifier = ">=2.11.9" },
-    { name = "restate-sdk", extras = ["serde"], path = "../../sdk-python/dist/restate_sdk-0.11.0-cp312-cp312-linux_x86_64.whl" },
+    { name = "restate-sdk", extras = ["serde"], specifier = ">=0.12.0" },
 ]
 
 [package.metadata.requires-dev]
@@ -734,10 +734,16 @@ wheels = [
 
 [[package]]
 name = "restate-sdk"
-version = "0.11.0"
-source = { path = "../../sdk-python/dist/restate_sdk-0.11.0-cp312-cp312-linux_x86_64.whl" }
+version = "0.12.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/fc/63/51e0102bbe2cbfa2ab208c457941ffdee958f937110e14386baf562f64b0/restate_sdk-0.12.0.tar.gz", hash = "sha256:e49ea08a1ba2be87f72e90e6998b055f5ea1ddbbf3571b6fc2ffd0cb30e23cda", size = 109319 }
 wheels = [
-    { filename = "restate_sdk-0.11.0-cp312-cp312-linux_x86_64.whl", hash = "sha256:6525df2b6284a0a454d711a703f0dd32110d6e5f1ea1f74a6680b3ad05d723f2" },
+    { url = "https://files.pythonhosted.org/packages/1d/23/37a65147077cd62c9aa62084d4d566e4c0ab20974a94a84c483a840065c1/restate_sdk-0.12.0-cp312-cp312-macosx_10_12_x86_64.whl", hash = "sha256:213e2c98a6f4c7ad0471b44073a4043980477bb15b469b15558aedf5797b5100", size = 1850519 },
+    { url = "https://files.pythonhosted.org/packages/80/f4/1c941351e8cc4fec8fe642b3ca5d76fba0b8410cac15cb3aa788ce6deef1/restate_sdk-0.12.0-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:8f699042ec29d6a9008ea452c6f71de31434e7768fe97fcfd21bd11bfbdb1280", size = 1794400 },
+    { url = "https://files.pythonhosted.org/packages/5a/5d/fa6c5bbdbddb5ac085c8bf862f066ca7338a77c25cdb25cf247f01728d12/restate_sdk-0.12.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:1fe4184187d768f4cf2e1f1e34f30325020ea56406c86a713faeac8501889942", size = 1994035 },
+    { url = "https://files.pythonhosted.org/packages/ac/14/4519b9ae82acd0bc7271a1a695916a15fcfa9b465823fdf009f420a67ea0/restate_sdk-0.12.0-cp312-cp312-manylinux_2_28_aarch64.whl", hash = "sha256:0bbbb32e0e8f985bbed2e6b45af7d0b27ee2a5f019e499626bb11b4c3dc98f61", size = 2036577 },
+    { url = "https://files.pythonhosted.org/packages/e6/63/bd1acd26b4b2999790c8e031cb70280bc2d83e5d6ea3c7c580f9d62a06e6/restate_sdk-0.12.0-cp312-cp312-musllinux_1_2_aarch64.whl", hash = "sha256:01687358ca206deb33cd80a8f98bece0bd084e97628c06a9d4677ba61ed17016", size = 2229415 },
+    { url = "https://files.pythonhosted.org/packages/d0/a4/928910b31b7ca06a9d3dc360837641c6f813d6d5e2d6fc81ca61dfe2f3d1/restate_sdk-0.12.0-cp312-cp312-musllinux_1_2_x86_64.whl", hash = "sha256:e69549e8f6a2583829a9a95998c3a62b9f46fbe3f2a14c11529e5482886bdf75", size = 2237175 },
 ]
 
 [package.optional-dependencies]
@@ -745,21 +751,6 @@ serde = [
     { name = "dacite" },
     { name = "pydantic" },
 ]
-
-[package.metadata]
-requires-dist = [
-    { name = "dacite", marker = "extra == 'serde'" },
-    { name = "httpx", marker = "extra == 'harness'" },
-    { name = "hypercorn", marker = "extra == 'harness'" },
-    { name = "hypercorn", marker = "extra == 'test'" },
-    { name = "mypy", marker = "extra == 'lint'", specifier = ">=1.11.2" },
-    { name = "pydantic", marker = "extra == 'serde'" },
-    { name = "pyright", marker = "extra == 'lint'", specifier = ">=1.1.390" },
-    { name = "pytest", marker = "extra == 'test'" },
-    { name = "ruff", marker = "extra == 'lint'", specifier = ">=0.6.9" },
-    { name = "testcontainers", marker = "extra == 'harness'" },
-]
-provides-extras = ["test", "lint", "harness", "serde"]
 
 [[package]]
 name = "rpds-py"
