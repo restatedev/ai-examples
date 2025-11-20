@@ -14,25 +14,28 @@ APP_NAME = "agents"
 # AGENTS
 # Determine which specialist to use based on claim type
 review_agent = Agent(
+    model="gemini-2.5-flash",
     name="medical_specialist",
     description="Reviews medical insurance claims for coverage and necessity.",
     instruction="You are a medical specialist. Review medical claims for coverage and necessity. You can approve/deny claims up to $50,000. Make a final decision on this claim.",
 )
 
 car_agent = Agent(
+    model="gemini-2.5-flash",
     name="auto_specialist",
     description="Assesses auto insurance claims for liability and damage.",
     instruction="You are an auto specialist. Assess auto claims for liability and damage. You can approve/deny claims up to $25,000. Make a final decision on this claim.",
 )
 
 property_agent = Agent(
+    model="gemini-2.5-flash",
     name="property_specialist",
     description="Evaluates property insurance claims for damage and coverage.",
     instruction="You are a property specialist. Evaluate property claims for damage and coverage. Make a final decision on this claim.",
 )
 
 agent = Agent(
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     name="intake_agent",
     description="Routes insurance claims to appropriate specialists.",
     instruction=f"You are an intake agent. Analyze this claim and determine if it should go to: medical specialist (for medical claims), auto specialist (for auto claims), or property specialist (for property claims). Based on the claim category, route accordingly.",

@@ -1,5 +1,6 @@
 import restate
 from google.adk import Runner
+from google.adk.sessions import Session
 from google.genai import types as genai_types
 
 from app.utils.models import ChatMessage
@@ -53,8 +54,3 @@ async def message(ctx: restate.ObjectContext, req: ChatMessage) -> str:
                 final_response = event.content.parts[0].text
 
     return final_response
-
-
-@chat.handler(kind="shared")
-async def get_history(ctx: restate.ObjectSharedContext):
-    return await ctx.get("items") or []
