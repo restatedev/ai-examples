@@ -14,10 +14,9 @@ AI agent examples using [Restate](https://restate.dev) for durable execution and
 
 ## Quick Start
 
-Create a `.env` file with your Google API key:
+Export your Google API key:
 ```bash
-GOOGLE_API_KEY=your-key
-GOOGLE_GENAI_USE_VERTEXAI=FALSE
+export GOOGLE_API_KEY=your-key
 ````
 
 Run the application:
@@ -39,7 +38,7 @@ Go to the Restate UI at `http://localhost:9070`. Click on `register deployment`.
 
 ![Register service](./docs/images/register_deployment.png)
 
-Click on one of the handlers of the registered services and send the default request.
+Click on one of the handlers of the registered services and send the default request. For example, click on the `run` handler of the `WeatherAgent` service and send the request:
 
 ![Send request](./docs/images/request.png)
 
