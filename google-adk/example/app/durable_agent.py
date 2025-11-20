@@ -14,8 +14,6 @@ from middleware.restate_utils import restate_overrides
 
 APP_NAME = "agents"
 
-agent_service = restate.Service("WeatherAgent")
-
 
 # TOOLS
 async def get_weather(tool_context: ToolContext, city: str) -> WeatherResponse:
@@ -39,8 +37,10 @@ agent = Agent(
 
 
 # HANDLER
+agent_service = restate.Service("WeatherAgent")
+
 @agent_service.handler()
-async def run(ctx: restate.ObjectContext, req: WeatherPrompt) -> str:
+async def run(ctx: restate.Context, req: WeatherPrompt) -> str:
     session_id = str(ctx.uuid())
 
     session_service = InMemorySessionService()

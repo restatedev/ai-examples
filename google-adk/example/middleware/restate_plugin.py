@@ -17,7 +17,7 @@ from middleware.middleware import durable_model_calls
 class RestatePlugin(BasePlugin):
     """A plugin to integrate Restate with the ADK framework."""
 
-    def __init__(self, ctx: restate.ObjectContext):
+    def __init__(self, ctx: restate.ObjectContext | restate.Context):
         self.ctx = ctx
         super().__init__(name="restate_plugin")
 
@@ -49,6 +49,7 @@ class RestatePlugin(BasePlugin):
         # Make the Restate context available to tools via ToolContext
         tool_context.session.state["restate_context"] = self.ctx
         return None
+
 
 
 async def _as_sequential_tools(tools: list[ToolUnion]) -> list[ToolUnion]:
