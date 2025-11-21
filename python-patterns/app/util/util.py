@@ -1,9 +1,39 @@
-import datetime
-import uuid
-
+import typing
 import httpx
+import restate
+
+from typing import Any, Coroutine
+from litellm.types.utils import Choices, ModelResponse
 from pydantic import BaseModel
-from restate import TerminalError
+from restate import TerminalError, RunOptions
+
+from app.util.litellm_call import llm_call
+
+
+def system_message(content: str) -> dict[str, str]:
+    return {"role": "system", "content": content}
+
+
+def tool(name: str, description: str, parameters: dict[str, Any] | None = None):
+    tool_def: dict[str, Any] = {
+        "type": "function",
+        "function": {
+            "name": name,
+            "description": description,
+        },
+    }
+    if parameters:
+        tool_def["function"]["parameters"] = parameters
+    return tool_def
+
+
+def tool_result(tool_id: str, tool_name: str, output: str) -> dict:
+    return {
+        "role": "tool",
+        "tool_call_id": tool_id,
+        "name": tool_name,
+        "content": output,
+    }
 
 
 def print_evaluation(iteration: int, solution: str | None, evaluation: str | None):
@@ -66,15 +96,13 @@ class SupportTicket(BaseModel):
     message: str
 
 
-def create_support_ticket(ticket: SupportTicket) -> str:
+async def create_ticket(ticket_id: str, ticket: SupportTicket) -> str:
     # Mock ticket creation (would be real API calls to ticketing systems)
-    ticket_id = str(uuid.uuid4())
     return str(
         {
             "ticket_id": ticket_id,
             "user_id": ticket.user_id,
             "status": "open",
-            "created_at": datetime.datetime.now().isoformat(),
             "details": ticket.message,
         }
     )
@@ -160,7 +188,7 @@ def notify_moderator(content: Content, approval_id: str):
     """Notify human moderator about content requiring review."""
     print("\n🔍 CONTENT MODERATION REQUIRED 🔍")
     print(f"Content: {content.message}")
-    print(f"Awaiting human decision...")
+    print("Awaiting human decision...")
     print("\nTo approve:")
     print(
         f"curl http://localhost:8080/restate/awakeables/{approval_id}/resolve --json '\"approved\"'"
@@ -196,3 +224,102 @@ async def get_weather(req: WeatherRequest) -> dict:
             ) from e
         else:
             raise Exception(f"HTTP error occurred: {e}") from e
+
+
+class Task(BaseModel):
+    task_type: str
+    instruction: str
+
+
+class TaskList(BaseModel):
+    tasks: list[Task]
+
+
+def parse_task_list(resp) -> TaskList:
+    response = typing.cast(ModelResponse, resp)
+    if not response.choices:
+        return TaskList(tasks=[])
+    first_choice = typing.cast(Choices, response.choices[0])
+    if (
+        not hasattr(first_choice, "message")
+        or not first_choice.message
+        or not first_choice.message.content
+    ):
+        return TaskList(tasks=[])
+    return TaskList.model_validate_json(first_choice.message.content)
+
+
+class Question(BaseModel):
+    message: str
+
+
+# Billing Support Agent
+# <start_here>
+billing_agent_svc = restate.Service("BillingAgent")
+
+
+@billing_agent_svc.handler("run")
+async def get_billing_support(ctx: restate.Context, question: Question) -> str | None:
+    result = await ctx.run_typed(
+        "LLM call",
+        llm_call,
+        RunOptions(max_attempts=3),
+        messages=f"""You are a billing support specialist.
+        Acknowledge the billing issue, explain charges clearly, provide next steps with timeline.
+        {question.message}""",
+    )
+    return result.content
+
+
+# <end_here>
+
+# Account Security Agent
+account_agent_svc = restate.Service("AccountAgent")
+
+
+@account_agent_svc.handler("run")
+async def get_account_support(ctx: restate.Context, question: Question) -> str | None:
+    result = await ctx.run_typed(
+        "LLM call",
+        llm_call,
+        RunOptions(max_attempts=3),
+        messages=f"""You are an account security specialist.
+        Prioritize account security and verification, provide clear recovery steps, include security tips.
+        {question.message}""",
+    )
+    return result.content
+
+
+# Product Support Agent
+product_agent_svc = restate.Service("ProductAgent")
+
+
+@product_agent_svc.handler("run")
+async def get_product_support(ctx: restate.Context, question: Question) -> str | None:
+    result = await ctx.run_typed(
+        "LLM call",
+        llm_call,
+        RunOptions(max_attempts=3),
+        messages=f"""You are a product specialist.
+        Focus on feature education and best practices, include specific examples, suggest related features.
+        {question.message}""",
+    )
+    return result.content
+
+
+# <start_remote_tool>
+crm_service = restate.Service("CRMService")
+
+
+@crm_service.handler()
+async def create_support_ticket(ctx: restate.Context, ticket: SupportTicket) -> str:
+    """Multi-step workflow to create a support ticket"""
+    ticket_id = str(ctx.uuid())
+    result = await ctx.run_typed(
+        "Create ticket", create_ticket, ticket_id=ticket_id, ticket=ticket
+    )
+    # ... other steps ...
+    return result
+
+
+# <end_remote_tool>

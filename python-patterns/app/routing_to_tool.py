@@ -1,3 +1,12 @@
+"""
+Tool Routing
+
+Route requests to tools based on LLM instructions.
+Agent loop continues calling tools until a final answer is returned.
+
+Flow: User Request → LLM → Tool Selection → Tool Execution → Response
+"""
+
 import restate
 from litellm.types.utils import Message
 from pydantic import BaseModel
@@ -5,113 +14,69 @@ from restate import RunOptions
 
 from .util.litellm_call import llm_call
 from .util.util import (
-    create_support_ticket,
-    fetch_service_status,
     query_user_db,
     SupportTicket,
+    tool,
+    tool_result,
+    create_support_ticket,
 )
 
-"""
-Dynamic Tool Routing
 
-Implement a custom agent loop that calls external, specialized tools based on LLM instructions.
-All steps are durable and recoverable. 
-The agent keeps calling the LLM and executing tools until a final answer is returned.
-"""
-
-
-# TOOLS
-service_status_tool = {
-    "type": "function",
-    "function": {
-        "name": "fetch_service_status",
-        "description": "Tool for checking service status and outages via internal APIs. "
-        "Call this to get current status of services, incidents, and uptime.",
-    },
-}
-
-create_ticket_tool = {
-    "type": "function",
-    "function": {
-        "name": "create_support_ticket",
-        "description": "Tool for creating tickets in CRM system for bugs, feature requests, escalations. "
-        "Call this to log new issues reported by users.",
-        "parameters": SupportTicket.model_json_schema(),
-    },
-}
-
-user_database_tool = {
-    "type": "function",
-    "function": {
-        "name": "query_user_database",
-        "description": "Get human review for content that may violate policy. "
-        "Call this for queries about account info, subscription details, "
-        "usage limits, billing questions, user profile",
-    },
-}
-
-# Example customer support request
-example_prompt = "My API calls are failing, what's wrong with my account?"
-"""
-Other examples:
-    "What's my current subscription plan and usage limits?",
-    "Is there an outage affecting the payment service?",
-    "I need to report a bug with the dashboard, please create a ticket"
-"""
-
-
-class Prompt(BaseModel):
+class Question(BaseModel):
     user_id: str = "user_12345"
-    message: str = example_prompt
+    message: str = "On which plan am I?"
 
 
-# ROUTING SERVICE
+# <start_here>
+tool_router = restate.Service("ToolRouter")
 
-tool_router_service = restate.Service("ToolRouterService")
+# Define tools as required by your LLM SDK
+TOOLS = [
+    tool("query_user_database", "Get user account and billing info"),
+    tool(
+        "create_support_ticket",
+        "Create support tickets",
+        SupportTicket.model_json_schema(),
+    ),
+]
 
 
-@tool_router_service.handler()
-async def route(ctx: restate.Context, prompt: Prompt) -> str:
-    """Customer support for questions about account, billing, service status, and issues"""
-    messages = [{"role": "user", "content": prompt.message}]
+@tool_router.handler()
+async def route(ctx: restate.Context, question: Question) -> str | None:
+    """Route to appropriate tool and execute until final answer"""
+    messages = [{"role": "user", "content": question.message}]
 
     while True:
-        result = await ctx.run_typed(
+        response = await ctx.run_typed(
             "LLM call",
-            llm_call,
+            llm_call,  # Use your preferred LLM SDK here
             RunOptions(max_attempts=3, type_hint=Message),
             messages=messages,
-            tools=[create_ticket_tool, service_status_tool, user_database_tool],
+            tools=TOOLS,
         )
-        messages.append(result.dict())
+        messages.append(response.dict())
 
-        if not result.tool_calls:
-            return result.content or "No response from LLM"
+        if not response.tool_calls:
+            return response.content
 
-        for tool_call in result.tool_calls:
+        for tool_call in response.tool_calls:
             fn = tool_call.function
-            # Route to appropriate support tool
-            if fn.name == "query_user_database":
-                tool_result = await ctx.run_typed(
-                    "Query user DB", query_user_db, user_id=prompt.user_id
-                )
-            elif fn.name == "fetch_service_status":
-                tool_result = await ctx.run_typed(
-                    "Get service status", fetch_service_status
-                )
-            elif fn.name == "create_ticket":
-                tool_result = await ctx.run_typed(
-                    "create support ticket",
-                    create_support_ticket,
-                    ticket=SupportTicket.model_validate_json(fn.arguments),
-                )
-            else:
-                tool_result = f"Didn't find tool for {fn.name}"
-            messages.append(
-                {
-                    "tool_call_id": tool_call.id,
-                    "role": "tool",
-                    "name": fn.name or "",
-                    "content": tool_result,
-                }
-            )
+            tool_name = fn.name or "unknown"
+            result = ""
+            match tool_name:
+                case "query_user_database":
+                    # Example of a local tool
+                    result = await ctx.run_typed(
+                        "Query DB", query_user_db, user_id=question.user_id
+                    )
+                case "create_support_ticket":
+                    # Example of a remote tool/workflow
+                    ticket = SupportTicket.model_validate_json(fn.arguments)
+                    result = await ctx.service_call(create_support_ticket, arg=ticket)
+                case _:
+                    result = f"Tool not found: {tool_name}"
+
+            messages.append(tool_result(tool_call.id, tool_name, result))
+
+
+# <end_here>

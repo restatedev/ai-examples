@@ -1,147 +1,62 @@
-import restate
-import json
+"""
+Agent Routing
 
+Route customer questions to specialized AI agents based on their content.
+Each routing decision is durable and can be retried if it fails.
+
+Flow: Customer Question → Classifier → Specialized Agent → Response
+"""
+
+import restate
+
+from pydantic import BaseModel
 from restate import RunOptions
 
+from .util.util import tool
 from .util.litellm_call import llm_call
-from pydantic import BaseModel
-
-"""
-Multi-Agent Routing
-
-Automatically route requests to specialized agents based on content analysis.
-Routing decisions are persisted and can be retried if they fail.
-Agents can be deployed as separate services, to scale independently.
-
-Request → Classifier → Agent A/B/C → Specialized Response
-"""
-
-# Example input text to analyze
-example_prompt = "I can't log into my account. Keep getting invalid password errors."
-"""
-Other examples:
-    "Why was I charged $49.99 when I'm on the $29.99 plan?",
-    "How do I export my project data to Excel format?",
-    "What's the best way to organize my dashboard widgets?"
-"""
 
 
-class Prompt(BaseModel):
-    message: str = example_prompt
+# Customer's question
+class Question(BaseModel):
+    message: str = "I can't log into my account. Keep getting invalid password errors."
 
 
-# ROUTING AGENT
+remote_agent_router = restate.Service("RemoteAgentRouter")
 
-remote_agent_router_service = restate.Service("RemoteAgentRouterService")
+# Classify the request
+SPECIALISTS = {
+    "BillingAgent": "Expert in payments, charges, and refunds",
+    "AccountAgent": "Expert in login issues and security",
+    "ProductAgent": "Expert in features and how-to guides",
+}
 
 
-@remote_agent_router_service.handler()
-async def route(ctx: restate.Context, prompt: Prompt) -> str | None:
+@remote_agent_router.handler()
+async def answer(ctx: restate.Context, question: Question) -> str | None:
     """Classify request and route to appropriate specialized agent."""
 
-    # Classify the request
-    result = await ctx.run_typed(
-        "handle request",
-        llm_call,
+    # 1. First, decide if a specialist is needed
+    routing_decision = await ctx.run_typed(
+        "Pick specialist",
+        llm_call,  # Use your preferred AI SDK here
         RunOptions(max_attempts=3),
-        prompt=prompt.message,
-        tools=[billing_agent, account_agent, product_agent],
+        messages=question.message,
+        tools=[tool(name=name, description=desc) for name, desc in SPECIALISTS.items()],
     )
 
-    if not result.tool_calls:
-        return result.content
+    # 2. No specialist needed? Give a general answer
+    if not routing_decision.tool_calls:
+        return routing_decision.content
 
-    tool_call = result.tool_calls[0]
+    # 3. Get the specialist's name
+    specialist = routing_decision.tool_calls[0].function.name
+    if not specialist:
+        return "Unable to determine specialist"
 
-    # We use a generic call to route to the specialized agent service
-    if (tool_call.function.name is None or
-            tool_call.function.name not in ["BillingAgent", "AccountAgent", "ProductAgent"]):
-        return "We cannot help you with this request."
-    # Generic calls let us call agents by string name and method
+    # 4. Call the specialist over HTTP
     response = await ctx.generic_call(
-        tool_call.function.name,
+        specialist,
         "run",
-        arg=json.dumps(prompt.message).encode("utf-8"),
+        arg=question.model_dump_json().encode(),
     )
     return response.decode("utf-8")
-
-
-# SPECIALIZED AGENT SERVICES
-
-# Billing Support Agent
-billing_agent = {
-    "type": "function",
-    "function": {
-        "name": "BillingAgent",
-        "description": "Handle billing related queries: payments, charges, refunds, plans",
-    },
-}
-
-
-billing_agent_svc = restate.Service("BillingAgent")
-
-
-@billing_agent_svc.handler("run")
-async def get_billing_support(ctx: restate.Context, prompt: str) -> str | None:
-    result = await ctx.run_typed(
-        "billing_response",
-        llm_call,
-        RunOptions(max_attempts=3),
-        system=f"""You are a billing support specialist.
-        Acknowledge the billing issue, explain charges clearly, provide next steps with timeline.
-        Keep responses professional but friendly.""",
-        prompt=prompt,
-    )
-    return result.content
-
-
-# Account Security Agent
-account_agent = {
-    "type": "function",
-    "function": {
-        "name": "AccountAgent",
-        "description": "Handle account related queries: login, password, security, access",
-    },
-}
-
-account_agent_svc = restate.Service("AccountAgent")
-
-
-@account_agent_svc.handler("run")
-async def get_account_support(ctx: restate.Context, prompt: str) -> str | None:
-    result = await ctx.run_typed(
-        "account_response",
-        llm_call,
-        RunOptions(max_attempts=3),
-        system=f"""You are an account security specialist.
-        Prioritize account security and verification, provide clear recovery steps, include security tips.
-        Maintain a serious, security-focused tone.""",
-        prompt=prompt,
-    )
-    return result.content
-
-
-# Product Support Agent
-product_agent = {
-    "type": "function",
-    "function": {
-        "name": "ProductAgent",
-        "description": "Handle product related queries: features, usage, best practices",
-    },
-}
-
-product_agent_svc = restate.Service("ProductAgent")
-
-
-@product_agent_svc.handler("run")
-async def get_product_support(ctx: restate.Context, prompt: str) -> str | None:
-    result = await ctx.run_typed(
-        "product_response",
-        llm_call,
-        RunOptions(max_attempts=3),
-        system=f"""You are a product specialist.
-        Focus on feature education and best practices, include specific examples, suggest related features.
-        Be educational and encouraging in tone.""",
-        prompt=prompt,
-    )
-    return result.content
