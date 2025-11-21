@@ -2,7 +2,7 @@ import typing
 import httpx
 import restate
 
-from typing import Any
+from typing import Any, Coroutine
 from litellm.types.utils import Choices, ModelResponse
 from pydantic import BaseModel
 from restate import TerminalError, RunOptions
@@ -151,7 +151,7 @@ users_db = {
 }
 
 
-async def query_user_db(user_id: str) -> str:
+def query_user_db(user_id: str) -> str:
     content = users_db.get(user_id, None)
     if content:
         return str(content)

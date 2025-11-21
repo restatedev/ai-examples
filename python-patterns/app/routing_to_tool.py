@@ -47,21 +47,22 @@ async def route(ctx: restate.Context, question: Question) -> str | None:
     messages = [{"role": "user", "content": question.message}]
 
     while True:
-        result = await ctx.run_typed(
+        response = await ctx.run_typed(
             "LLM call",
             llm_call,  # Use your preferred LLM SDK here
             RunOptions(max_attempts=3, type_hint=Message),
             messages=messages,
             tools=TOOLS,
         )
-        messages.append(result.dict())
+        messages.append(response.dict())
 
-        if not result.tool_calls:
-            return result.content
+        if not response.tool_calls:
+            return response.content
 
-        for tool_call in result.tool_calls:
+        for tool_call in response.tool_calls:
             fn = tool_call.function
             tool_name = fn.name or "unknown"
+            result = ""
             match tool_name:
                 case "query_user_database":
                     # Example of a local tool
