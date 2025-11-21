@@ -23,14 +23,10 @@ async def moderate(ctx: restate.Context, content: Content) -> str | None:
         "moderate",
         llm_call,  # Use your preferred LLM SDK here
         RunOptions(max_attempts=3),
-        system="You are a content moderation agent. Decide if the content violates policy.",
-        prompt=content.message,
-        tools=[
-            tool(
-                "get_human_review",
-                "Request human review if policy violation is uncertain.",
-            )
-        ],
+        messages=f"""You are a content moderation agent.
+        Decide if the content violates policy: {content.message}
+        Request human review via tools if policy violation is uncertain.""",
+        tools=[tool("get_human_review", "Request human review")],
     )
 
     # Handle human review request

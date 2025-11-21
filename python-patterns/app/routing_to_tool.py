@@ -42,7 +42,7 @@ TOOLS = [
 
 
 @tool_router.handler()
-async def route(ctx: restate.Context, question: Question) -> str:
+async def route(ctx: restate.Context, question: Question) -> str | None:
     """Route to appropriate tool and execute until final answer"""
     messages = [{"role": "user", "content": question.message}]
 
@@ -61,7 +61,8 @@ async def route(ctx: restate.Context, question: Question) -> str:
 
         for tool_call in result.tool_calls:
             fn = tool_call.function
-            match fn.name:
+            tool_name = fn.name or "unknown"
+            match tool_name:
                 case "query_user_database":
                     # Example of a local tool
                     result = await ctx.run_typed(
@@ -72,9 +73,9 @@ async def route(ctx: restate.Context, question: Question) -> str:
                     ticket = SupportTicket.model_validate_json(fn.arguments)
                     result = await ctx.service_call(create_support_ticket, arg=ticket)
                 case _:
-                    result = f"Tool not found: {fn.name}"
+                    result = f"Tool not found: {tool_name}"
 
-            messages.append(tool_result(tool_call.id, fn.name, result))
+            messages.append(tool_result(tool_call.id, tool_name, result))
 
 
 # <end_here>

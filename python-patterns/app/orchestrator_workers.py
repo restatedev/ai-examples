@@ -7,37 +7,26 @@ If any worker fails, Restate retries only that worker while preserving other com
 Task → Orchestrator → [Worker A, Worker B, Worker C] → Aggregated Results
 """
 
+import litellm
 import restate
-from litellm.types.utils import ModelResponse
 
 from pydantic import BaseModel
 from restate import RunOptions
 
 from .util.litellm_call import llm_call
+from .util.util import parse_task_list, TaskList
 
-import litellm
+litellm.enable_json_schema_validation = True
 
-
-example_prompt = (
-    "Analyze the following text for sentiment, key points, and provide a summary:"
-    "'Our Q3 results exceeded all expectations! Customer satisfaction reached 95%, "
-    "revenue grew by 40% year-over-year, and we successfully launched three new product features. "
-    "The team worked incredibly hard to deliver these outcomes despite supply chain challenges. "
-    "Our market share increased to 23%, and we're well-positioned for continued growth in Q4.'"
-)
+example_prompt = """Analyze the following text for sentiment, key points, and provide a summary:
+'Our Q3 results exceeded all expectations! Customer satisfaction reached 95%, 
+revenue grew by 40% year-over-year, and we successfully launched three new product features. 
+The team worked incredibly hard to deliver these outcomes despite supply chain challenges. 
+Our market share increased to 23%, and we're well-positioned for continued growth in Q4.'"""
 
 
 class Prompt(BaseModel):
     message: str = example_prompt
-
-
-class Task(BaseModel):
-    task_type: str
-    instruction: str
-
-
-class TaskList(BaseModel):
-    tasks: list[Task]
 
 
 orchestrator_svc = restate.Service("Orchestrator")
@@ -47,42 +36,32 @@ orchestrator_svc = restate.Service("Orchestrator")
 async def process(ctx: restate.Context, prompt: Prompt) -> str:
     """Orchestrate text analysis breakdown and parallel execution by specialized workers."""
 
-    messages = [
-        {
-            "role": "system",
-            "content": "You are an orchestrator that breaks down text analysis tasks into specialized subtasks for workers.",
-        },
-        {"role": "user", "content": f"Text to analyze: {prompt.message}"},
-    ]
-
     # Step 1: Orchestrator analyzes and breaks down the text analysis task
-    litellm.enable_json_schema_validation = True
+    async def generate_task_list() -> TaskList:
+        content = f"""You are an orchestrator that breaks down text analysis tasks into specialized subtasks for workers.
+        Analyze the following text: {prompt.message}"""
+        resp = await litellm.acompletion(
+            model="gpt-4o",
+            messages=[{"role": "user", "content": content}],
+            response_format=TaskList,
+        )
+        return parse_task_list(resp)
+
     response = await ctx.run_typed(
         "orchestrator_analysis",
-        litellm.acompletion,  # Use your preferred LLM SDK here
-        RunOptions(max_attempts=3, type_hint=ModelResponse),
-        model="gpt-4o",
-        messages=messages,
-        response_format=TaskList,
+        generate_task_list,  # Use your preferred LLM SDK here
+        RunOptions(max_attempts=3),
     )
-    if (
-        not hasattr(response.choices[0], "message")
-        or not response.choices[0].text.content
-    ):
-        return "Orchestrator failed to produce a task list."
-    task_list_json = response.choices[0].text.content
-
-    tasks = TaskList.model_validate_json(task_list_json).tasks
 
     # Step 2: Workers execute their specialized tasks in parallel
     task_promises = []
-    for task in tasks:
+    for task in response.tasks:
         worker_task = ctx.run_typed(
             task.task_type,
             llm_call,  # Use your preferred LLM SDK here
             RunOptions(max_attempts=3),
-            system=f"You are a {task.task_type} specialist.",
-            prompt=f"Task: {task.instruction} - Text to analyze: {prompt}",
+            messages=f"""You are a {task.task_type} specialist."
+            Task: {task.instruction} - Text to analyze: {prompt}""",
         )
         task_promises.append(worker_task)
 
@@ -91,7 +70,7 @@ async def process(ctx: restate.Context, prompt: Prompt) -> str:
 
     # Collect results
     results = [
-        f"{task.task_type} result: {await task_promise}"
-        for task, task_promise in zip(tasks, task_promises)
+        f"{task.task_type} result: {(await task_promise).content}"
+        for task, task_promise in zip(response.tasks, task_promises)
     ]
-    return "--".join(results)
+    return "\n\n--".join(results)

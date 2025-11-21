@@ -1,41 +1,35 @@
+import typing
 import litellm
-from typing import Optional, List, Any, Coroutine
 
-from litellm.types.utils import Message, ChatCompletionMessageToolCall
-from restate import TerminalError
+from litellm.types.utils import Message, ModelResponse, Choices
 
 
 async def llm_call(
-    prompt: Optional[str] = None,
-    system: Optional[str] = None,
-    messages: Optional[list[dict[str, str]]] = None,
-    tools: Optional[List] = None,
+    messages: str | list[dict[str, str]], tools: list | None = None
 ) -> Message:
     """
     Calls the model with the given prompt and returns the response.
 
     Args:
-        prompt (str): The user prompt to send to the model.
-        system (str, optional): The system prompt to send to the model. Defaults to "".
-        messages (list, optional): Previous messages for context in chat models. Defaults to None.
+        messages (str): The user prompt to send to the model.
         tools (list, optional): List of tools for the model to use. Defaults to None.
 
     Returns:
         str: The response from the language model.
     """
+    if tools is None:
+        tools = []
+    if isinstance(messages, str):
+        messages = [{"role": "user", "content": messages}]
+    resp = await litellm.acompletion(
+        model="gpt-4o", messages=messages, tools=tools, stream=False
+    )
+    response = typing.cast(ModelResponse, resp)
 
-    if not prompt and not messages:
-        raise TerminalError("Either prompt or messages must be provided.")
+    # Handle the response properly - litellm returns a ModelResponse object
+    if hasattr(response, "choices") and response.choices:
+        first_choice = typing.cast(Choices, response.choices[0])
+        if hasattr(first_choice, "message") and first_choice.message:
+            return first_choice.message
 
-    messages = messages or []
-    if system:
-        messages.append({"role": "system", "content": system})
-    if prompt:
-        messages.append({"role": "user", "content": prompt})
-    response = await litellm.acompletion(model="gpt-4o", messages=messages, tools=tools)
-    content = response.choices[0].message
-
-    if content:
-        return content
-    else:
-        raise RuntimeError("No content in response")
+    raise RuntimeError("No content in response")

@@ -37,10 +37,8 @@ async def process(ctx: restate.Context, report: Report) -> str | None:
         "Extract metrics",
         llm_call,  # Use your preferred LLM SDK here
         RunOptions(max_attempts=3),  # Avoid infinite retries
-        prompt=(
-            "Extract numerical values and their metrics from the text. "
-            f"Format as 'Metric Name: Value' per line. Input: {report.message}"
-        ),
+        messages=f"""Extract numerical values and their metrics from the text. 
+        Format as 'Metric Name: Value' per line. Input: {report.message}""",
     )
 
     # Step 2: Sort by value
@@ -48,7 +46,7 @@ async def process(ctx: restate.Context, report: Report) -> str | None:
         "Sort metrics",
         llm_call,
         RunOptions(max_attempts=3),
-        prompt=f"Sort lines in descending order by value: {extract}",
+        messages=f"Sort lines in descending order by value: {extract}",
     )
 
     # Step 3: Format as table
@@ -56,7 +54,7 @@ async def process(ctx: restate.Context, report: Report) -> str | None:
         "Format as table",
         llm_call,
         RunOptions(max_attempts=3),
-        prompt=f"Format the data as a markdown table:{sorted_metrics}"
+        messages=f"Format the data as a markdown table:{sorted_metrics}",
     )
 
     return table.content

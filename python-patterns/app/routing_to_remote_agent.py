@@ -32,7 +32,7 @@ SPECIALISTS = {
 
 
 @remote_agent_router.handler()
-async def answer(ctx: restate.Context, question: Question) -> str:
+async def answer(ctx: restate.Context, question: Question) -> str | None:
     """Classify request and route to appropriate specialized agent."""
 
     # 1. First, decide if a specialist is needed
@@ -40,7 +40,7 @@ async def answer(ctx: restate.Context, question: Question) -> str:
         "Pick specialist",
         llm_call,  # Use your preferred AI SDK here
         RunOptions(max_attempts=3),
-        prompt=question.message,
+        messages=question.message,
         tools=[tool(name=name, description=desc) for name, desc in SPECIALISTS.items()],
     )
 
@@ -50,6 +50,8 @@ async def answer(ctx: restate.Context, question: Question) -> str:
 
     # 3. Get the specialist's name
     specialist = routing_decision.tool_calls[0].function.name
+    if not specialist:
+        return "Unable to determine specialist"
 
     # 4. Call the specialist over HTTP
     response = await ctx.generic_call(

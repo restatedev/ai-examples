@@ -26,18 +26,18 @@ async def message(ctx: restate.ObjectContext, msg: ChatMessage) -> str | None:
     """A long-lived stateful chat session that allows for ongoing conversation."""
 
     # Retrieve conversation memory from Restate
-    memory = await ctx.get("memory", type_hint=list[dict]) or []
-    memory.append({"role": "user", "content": msg.message})
+    messages = await ctx.get("memory", type_hint=list[dict]) or []
+    messages.append({"role": "user", "content": msg.message})
 
     result = await ctx.run_typed(
         "LLM call",
         llm_call,  # Use your preferred LLM SDK here
         RunOptions(max_attempts=3),
-        messages=memory,
+        messages=messages,
     )
 
     # Update conversation memory in Restate
-    memory.append({"role": "assistant", "content": result.content})
-    ctx.set("memory", memory)
+    messages.append({"role": "assistant", "content": result.content})
+    ctx.set("memory", messages)
 
     return result.content

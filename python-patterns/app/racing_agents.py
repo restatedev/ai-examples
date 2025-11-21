@@ -15,7 +15,7 @@ racing_agent = Service("RacingAgent")
 
 
 @racing_agent.handler()
-async def run(ctx: Context, query: Question):
+async def run(ctx: Context, query: Question) -> str | None:
     """Run two approaches in parallel and return the fastest response."""
     # Start both service calls concurrently
     slow_response = ctx.service_call(think_longer, arg=query)
@@ -36,22 +36,22 @@ async def run(ctx: Context, query: Question):
 
 
 @racing_agent.handler()
-async def think_longer(ctx: Context, req: Question) -> str:
+async def think_longer(ctx: Context, req: Question) -> str | None:
     output = await ctx.run_typed(
         "Deep analysis",
         llm_call,
         RunOptions(max_attempts=3),
-        prompt=f"Analyze this thoroughly: {req}",
+        messages=f"Analyze this thoroughly: {req}",
     )
     return output.content
 
 
 @racing_agent.handler()
-async def respond_quickly(ctx: Context, req: Question) -> str:
+async def respond_quickly(ctx: Context, req: Question) -> str | None:
     output = await ctx.run_typed(
         "Quick response",
         llm_call,
         RunOptions(max_attempts=3),
-        prompt=f"Quick answer: {req}",
+        messages=f"Quick answer: {req}",
     )
     return output.content

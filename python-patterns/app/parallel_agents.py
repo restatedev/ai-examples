@@ -17,19 +17,17 @@ from .util.litellm_call import llm_call
 
 
 class Text(BaseModel):
-    message: str = (
-        "Our Q3 results exceeded all expectations! Customer satisfaction reached 95%, revenue grew "
-        "by 40% year-over-year, and we successfully launched three new product features. "
-        "The team worked incredibly hard to deliver these outcomes despite supply chain challenges. "
-        "Our market share increased to 23%, and we're well-positioned for continued growth in Q4."
-    )
+    message: str = """Our Q3 results exceeded all expectations! Customer satisfaction reached 95%, revenue grew 
+    by 40% year-over-year, and we successfully launched three new product features. 
+    The team worked incredibly hard to deliver these outcomes despite supply chain challenges. 
+    Our market share increased to 23%, and we're well-positioned for continued growth in Q4."""
 
 
 parallelization_svc = restate.Service("ParallelAgentsService")
 
 
 @parallelization_svc.handler()
-async def analyze(ctx: restate.Context, text: Text) -> list[str]:
+async def analyze(ctx: restate.Context, text: Text) -> list[str | None]:
     """Analyzes multiple aspects of the text in parallel."""
 
     # Create parallel tasks - each runs independently
@@ -38,19 +36,19 @@ async def analyze(ctx: restate.Context, text: Text) -> list[str]:
             "Analyze sentiment",
             llm_call,  # Use your preferred LLM SDK here
             RunOptions(max_attempts=3),
-            prompt=f"Analyze sentiment (positive/negative/neutral): {text}",
+            messages=f"Analyze sentiment (positive/negative/neutral): {text}",
         ),
         ctx.run_typed(
             "Extract key points",
             llm_call,
             RunOptions(max_attempts=3),
-            prompt=f"Extract 3 key points as bullets: {text}",
+            messages=f"Extract 3 key points as bullets: {text}",
         ),
         ctx.run_typed(
             "Summarize",
             llm_call,
             RunOptions(max_attempts=3),
-            prompt=f"Summarize in one sentence: {text}",
+            messages=f"Summarize in one sentence: {text}",
         ),
     ]
 

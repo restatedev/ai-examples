@@ -1,16 +1,21 @@
-import datetime
-import uuid
+import typing
+import httpx
 import restate
 
-import httpx
+from typing import Any
+from litellm.types.utils import Choices, ModelResponse
 from pydantic import BaseModel
 from restate import TerminalError, RunOptions
 
 from app.util.litellm_call import llm_call
 
 
-def tool(name: str, description: str, parameters=None):
-    tool_def = {
+def system_message(content: str) -> dict[str, str]:
+    return {"role": "system", "content": content}
+
+
+def tool(name: str, description: str, parameters: dict[str, Any] | None = None):
+    tool_def: dict[str, Any] = {
         "type": "function",
         "function": {
             "name": name,
@@ -146,7 +151,7 @@ users_db = {
 }
 
 
-def query_user_db(user_id: str) -> str:
+async def query_user_db(user_id: str) -> str:
     content = users_db.get(user_id, None)
     if content:
         return str(content)
@@ -183,7 +188,7 @@ def notify_moderator(content: Content, approval_id: str):
     """Notify human moderator about content requiring review."""
     print("\n🔍 CONTENT MODERATION REQUIRED 🔍")
     print(f"Content: {content.message}")
-    print(f"Awaiting human decision...")
+    print("Awaiting human decision...")
     print("\nTo approve:")
     print(
         f"curl http://localhost:8080/restate/awakeables/{approval_id}/resolve --json '\"approved\"'"
@@ -221,6 +226,29 @@ async def get_weather(req: WeatherRequest) -> dict:
             raise Exception(f"HTTP error occurred: {e}") from e
 
 
+class Task(BaseModel):
+    task_type: str
+    instruction: str
+
+
+class TaskList(BaseModel):
+    tasks: list[Task]
+
+
+def parse_task_list(resp) -> TaskList:
+    response = typing.cast(ModelResponse, resp)
+    if not response.choices:
+        return TaskList(tasks=[])
+    first_choice = typing.cast(Choices, response.choices[0])
+    if (
+        not hasattr(first_choice, "message")
+        or not first_choice.message
+        or not first_choice.message.content
+    ):
+        return TaskList(tasks=[])
+    return TaskList.model_validate_json(first_choice.message.content)
+
+
 class Question(BaseModel):
     message: str
 
@@ -236,9 +264,9 @@ async def get_billing_support(ctx: restate.Context, question: Question) -> str |
         "LLM call",
         llm_call,
         RunOptions(max_attempts=3),
-        system=f"""You are a billing support specialist.
-        Acknowledge the billing issue, explain charges clearly, provide next steps with timeline.""",
-        prompt=question.message,
+        messages=f"""You are a billing support specialist.
+        Acknowledge the billing issue, explain charges clearly, provide next steps with timeline.
+        {question.message}""",
     )
     return result.content
 
@@ -255,9 +283,9 @@ async def get_account_support(ctx: restate.Context, question: Question) -> str |
         "LLM call",
         llm_call,
         RunOptions(max_attempts=3),
-        system=f"""You are an account security specialist.
-        Prioritize account security and verification, provide clear recovery steps, include security tips.""",
-        prompt=question.message,
+        messages=f"""You are an account security specialist.
+        Prioritize account security and verification, provide clear recovery steps, include security tips.
+        {question.message}""",
     )
     return result.content
 
@@ -272,9 +300,9 @@ async def get_product_support(ctx: restate.Context, question: Question) -> str |
         "LLM call",
         llm_call,
         RunOptions(max_attempts=3),
-        system=f"""You are a product specialist.
-        Focus on feature education and best practices, include specific examples, suggest related features.""",
-        prompt=question.message,
+        messages=f"""You are a product specialist.
+        Focus on feature education and best practices, include specific examples, suggest related features.
+        {question.message}""",
     )
     return result.content
 
@@ -288,7 +316,7 @@ async def create_support_ticket(ctx: restate.Context, ticket: SupportTicket) -> 
     """Multi-step workflow to create a support ticket"""
     ticket_id = str(ctx.uuid())
     result = await ctx.run_typed(
-        fn.name, create_ticket, ticket_id=ticket_id, ticket=ticket
+        "Create ticket", create_ticket, ticket_id=ticket_id, ticket=ticket
     )
     # ... other steps ...
     return result

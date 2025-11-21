@@ -45,7 +45,7 @@ async def run(ctx: restate.Context, task: Task) -> str | None:
             f"generate_v{iteration+1}",
             llm_call,  # Use your preferred LLM SDK here
             RunOptions(max_attempts=3),
-            prompt=f"Task: {task} - Previous attempts: {attempts}",
+            messages=f"Task: {task} - Previous attempts: {attempts}",
         )
         solution = solution_response.content
         if solution is not None:
@@ -56,8 +56,7 @@ async def run(ctx: restate.Context, task: Task) -> str | None:
             f"evaluate_v{iteration+1}",
             llm_call,
             RunOptions(max_attempts=3),
-            system=evaluation_prompt,
-            prompt=f"Task: {task} - Solution: {solution}" "",
+            messages=f"{evaluation_prompt} Task: {task} - Solution: {solution}",
         )
         evaluation = evaluation_response.content
         print_evaluation(iteration, solution, evaluation)

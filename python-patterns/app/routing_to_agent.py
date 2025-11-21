@@ -33,7 +33,7 @@ SPECIALISTS = {
 
 
 @router.handler()
-async def answer(ctx: restate.Context, question: Question) -> str:
+async def answer(ctx: restate.Context, question: Question) -> str | None:
     """Classify request and route to appropriate specialized agent."""
 
     # 1. First, decide if a specialist is needed
@@ -41,8 +41,9 @@ async def answer(ctx: restate.Context, question: Question) -> str:
         "Pick specialist",
         llm_call,  # Use your preferred LLM SDK here
         RunOptions(max_attempts=3),
-        system="You are a customer service routing system. Choose the appropriate specialist, or respond directly if no specialist is needed.",
-        prompt=question.message,
+        messages=f"""You are a customer service routing system. 
+        Choose the appropriate specialist, or respond directly if no specialist is needed. 
+        {question.message}""",
         tools=[tool(name=name, description=desc) for name, desc in SPECIALISTS.items()],
     )
 
@@ -51,15 +52,15 @@ async def answer(ctx: restate.Context, question: Question) -> str:
         return routing_decision.content
 
     # 3. Get the specialist's name
-    specialist = routing_decision.tool_calls[0].function.name
+    specialist = routing_decision.tool_calls[0].function.name or "ProductAgent"
 
     # 4. Ask the specialist to answer
-    answer = await ctx.run_typed(
+    response = await ctx.run_typed(
         f"Ask {specialist}",
         llm_call,
         RunOptions(max_attempts=3),
-        system=f"You are a {SPECIALISTS.get(specialist, 'support')} specialist.",
-        prompt=question.message,
+        messages=f"""You are a {SPECIALISTS.get(specialist)} specialist."
+        Answer the question: {question.message}""",
     )
 
-    return answer.content
+    return response.content

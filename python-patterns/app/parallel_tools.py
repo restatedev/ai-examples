@@ -27,7 +27,7 @@ async def run(ctx: Context, prompt: WeatherPrompt) -> str | None:
     while True:
         # Call LLM with durable execution
         response = await ctx.run_typed(
-            "llm-call",
+            "LLM call",
             llm_call,  # Use your preferred LLM SDK here
             RunOptions(max_attempts=3),
             messages=messages,
