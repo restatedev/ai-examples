@@ -1,5 +1,6 @@
 import restate
 from google.adk import Runner
+from google.adk.apps import App
 from google.adk.sessions import Session
 from google.genai import types as genai_types
 
@@ -20,27 +21,23 @@ agent = Agent(
     instruction="You are a helpful assistant. Be concise and helpful.",
 )
 
+# Enables retries and recovery for model calls and tool executions
+app = App(name=APP_NAME, root_agent=agent, plugins=[RestatePlugin()])
+session_service = RestateSessionService()
+
 chat = restate.VirtualObject("Chat")
 
 
 # HANDLER
 @chat.handler()
 async def message(ctx: restate.ObjectContext, req: ChatMessage) -> str:
-    # Restate runner which uses RestateSessionService to persist session state in Restate
     session_id = ctx.key()
-    session_service = RestateSessionService(ctx)
-    await session_service.create_session(
-        app_name=APP_NAME, user_id=req.user_id, session_id=session_id
-    )
-
-    runner = Runner(
-        agent=agent,
-        app_name=APP_NAME,
-        session_service=session_service,
-        # Enables retries and recovery for model calls and tool executions
-        plugins=[RestatePlugin(ctx)],
-    )
     with restate_overrides(ctx):
+        await session_service.create_session(
+            app_name=APP_NAME, user_id=req.user_id, session_id=session_id
+        )
+
+        runner = Runner(app=app, session_service=session_service)
         events = runner.run_async(
             user_id=req.user_id,
             session_id=session_id,
@@ -53,4 +50,4 @@ async def message(ctx: restate.ObjectContext, req: ChatMessage) -> str:
             if event.is_final_response() and event.content and event.content.parts:
                 final_response = event.content.parts[0].text
 
-    return final_response
+        return final_response

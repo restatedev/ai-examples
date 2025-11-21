@@ -1,6 +1,7 @@
 import httpx
 import restate
 from google.adk import Agent, Runner
+from google.adk.apps import App
 from restate import TerminalError
 from google.genai.types import Content, Part
 
@@ -13,6 +14,7 @@ from app.utils.models import (
 )
 from middleware.restate_plugin import RestatePlugin
 from middleware.restate_session_service import RestateSessionService
+from middleware.restate_utils import restate_overrides
 
 
 async def call_weather_api(city: str) -> WeatherResponse:
@@ -82,49 +84,54 @@ async def check_fraud(claim: InsuranceClaim) -> str:
 
 APP_NAME = "agents"
 
-eligibility_agent_service = restate.VirtualObject("EligibilityAgent")
+eligibility_agent = Agent(
+    model="gemini-2.5-flash",
+    name="EligibilityAgent",
+    description="Decide whether the following claim is eligible for reimbursement.",
+    instruction="Respond with eligible if it's a medical claim, and not eligible otherwise.",
+)
 
+eligibility_app = App(name=APP_NAME, root_agent=eligibility_agent, plugins=[RestatePlugin()])
+eligibility_session_service = RestateSessionService()
+
+eligibility_agent_service = restate.VirtualObject("EligibilityAgent")
 
 @eligibility_agent_service.handler()
 async def run_eligibility_agent(
     ctx: restate.ObjectContext, claim: InsuranceClaim
 ) -> str:
-    user_id = "user123"
-    agent = Agent(
-        model="gemini-2.5-flash",
-        name="EligibilityAgent",
-        description="Decide whether the following claim is eligible for reimbursement.",
-        instruction="Respond with eligible if it's a medical claim, and not eligible otherwise.",
-    )
     session_id = ctx.key()
-    session_service = RestateSessionService(ctx)
-    await session_service.create_session(
-        app_name=APP_NAME, user_id=claim.user_id, session_id=session_id
-    )
+    with restate_overrides(ctx):
+        await eligibility_session_service.create_session(
+            app_name=APP_NAME, user_id=claim.user_id, session_id=session_id
+        )
+        runner = Runner(app=eligibility_app, session_service=eligibility_session_service)
 
-    runner = Runner(
-        agent=agent,
-        app_name=APP_NAME,
-        session_service=session_service,
-        # Enables retries and recovery for model calls and tool executions
-        plugins=[RestatePlugin(ctx)],
-    )
-    events = runner.run_async(
-        user_id=user_id,
-        session_id=ctx.key(),
-        new_message=Content(
-            role="user",
-            parts=[Part.from_text(text=f"Claim: {claim.model_dump_json()}")],
-        ),
-    )
+        events = runner.run_async(
+            user_id=claim.user_id,
+            session_id=ctx.key(),
+            new_message=Content(
+                role="user",
+                parts=[Part.from_text(text=f"Claim: {claim.model_dump_json()}")],
+            ),
+        )
 
-    final_response = ""
-    async for event in events:
-        if event.is_final_response() and event.content and event.content.parts:
-            final_response = event.content.parts[0].text
+        final_response = ""
+        async for event in events:
+            if event.is_final_response() and event.content and event.content.parts:
+                final_response = event.content.parts[0].text
 
-    return final_response
+        return final_response
 
+rate_comparison_agent = Agent(
+    model="gemini-2.5-flash",
+    name="RateComparisonAgent",
+    description="Decide whether the cost of the claim is reasonable given the treatment.",
+    instruction="Respond with reasonable or not reasonable.",
+)
+
+rate_comparison_app = App(name=APP_NAME, root_agent=rate_comparison_agent, plugins=[RestatePlugin()])
+rate_comparison_session_service = RestateSessionService()
 
 rate_comparison_agent_service = restate.VirtualObject("RateComparisonAgent")
 
@@ -133,80 +140,62 @@ rate_comparison_agent_service = restate.VirtualObject("RateComparisonAgent")
 async def run_rate_comparison_agent(
     ctx: restate.ObjectContext, claim: InsuranceClaim
 ) -> str:
-    user_id = "user123"
-    agent = Agent(
-        model="gemini-2.5-flash",
-        name="RateComparisonAgent",
-        description="Decide whether the cost of the claim is reasonable given the treatment.",
-        instruction="Respond with reasonable or not reasonable.",
-    )
     session_id = ctx.key()
-    session_service = RestateSessionService(ctx)
-    await session_service.create_session(
-        app_name=APP_NAME, user_id=claim.user_id, session_id=session_id
-    )
+    with restate_overrides(ctx):
+        await rate_comparison_session_service.create_session(
+            app_name=APP_NAME, user_id=claim.user_id, session_id=session_id
+        )
+        runner = Runner(app=rate_comparison_app, session_service=rate_comparison_session_service)
 
-    runner = Runner(
-        agent=agent,
-        app_name=APP_NAME,
-        session_service=session_service,
-        # Enables retries and recovery for model calls and tool executions
-        plugins=[RestatePlugin(ctx)],
-    )
-    events = runner.run_async(
-        user_id=user_id,
-        session_id=ctx.key(),
-        new_message=Content(
-            role="user",
-            parts=[Part.from_text(text=f"Claim: {claim.model_dump_json()}")],
-        ),
-    )
+        events = runner.run_async(
+            user_id=claim.user_id,
+            session_id=ctx.key(),
+            new_message=Content(
+                role="user",
+                parts=[Part.from_text(text=f"Claim: {claim.model_dump_json()}")],
+            ),
+        )
+        final_response = ""
+        async for event in events:
+            if event.is_final_response() and event.content and event.content.parts:
+                final_response = event.content.parts[0].text
 
-    final_response = ""
-    async for event in events:
-        if event.is_final_response() and event.content and event.content.parts:
-            final_response = event.content.parts[0].text
+        return final_response
 
-    return final_response
 
+fraud_agent = Agent(
+    model="gemini-2.5-flash",
+    name="FraudCheckAgent",
+    description="Decide whether the claim is fraudulent.",
+    instruction="Always respond with low risk, medium risk, or high risk.",
+)
+
+fraud_app = App(name=APP_NAME, root_agent=fraud_agent, plugins=[RestatePlugin()])
+fraud_session_service = RestateSessionService()
 
 fraud_agent_service = restate.VirtualObject("FraudAgent")
 
 
 @fraud_agent_service.handler()
 async def run_fraud_agent(ctx: restate.ObjectContext, claim: InsuranceClaim) -> str:
-    user_id = "user123"
-    agent = Agent(
-        model="gemini-2.5-flash",
-        name="FraudCheckAgent",
-        description="Decide whether the claim is fraudulent.",
-        instruction="Always respond with low risk, medium risk, or high risk.",
-    )
     session_id = ctx.key()
-    session_service = RestateSessionService(ctx)
-    await session_service.create_session(
-        app_name=APP_NAME, user_id=claim.user_id, session_id=session_id
-    )
+    with restate_overrides(ctx):
+        await fraud_session_service.create_session(
+            app_name=APP_NAME, user_id=claim.user_id, session_id=session_id
+        )
+        runner = Runner(app=fraud_app, session_service=fraud_session_service)
 
-    runner = Runner(
-        agent=agent,
-        app_name=APP_NAME,
-        session_service=session_service,
-        # Enables retries and recovery for model calls and tool executions
-        plugins=[RestatePlugin(ctx)],
-    )
-    events = runner.run_async(
-        user_id=user_id,
-        session_id=ctx.key(),
-        new_message=Content(
-            role="user",
-            parts=[Part.from_text(text=f"Claim: {claim.model_dump_json()}")],
-        ),
-    )
+        events = runner.run_async(
+            user_id=claim.user_id,
+            session_id=ctx.key(),
+            new_message=Content(
+                role="user",
+                parts=[Part.from_text(text=f"Claim: {claim.model_dump_json()}")],
+            ),
+        )
+        final_response = ""
+        async for event in events:
+            if event.is_final_response() and event.content and event.content.parts:
+                final_response = event.content.parts[0].text
 
-    final_response = ""
-    async for event in events:
-        if event.is_final_response() and event.content and event.content.parts:
-            final_response = event.content.parts[0].text
-
-    return final_response
+        return final_response

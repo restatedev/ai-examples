@@ -40,12 +40,15 @@ agent = Agent(
     model="gemini-2.5-flash",
     name="claim_approval_agent",
     description="Insurance claim evaluation agent that handles human approval workflows.",
-    instruction="You are an insurance claim evaluation agent. Use these rules: "
-    "if the amount is more than 1000, ask for human approval; "
-    "if the amount is less than 1000, decide by yourself. "
-    "Use the human_approval tool when needed.",
+    instruction="""You are an insurance claim evaluation agent. Use these rules: 
+    - if the amount is more than 1000, ask for human approval using tools; 
+    - if the amount is less than 1000, decide by yourself.""",
     tools=[human_approval],
 )
+
+
+app = App(name=APP_NAME, root_agent=agent, plugins=[RestatePlugin()])
+session_service = RestateSessionService()
 
 agent_service = restate.VirtualObject("HumanClaimApprovalAgent")
 
@@ -54,13 +57,12 @@ agent_service = restate.VirtualObject("HumanClaimApprovalAgent")
 @agent_service.handler()
 async def run(ctx: restate.ObjectContext, req: ClaimPrompt) -> str:
     session_id = ctx.key()
-    session_service = RestateSessionService(ctx)
-    await session_service.create_session(
-        app_name=APP_NAME, user_id=req.user_id, session_id=session_id
-    )
-    app = App(name=APP_NAME, root_agent=agent, plugins=[RestatePlugin(ctx)])
-    runner = Runner(app=app, session_service=session_service)
     with restate_overrides(ctx):
+        await session_service.create_session(
+            app_name=APP_NAME, user_id=req.user_id, session_id=session_id
+        )
+        runner = Runner(app=app, session_service=session_service)
+
         events = runner.run_async(
             user_id=req.user_id,
             session_id=session_id,
@@ -71,4 +73,4 @@ async def run(ctx: restate.ObjectContext, req: ClaimPrompt) -> str:
             if event.is_final_response() and event.content and event.content.parts:
                 final_response = event.content.parts[0].text
 
-    return final_response
+        return final_response

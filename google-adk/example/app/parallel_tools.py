@@ -1,6 +1,7 @@
 import restate
 from google.adk import Runner
 from google.adk.agents.llm_agent import Agent
+from google.adk.apps import App
 from google.adk.tools.tool_context import ToolContext
 from google.genai.types import Content, Part
 from typing import List
@@ -36,48 +37,39 @@ agent = Agent(
     model="gemini-2.0-flash",
     name="parallel_tools_agent",
     description="Analyzes insurance claims using parallel tool execution.",
-    instruction="You are a claim analysis agent that analyzes insurance claims. Use your tools to calculate key metrics and decide whether to approve the claim.",
+    instruction="You are a claim analysis agent that analyzes insurance claims. "
+    "Use your tools to calculate key metrics and decide whether to approve the claim.",
     tools=[calculate_metrics],
 )
+
+
+app = App(name=APP_NAME, root_agent=agent, plugins=[RestatePlugin()])
+session_service = RestateSessionService()
+
 
 agent_service = restate.VirtualObject("ParallelToolClaimAgent")
 
 
 @agent_service.handler()
 async def run(ctx: restate.ObjectContext, claim: InsuranceClaim) -> str:
-    user_id = "user"
+    prompt = f"""Analyze the claim {claim.model_dump_json()}. 
+    Use your tools to calculate key metrics and decide whether to approve."""
 
     session_id = ctx.key()
-    session_service = RestateSessionService(ctx)
-    await session_service.create_session(
-        app_name=APP_NAME, user_id=claim.user_id, session_id=session_id
-    )
-
-    runner = Runner(
-        agent=agent,
-        app_name=APP_NAME,
-        session_service=session_service,
-        # Enables retries and recovery for model calls and tool executions
-        plugins=[RestatePlugin(ctx)],
-    )
     with restate_overrides(ctx):
-        events = runner.run_async(
-            user_id=user_id,
-            session_id=ctx.key(),
-            new_message=Content(
-                role="user",
-                parts=[
-                    Part.from_text(
-                        text=f"Analyze the claim {claim.model_dump_json()}. "
-                        "Use your tools to calculate key metrics and decide whether to approve."
-                    )
-                ],
-            ),
+        await session_service.create_session(
+            app_name=APP_NAME, user_id=claim.user_id, session_id=session_id
         )
 
+        runner = Runner(app=app, session_service=session_service)
+        events = runner.run_async(
+            user_id=claim.user_id,
+            session_id=ctx.key(),
+            new_message=Content(role="user", parts=[Part.from_text(text=prompt)]),
+        )
         final_response = ""
         async for event in events:
             if event.is_final_response() and event.content and event.content.parts:
                 final_response = event.content.parts[0].text
 
-    return final_response
+        return final_response

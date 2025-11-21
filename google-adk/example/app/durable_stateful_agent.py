@@ -15,10 +15,6 @@ from middleware.restate_utils import restate_overrides
 
 APP_NAME = "agents"
 
-agent_service = restate.VirtualObject(
-    "StatefulWeatherAgent", inactivity_timeout=timedelta(milliseconds=0)
-)
-
 
 # TOOLS
 async def get_weather(tool_context: ToolContext, city: str) -> WeatherResponse:
@@ -29,34 +25,36 @@ async def get_weather(tool_context: ToolContext, city: str) -> WeatherResponse:
     return await restate_context.run_typed("Get weather", call_weather_api, city=city)
 
 
-# AGENT
+agent = Agent(
+    model="gemini-2.5-flash",
+    name="weather_agent",
+    description="Agent that provides weather updates for cities.",
+    instruction="""You are a helpful agent that provides weather updates.
+    Use the get_weather tool to fetch current weather information.""",
+    tools=[get_weather],
+)
 
+app = App(name=APP_NAME, root_agent=agent, plugins=[RestatePlugin()])
+session_service = RestateSessionService()
+
+
+agent_service = restate.VirtualObject("StatefulWeatherAgent")
 
 
 # HANDLER
 @agent_service.handler()
 async def run(ctx: restate.ObjectContext, req: WeatherPrompt) -> str:
-    agent = Agent(
-        model="gemini-2.5-flash",
-        name="weather_agent",
-        description="Agent that provides weather updates for cities.",
-        instruction="You are a helpful agent that provides weather updates. Use the get_weather tool to fetch current weather information.",
-        tools=[get_weather],
-    )
-
-    # Use Restate session service to persist session state in Restate
-    session_service = RestateSessionService(ctx)
-    await session_service.create_session(
-        app_name=APP_NAME, user_id=req.user_id, session_id=ctx.key()
-    )
-
-    app = App(name=APP_NAME, root_agent=agent, plugins=[RestatePlugin(ctx)])
-    runner = Runner(app=app, session_service=session_service)
-
+    session_id = ctx.key()
     with restate_overrides(ctx):
+        # Use Restate session service to persist session state in Restate
+        await session_service.create_session(
+            app_name=APP_NAME, user_id=req.user_id, session_id=session_id
+        )
+        runner = Runner(app=app, session_service=session_service)
+
         events = runner.run_async(
             user_id=req.user_id,
-            session_id=ctx.key(),
+            session_id=session_id,
             new_message=Content(role="user", parts=[Part.from_text(text=req.message)]),
         )
         final_response = ""
@@ -64,4 +62,4 @@ async def run(ctx: restate.ObjectContext, req: WeatherPrompt) -> str:
             if event.is_final_response() and event.content and event.content.parts:
                 final_response = event.content.parts[0].text
 
-    return final_response
+        return final_response
