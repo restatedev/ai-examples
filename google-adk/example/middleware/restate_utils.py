@@ -1,5 +1,3 @@
-import re
-import uuid
 import restate
 
 import contextvars
@@ -26,33 +24,6 @@ def current_restate_context() -> restate.Context:
     return ctx
 
 
-def _restate_uuid4():
-    ctx = current_restate_context()
-    return ctx.uuid()
-
-
-@contextmanager
-def monkey_patch_uuid4():
-    """Monkey-patch uuid.uuid4 to use Restate's UUID generation."""
-    original_uuid4 = uuid.uuid4
-    try:
-        # monkey-patch uuid.uuid4 to use Restate's UUID generation
-        uuid.uuid4 = _restate_uuid4
-        # set the context variable
-        yield
-    finally:
-        uuid.uuid4 = original_uuid4
-
-
-@contextmanager
-def restate_overrides(ctx: restate.Context):
-    """Context manager to safely override global functions with Restate versions."""
-    with ExitStack() as stack:
-        stack.enter_context(with_restate_context(ctx))
-        stack.enter_context(monkey_patch_uuid4())
-        yield
-
-
 @contextmanager
 def unwrap_terminal_errors():
     """Context manager to unwrap TerminalError exceptions."""
@@ -76,5 +47,4 @@ def restate_overrides(ctx: restate.Context):
     with ExitStack() as stack:
         stack.enter_context(unwrap_terminal_errors())
         stack.enter_context(with_restate_context(ctx))
-        stack.enter_context(monkey_patch_uuid4())
         yield
