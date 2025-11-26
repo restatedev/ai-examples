@@ -1,7 +1,7 @@
 from typing import Optional, Any
 import asyncio
 
-from google.adk.agents import BaseAgent, LlmAgent, InvocationContext
+from google.adk.agents import BaseAgent, LlmAgent
 from google.adk.agents.callback_context import CallbackContext
 from google.adk.plugins import BasePlugin
 from google.adk.tools import BaseTool, ToolContext
@@ -11,8 +11,6 @@ from google.adk.models.llm_response import LlmResponse
 from google.adk.models import LLMRegistry
 from google.adk.models.base_llm import BaseLlm
 from google.adk.flows.llm_flows.functions import generate_client_function_call_id
-
-from google.adk.events import Event
 
 import restate
 
@@ -56,9 +54,6 @@ class RestatePlugin(BasePlugin):
                 self._locks.pop(id, None)
 
         _ = asyncio.create_task(release_task())
-        return None
-
-    async def before_event_callback(self, *, invocation_context: InvocationContext, event: Event) -> Optional[Event]:
         return None
 
     async def after_agent_callback(
