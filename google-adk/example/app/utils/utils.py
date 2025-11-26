@@ -119,8 +119,8 @@ async def run_eligibility_agent(
         final_response = ""
         async for event in events:
             if event.is_final_response() and event.content and event.content.parts:
-                final_response = event.content.parts[0].text
-
+                if event.content.parts[0].text:
+                    final_response = event.content.parts[0].text
         return final_response
 
 rate_comparison_agent = Agent(
@@ -158,8 +158,8 @@ async def run_rate_comparison_agent(
         final_response = ""
         async for event in events:
             if event.is_final_response() and event.content and event.content.parts:
-                final_response = event.content.parts[0].text
-
+                if event.content.parts[0].text:
+                    final_response = event.content.parts[0].text
         return final_response
 
 
@@ -196,6 +196,6 @@ async def run_fraud_agent(ctx: restate.ObjectContext, claim: InsuranceClaim) -> 
         final_response = ""
         async for event in events:
             if event.is_final_response() and event.content and event.content.parts:
-                final_response = event.content.parts[0].text
-
+                if event.content.parts[0].text:
+                    final_response = event.content.parts[0].text
         return final_response
