@@ -2,19 +2,21 @@ import restate
 import json
 
 from typing import Any, Optional
-from google.adk.agents.llm_agent import Agent
+from google.adk import Runner
 from google.adk.tools.tool_context import ToolContext
-from google.genai import types as genai_types
+from google.adk.agents.llm_agent import Agent
+from google.adk.apps import App
+from google.genai.types import Content, Part
 
 from app.common.a2a.models import A2AAgent, AgentInvokeResult
-from app.common.adk.middleware import durable_model_calls
-from app.common.adk.restate_runner import create_restate_runner
-from app.common.adk.restate_tools import restate_tools
+from app.common.adk.restate_plugin import RestatePlugin
+from app.common.adk.restate_session_service import RestateSessionService
+from app.common.adk.restate_utils import restate_overrides
 from app.reimbursement.prompt import PROMPT
 from app.reimbursement.utils import Reimbursement, backoffice_submit_request, \
     backoffice_email_employee, end_of_month, handle_payment
 
-APP_NAME = "agent_app"
+APP_NAME = "agents"
 
 
 async def create_request_form(
@@ -83,49 +85,51 @@ async def reimburse(
 
 
 # AGENTS
+agent = Agent(
+    model='gemini-2.5-flash',
+    name="ReimbursementAgent",
+    description=(
+        "This agent handles the reimbursement process for the employees"
+        " given the amount and purpose of the reimbursement."
+    ),
+    instruction=PROMPT,
+    tools=[create_request_form, reimburse, return_form],
+)
+app = App(name=APP_NAME, root_agent=agent, plugins=[RestatePlugin()])
+session_service = RestateSessionService()
 
 reimbursement_service = restate.VirtualObject("ReimbursementService")
 
 
 @reimbursement_service.handler()
-async def invoke(restate_context: restate.ObjectContext, query: str) -> AgentInvokeResult:
+async def invoke(ctx: restate.ObjectContext, query: str) -> AgentInvokeResult:
     user_id = "test_user"
-
-    agent = Agent(
-        model=durable_model_calls(restate_context, 'gemini-2.5-flash'),
-        name="ReimbursementAgent",
-        description=(
-            "This agent handles the reimbursement process for the employees"
-            " given the amount and purpose of the reimbursement."
-        ),
-        instruction=PROMPT,
-        tools=restate_tools(create_request_form, reimburse, return_form),
-    )
-
-    runner = await create_restate_runner(restate_context, APP_NAME, user_id, agent)
-    events = runner.run_async(
-        user_id=user_id,
-        session_id=restate_context.key(),
-        new_message=genai_types.Content(
-            role="user",
-            parts=[genai_types.Part.from_text(text=query)]
+    with restate_overrides(ctx):
+        await session_service.create_session(
+            app_name=APP_NAME, user_id=user_id, session_id=ctx.key()
         )
-    )
+        runner = Runner(app=app, session_service=session_service)
+        events = runner.run_async(
+            user_id=user_id,
+            session_id=ctx.key(),
+            new_message=Content(role="user", parts=[Part.from_text(text=query)])
+        )
 
-    final_output = ""
-    async for event in events:
-        if event.is_final_response() and event.content and event.content.parts:
-            final_output = event.content.parts[0].text
+        final_output = ""
+        async for event in events:
+            if event.is_final_response() and event.content and event.content.parts:
+                if event.content.parts[0].text:
+                    final_output = event.content.parts[0].text
 
-    # Prepare the response
-    parts = [{"type": "text", "text": final_output}]
-    requires_input = "MISSING_INFO:" in final_output
-    completed = not requires_input
-    return AgentInvokeResult(
-        parts=parts,
-        require_user_input=requires_input,
-        is_task_complete=completed,
-    )
+        # Prepare the response
+        parts = [{"type": "text", "text": final_output}]
+        requires_input = "MISSING_INFO:" in final_output
+        completed = not requires_input
+        return AgentInvokeResult(
+            parts=parts,
+            require_user_input=requires_input,
+            is_task_complete=completed,
+        )
 
 
 class ReimbursementAgent(A2AAgent):
