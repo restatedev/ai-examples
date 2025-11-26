@@ -9,11 +9,14 @@ dependencies = [
     "hypercorn",
     "restate-sdk[serde]>=0.11.0",
     "pydantic>=2.11.9",
-    "openai-agents>=0.3.2",
+    "openai-agents>=0.6.1",
 ]
 
 [tool.hatch.build.targets.wheel]
 packages = ["app"]
+
+[tool.uv.sources]
+restate-sdk = { path = "../../../sdk-python/dist/restate_sdk-0.12.0-cp313-cp313-linux_x86_64.whl" }
 
 [build-system]
 requires = ["hatchling"]

@@ -1,32 +1,29 @@
-from agents import Agent, RunConfig, Runner, ModelSettings
+from agents import Agent, Runner, WebSearchTool
 from restate import VirtualObject, ObjectContext, ObjectSharedContext
 
-from app.utils.middleware import DurableModelCalls, RestateSession
+from app.utils.middleware import Runner, RestateSession
 from app.utils.models import ChatMessage
 
 chat = VirtualObject("Chat")
 
 
 @chat.handler()
-async def message(restate_context: ObjectContext, chat_message: ChatMessage) -> dict:
-
-    restate_session = await RestateSession.create(
-        session_id=restate_context.key(), ctx=restate_context
-    )
-
+async def message(_ctx: ObjectContext, chat_message: ChatMessage) -> dict:
     result = await Runner.run(
-        Agent(name="Assistant", instructions="You are a helpful assistant."),
-        input=chat_message.message,
-        run_config=RunConfig(
-            model="gpt-4o",
-            model_provider=DurableModelCalls(restate_context),
-            model_settings=ModelSettings(parallel_tool_calls=False),
+        Agent(
+            name="Assistant",
+            instructions="You are a helpful assistant.",
+            tools=[
+                WebSearchTool()
+            ]
         ),
-        session=restate_session,
+        input=chat_message.message,
+        session=RestateSession(),
     )
     return result.final_output
 
 
 @chat.handler(kind="shared")
-async def get_history(ctx: ObjectSharedContext):
-    return await ctx.get("items") or []
+async def get_history(_ctx: ObjectSharedContext):
+    session = RestateSession()
+    return session.get_items()
