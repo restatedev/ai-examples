@@ -33,12 +33,13 @@ class InsuranceClaim(BaseModel):
 class WeatherRequest(BaseModel):
     """Request to get the weather for a city."""
 
-    model_config = ConfigDict(extra='forbid')
+    model_config = ConfigDict(extra="forbid")
     city: str
 
 
 class WeatherResponse(BaseModel):
     """Request to get the weather for a city."""
+
     temperature: float
     description: str
 
@@ -67,7 +68,9 @@ class BookingPrompt(BaseModel):
     """Booking request data structure."""
 
     booking_id: str = "booking_123"
-    message: str = "I need to book a business trip to San Francisco from March 15-17. Flying from JFK, need a hotel downtown for 1 guest."
+    message: str = (
+        "I need to book a business trip to San Francisco from March 15-17. Flying from JFK, need a hotel downtown for 1 guest."
+    )
 
 
 class BookingResult(BaseModel):

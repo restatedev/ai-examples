@@ -1,12 +1,12 @@
 import restate
-from agents import Agent, RunConfig, Runner, ModelSettings
+from agents import Agent, Runner
 
-from app.utils.middleware import DurableModelCalls
+from app.utils.middleware import Runner
 from app.utils.utils import (
     InsuranceClaim,
     run_eligibility_agent,
     run_fraud_agent,
-    run_rate_comparison_agent
+    run_rate_comparison_agent,
 )
 
 agent_service = restate.Service("ParallelAgentClaimApproval")
@@ -32,14 +32,8 @@ async def run(restate_context: restate.Context, claim: InsuranceClaim) -> str:
         input=f"Decide about claim: {claim.model_dump_json()}. "
         "Base your decision on the following analyses:"
         f"Eligibility: {await eligibility} Cost {await cost} Fraud: {await fraud}",
-        run_config=RunConfig(
-            model="gpt-4o",
-            model_provider=DurableModelCalls(restate_context),
-            model_settings=ModelSettings(parallel_tool_calls=False),
-        ),
     )
     return result.final_output
 
 
 # <end_here>
-

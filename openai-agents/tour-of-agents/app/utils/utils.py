@@ -1,6 +1,7 @@
 import httpx
 import restate
-from agents import Runner, Agent, RunConfig, ModelSettings
+from app.utils.middleware import Runner, function_tool
+from agents import Agent
 from openai.types.chat import ChatCompletionMessage, ChatCompletionAssistantMessageParam
 from restate import TerminalError
 
@@ -10,14 +11,14 @@ from app.utils.models import (
     InsuranceClaim,
     BookingResult,
     FlightBooking,
-    HotelBooking,
+    HotelBooking, WeatherRequest,
 )
 
 
 # <start_weather>
-async def fetch_weather(city: str) -> WeatherResponse:
-    fail_on_denver(city)
-    weather_data = await call_weather_api(city)
+async def fetch_weather(req: WeatherRequest) -> WeatherResponse:
+    fail_on_denver(req.city)
+    weather_data = await call_weather_api(req.city)
     return parse_weather_data(weather_data)
 
 
@@ -82,6 +83,7 @@ async def check_fraud(claim: InsuranceClaim) -> str:
     # Simple fraud detection based on claim characteristics
     return "low risk"
 
+
 async def reserve_hotel(booking_id: str, booking: HotelBooking) -> BookingResult:
     """Reserve a hotel (simulated)."""
     print(f"🏨 Reserving hotel in {booking.name} for {booking.guests} guests")
@@ -96,11 +98,14 @@ async def reserve_flight(booking_id: str, booking: FlightBooking) -> BookingResu
     print(f"✈️ Reserving flight from {booking.origin} to {booking.destination}")
     if booking.destination == "San Francisco" or booking.destination == "SFO":
         print(f"[👻 SIMULATED] Flight booking failed: No flights to SFO available...")
-        raise TerminalError(f"[👻 SIMULATED] Flight booking failed: No flights to SFO available...")
+        raise TerminalError(
+            f"[👻 SIMULATED] Flight booking failed: No flights to SFO available..."
+        )
     return BookingResult(
         id=booking_id,
-        confirmation=f"Flight from {booking.origin} to {booking.destination} on {booking.date} for {booking.passengers} passengers"
+        confirmation=f"Flight from {booking.origin} to {booking.destination} on {booking.date} for {booking.passengers} passengers",
     )
+
 
 async def cancel_hotel(booking_id: str) -> None:
     """Cancel hotel booking."""
@@ -114,6 +119,7 @@ async def cancel_flight(booking_id: str) -> None:
 
 eligibility_agent_service = restate.Service("EligibilityAgent")
 
+
 @eligibility_agent_service.handler()
 async def run_eligibility_agent(
     restate_context: restate.Context, claim: InsuranceClaim
@@ -125,15 +131,12 @@ async def run_eligibility_agent(
             "Respond with eligible if it's a medical claim, and not eligible otherwise.",
         ),
         input=claim.model_dump_json(),
-        run_config=RunConfig(
-            model="gpt-4o",
-            model_provider=DurableModelCalls(restate_context),
-            model_settings=ModelSettings(parallel_tool_calls=False),
-        ),
     )
     return result.final_output
 
+
 rate_comparison_agent_service = restate.Service("RateComparisonAgent")
+
 
 @rate_comparison_agent_service.handler()
 async def run_rate_comparison_agent(
@@ -142,19 +145,16 @@ async def run_rate_comparison_agent(
     result = await Runner.run(
         Agent(
             name="RateComparisonAgent",
-            instructions="Decide whether the cost of the claim is reasonable given the treatment." +
-            "Respond with reasonable or not reasonable.",
+            instructions="Decide whether the cost of the claim is reasonable given the treatment."
+            + "Respond with reasonable or not reasonable.",
         ),
         input=claim.model_dump_json(),
-        run_config=RunConfig(
-            model="gpt-4o",
-            model_provider=DurableModelCalls(restate_context),
-            model_settings=ModelSettings(parallel_tool_calls=False),
-        ),
     )
     return result.final_output
 
+
 fraud_agent_service = restate.Service("FraudAgent")
+
 
 @fraud_agent_service.handler()
 async def run_fraud_agent(
@@ -167,21 +167,17 @@ async def run_fraud_agent(
             "Always respond with low risk, medium risk, or high risk.",
         ),
         input=claim.model_dump_json(),
-        run_config=RunConfig(
-            model="gpt-4o",
-            model_provider=DurableModelCalls(restate_context),
-            model_settings=ModelSettings(parallel_tool_calls=False),
-        ),
     )
     return result.final_output
 
 
 def as_chat_completion_param(msg: ChatCompletionMessage):
     return ChatCompletionAssistantMessageParam(
-            role="assistant",
-            content=msg.content,
-            tool_calls=[
-                {"id": tc.id, "type": tc.type, "function": tc.function} # type: ignore
-                for tc in (msg.tool_calls or [])
-            ] or None,
-        )
+        role="assistant",
+        content=msg.content,
+        tool_calls=[
+            {"id": tc.id, "type": tc.type, "function": tc.function}  # type: ignore
+            for tc in (msg.tool_calls or [])
+        ]
+        or None,
+    )

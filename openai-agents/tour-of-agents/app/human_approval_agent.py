@@ -1,14 +1,10 @@
 import restate
 from agents import (
     Agent,
-    RunConfig,
-    Runner,
-    function_tool,
     RunContextWrapper,
-    ModelSettings,
 )
 
-from app.utils.middleware import DurableModelCalls, raise_restate_errors
+from app.utils.middleware import Runner, function_tool
 from app.utils.models import ClaimPrompt
 from app.utils.utils import (
     InsuranceClaim,
@@ -17,7 +13,7 @@ from app.utils.utils import (
 
 
 # <start_here>
-@function_tool(failure_error_function=raise_restate_errors)
+@function_tool
 async def human_approval(
     wrapper: RunContextWrapper[restate.Context], claim: InsuranceClaim
 ) -> str:
@@ -56,12 +52,7 @@ async def run(restate_context: restate.Context, prompt: ClaimPrompt) -> str:
     result = await Runner.run(
         claim_approval_agent,
         input=prompt.message,
+        disable_tool_autowrapping=True,
         context=restate_context,
-        run_config=RunConfig(
-            model="gpt-4o",
-            model_provider=DurableModelCalls(restate_context),
-            model_settings=ModelSettings(parallel_tool_calls=False),
-        ),
     )
-
     return result.final_output

@@ -6,16 +6,16 @@ from agents import (
     RunContextWrapper,
     ModelSettings,
 )
-from restate import TerminalError
 
 from app.utils.middleware import Runner, function_tool
-from app.utils.models import WeatherPrompt
+from app.utils.models import WeatherPrompt, WeatherRequest, WeatherResponse
 from app.utils.utils import fetch_weather
 
+
 @function_tool
-async def get_weather(city: str) -> str:
+async def get_weather(city: WeatherRequest) -> WeatherResponse:
     """Get the current weather for a given city."""
-    return (await fetch_weather(city)).model_dump_json()
+    return await fetch_weather(city)
 
 
 weather_agent = Agent(
@@ -25,6 +25,7 @@ weather_agent = Agent(
 )
 
 agent_service = restate.Service("WeatherAgent")
+
 
 @agent_service.handler()
 async def run(restate_context: restate.Context, prompt: WeatherPrompt) -> str:

@@ -20,7 +20,11 @@ from app.advanced.manual_loop_agent import manual_loop_agent
 
 from app.parallel_agents import agent_service as parallel_agent_claim_approval
 from app.parallel_tools_agent import agent_service as parallel_tool_claim_agent
-from app.utils.utils import fraud_agent_service, rate_comparison_agent_service, eligibility_agent_service
+from app.utils.utils import (
+    fraud_agent_service,
+    rate_comparison_agent_service,
+    eligibility_agent_service,
+)
 
 # Create Restate app with all tour services
 app = restate.app(
@@ -47,7 +51,7 @@ app = restate.app(
         # Utils
         fraud_agent_service,
         eligibility_agent_service,
-        rate_comparison_agent_service
+        rate_comparison_agent_service,
     ]
 )
 

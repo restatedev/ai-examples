@@ -10,13 +10,7 @@ chat = VirtualObject("Chat")
 @chat.handler()
 async def message(_ctx: ObjectContext, chat_message: ChatMessage) -> dict:
     result = await Runner.run(
-        Agent(
-            name="Assistant",
-            instructions="You are a helpful assistant.",
-            tools=[
-                WebSearchTool()
-            ]
-        ),
+        Agent(name="Assistant", instructions="You are a helpful assistant."),
         input=chat_message.message,
         session=RestateSession(),
     )
