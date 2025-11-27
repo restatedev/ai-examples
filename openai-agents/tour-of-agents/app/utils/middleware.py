@@ -344,9 +344,6 @@ def sequentialize_and_wrap_tools(
         # recursively wrap tools in handoff agents
         handoffs_with_wrapped_tools.append(sequentialize_and_wrap_tools(handoff, disable_tool_autowrapping))
 
-    for t in wrapped_tools:
-        print(f"Wrapped tool: {t.name}\n Description: {t.description}\n")
-
     return agent.clone(
         tools=wrapped_tools,
         handoffs=handoffs_with_wrapped_tools,

@@ -6,7 +6,6 @@ from agents import (
     RunContextWrapper,
     ModelSettings,
 )
-
 from app.utils.middleware import Runner, function_tool
 from app.utils.models import WeatherPrompt, WeatherRequest, WeatherResponse
 from app.utils.utils import fetch_weather
