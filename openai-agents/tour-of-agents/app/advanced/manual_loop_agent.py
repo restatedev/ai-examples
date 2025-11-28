@@ -1,6 +1,11 @@
 import restate
-from openai.types.chat import ChatCompletion, ChatCompletionMessageParam, ChatCompletionMessageFunctionToolCall, \
-    ChatCompletionToolMessageParam, ChatCompletionUserMessageParam
+from openai.types.chat import (
+    ChatCompletion,
+    ChatCompletionMessageParam,
+    ChatCompletionMessageFunctionToolCall,
+    ChatCompletionToolMessageParam,
+    ChatCompletionUserMessageParam,
+)
 from pydantic import BaseModel
 from restate import Context
 from openai import OpenAI, pydantic_function_tool
@@ -61,7 +66,10 @@ async def run(ctx: Context, prompt: MultiWeatherPrompt) -> str | None:
 
         # Check if we need to call tools
         for tool_call in assistant_message.tool_calls:
-            if isinstance(tool_call, ChatCompletionMessageFunctionToolCall) and tool_call.function.name == "get_weather":
+            if (
+                isinstance(tool_call, ChatCompletionMessageFunctionToolCall)
+                and tool_call.function.name == "get_weather"
+            ):
                 req = WeatherRequest.model_validate_json(tool_call.function.arguments)
                 tool_output = await ctx.run_typed(
                     "Get weather", fetch_weather, city=req.city

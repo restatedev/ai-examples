@@ -1,21 +1,36 @@
 import asyncio
+import dataclasses
+import typing
+
+import agents
 import restate
 
 from agents import (
     Usage,
     Model,
-    default_tool_error_function,
     RunContextWrapper,
     AgentsException,
+    Runner as OpenAIRunner,
+    RunConfig,
+    TContext,
+    RunResult,
+    Agent,
+    AgentBase,
+    ModelBehaviorError,
 )
+from agents.function_schema import DocstringStyle
 from agents.models.multi_provider import MultiProvider
 from agents.items import TResponseStreamEvent, TResponseOutputItem, ModelResponse
 from agents.memory.session import SessionABC
 from agents.items import TResponseInputItem
-from typing import List, Any
+from typing import List, Any, overload, Callable
 from typing import AsyncIterator
 
+from agents.tool import ToolFunction, ToolErrorFunction, FunctionTool
+from agents.tool_context import ToolContext
+from agents.util._types import MaybeAwaitable
 from pydantic import BaseModel
+from restate.extensions import current_context
 
 
 # The OpenAI ModelResponse class is a dataclass with Pydantic fields.
@@ -43,14 +58,13 @@ class DurableModelCalls(MultiProvider):
     A Restate model provider that wraps the OpenAI SDK's default MultiProvider.
     """
 
-    def __init__(self, ctx: restate.Context, max_retries: int | None = 3):
+    def __init__(self, max_retries: int | None = 3):
         super().__init__()
-        self.ctx = ctx
         self.max_retries = max_retries
 
     def get_model(self, model_name: str | None) -> Model:
         return RestateModelWrapper(
-            self.ctx, super().get_model(model_name or None), self.max_retries
+            super().get_model(model_name or None), self.max_retries
         )
 
 
@@ -59,8 +73,7 @@ class RestateModelWrapper(Model):
     A wrapper around the OpenAI SDK's Model that persists LLM calls in the Restate journal.
     """
 
-    def __init__(self, ctx: restate.Context, model: Model, max_retries: int | None = 3):
-        self.ctx = ctx
+    def __init__(self, model: Model, max_retries: int | None = 3):
         self.model = model
         self.model_name = f"RestateModelWrapper"
         self.max_retries = max_retries
@@ -75,7 +88,7 @@ class RestateModelWrapper(Model):
                 response_id=resp.response_id,
             )
 
-        result = await self.ctx.run_typed(
+        result = await current_context().run_typed(
             "call LLM", call_llm, restate.RunOptions(max_attempts=self.max_retries)
         )
         # convert back to original ModelResponse
@@ -94,48 +107,36 @@ class RestateModelWrapper(Model):
 class RestateSession(SessionABC):
     """Restate session implementation following the Session protocol."""
 
-    def __init__(
-        self,
-        session_id: str,
-        ctx: restate.ObjectContext | restate.WorkflowContext,
-        current_items: List[TResponseInputItem],
-    ):
-        self.session_id = session_id
-        self.ctx = ctx
-        self.current_items = current_items
-
-    @classmethod
-    async def create(
-        cls,
-        session_id: str,
-        ctx: restate.ObjectContext | restate.WorkflowContext,
-    ):
-        current_items = await ctx.get("items", type_hint=List[TResponseInputItem]) or []
-        return cls(session_id, ctx, current_items)
+    def _ctx(self) -> restate.ObjectContext:
+        return typing.cast(restate.ObjectContext, current_context())
 
     async def get_items(self, limit: int | None = None) -> List[TResponseInputItem]:
         """Retrieve conversation history for this session."""
+        current_items = (
+            await self._ctx().get("items", type_hint=List[TResponseInputItem]) or []
+        )
         if limit is not None:
-            return self.current_items[-limit:]
-        return self.current_items
+            return current_items[-limit:]
+        return current_items
 
     async def add_items(self, items: List[TResponseInputItem]) -> None:
         """Store new items for this session."""
         # Your implementation here
-        self.ctx.set("items", self.current_items + items)
+        current_items = await self.get_items() or []
+        self._ctx().set("items", current_items + items)
 
     async def pop_item(self) -> TResponseInputItem | None:
         """Remove and return the most recent item from this session."""
-        if self.current_items:
-            item = self.current_items.pop()
-            self.ctx.set("items", self.current_items)
+        current_items = await self.get_items() or []
+        if current_items:
+            item = current_items.pop()
+            self._ctx().set("items", current_items)
             return item
         return None
 
     async def clear_session(self) -> None:
         """Clear all items for this session."""
-        self.current_items = []
-        self.ctx.clear("items")
+        self._ctx().clear("items")
 
 
 class AgentsTerminalException(AgentsException, restate.TerminalError):
@@ -152,7 +153,7 @@ class AgentsAsyncioSuspension(AgentsException, asyncio.CancelledError):
         super().__init__(*args)
 
 
-def raise_restate_errors(context: RunContextWrapper[Any], error: Exception) -> str:
+def raise_terminal_errors(context: RunContextWrapper[Any], error: Exception) -> str:
     """A custom function to provide a user-friendly error message."""
     # Raise terminal errors and cancellations
     if isinstance(error, restate.TerminalError):
@@ -160,9 +161,197 @@ def raise_restate_errors(context: RunContextWrapper[Any], error: Exception) -> s
         # so we create a new exception that inherits from both
         raise AgentsTerminalException(error.message)
 
-    # Raise suspensions
-    if isinstance(error, asyncio.CancelledError):
-        raise AgentsAsyncioSuspension(error)
+    if isinstance(error, ModelBehaviorError):
+        return f"An error occurred while calling the tool: {str(error)}"
 
-    # Feed all other errors back to the agent
-    return default_tool_error_function(context, error)
+    raise error
+
+
+def continue_on_terminal_errors(
+    context: RunContextWrapper[Any], error: Exception
+) -> str:
+    """A custom function to provide a user-friendly error message."""
+    # Raise terminal errors and cancellations
+    if isinstance(error, restate.TerminalError):
+        # For the agent SDK it needs to be an AgentsException, for restate it needs to be a TerminalError
+        # so we create a new exception that inherits from both
+        return f"An error occurred while running the tool: {str(error)}"
+
+    if isinstance(error, ModelBehaviorError):
+        return f"An error occurred while calling the tool: {str(error)}"
+
+    raise error
+
+
+def continue_on_all_errors(context: RunContextWrapper[Any], error: Exception) -> str:
+    """A custom function to provide a user-friendly error message."""
+    return f"An error occurred while calling the tool: {str(error)}"
+
+
+@overload
+def function_tool(
+    func: ToolFunction[...],
+    *,
+    name_override: str | None = None,
+    description_override: str | None = None,
+    docstring_style: DocstringStyle | None = None,
+    use_docstring_info: bool = True,
+    failure_error_function: ToolErrorFunction | None = raise_terminal_errors,
+    strict_mode: bool = True,
+    is_enabled: (
+        bool | Callable[[RunContextWrapper[Any], AgentBase], MaybeAwaitable[bool]]
+    ) = True,
+) -> FunctionTool:
+    """Overload for usage as @function_tool (no parentheses)."""
+    ...
+
+
+@overload
+def function_tool(
+    *,
+    name_override: str | None = None,
+    description_override: str | None = None,
+    docstring_style: DocstringStyle | None = None,
+    use_docstring_info: bool = True,
+    failure_error_function: ToolErrorFunction | None = raise_terminal_errors,
+    strict_mode: bool = True,
+    is_enabled: (
+        bool | Callable[[RunContextWrapper[Any], AgentBase], MaybeAwaitable[bool]]
+    ) = True,
+) -> Callable[[ToolFunction[...]], FunctionTool]:
+    """Overload for usage as @function_tool(...)."""
+    ...
+
+
+def function_tool(
+    func: ToolFunction[...] | None = None,
+    *,
+    name_override: str | None = None,
+    description_override: str | None = None,
+    docstring_style: DocstringStyle | None = None,
+    use_docstring_info: bool = True,
+    failure_error_function: ToolErrorFunction | None = raise_terminal_errors,
+    strict_mode: bool = True,
+    is_enabled: (
+        bool | Callable[[RunContextWrapper[Any], AgentBase], MaybeAwaitable[bool]]
+    ) = True,
+) -> FunctionTool | Callable[[ToolFunction[...]], FunctionTool]:
+    def _raise_suspensions(context: RunContextWrapper[Any], error: Exception) -> str:
+        # Raise suspensions
+        if isinstance(error, asyncio.CancelledError):
+            raise AgentsAsyncioSuspension(error)
+        return failure_error_function(context, error)
+
+    return agents.function_tool(
+        func=func,
+        name_override=name_override,
+        description_override=description_override,
+        docstring_style=docstring_style,
+        use_docstring_info=use_docstring_info,
+        failure_error_function=_raise_suspensions,
+        strict_mode=strict_mode,
+        is_enabled=is_enabled,
+    )
+
+
+class Runner:
+    """
+    A wrapper around Runner.run that automatically configures RunConfig for Restate contexts.
+
+    This class automatically sets up the appropriate model provider (DurableModelCalls) and
+    model settings, taking over any model and model_settings configuration provided in the
+    original RunConfig.
+    """
+
+    @staticmethod
+    async def run(
+        starting_agent: Agent[TContext],
+        disable_tool_autowrapping: bool = False,
+        *args: object,
+        run_config: RunConfig | None = None,
+        **kwargs,
+    ) -> RunResult:
+        """
+        Run an agent with automatic Restate configuration.
+
+        Returns:
+            The result from Runner.run
+        """
+
+        current_run_config = run_config or RunConfig()
+        new_run_config = dataclasses.replace(
+            current_run_config,
+            model_provider=DurableModelCalls(),
+        )
+        restate_agent = sequentialize_and_wrap_tools(
+            starting_agent, disable_tool_autowrapping
+        )
+        return await OpenAIRunner.run(
+            restate_agent, *args, run_config=new_run_config, **kwargs
+        )
+
+
+def sequentialize_and_wrap_tools(
+    agent: Agent[TContext],
+    disable_tool_autowrapping: bool,
+) -> Agent[TContext]:
+    """
+    Wrap the tools of an agent to use the Restate error handling.
+
+    Returns:
+        A new agent with wrapped tools.
+    """
+
+    # Restate does not allow parallel tool calls, so we use a lock to ensure sequential execution.
+    # This lock only affects tools for this agent; handoff agents are wrapped recursively.
+    sequential_tools_lock = asyncio.Lock()
+    wrapped_tools = []
+    for tool in agent.tools:
+        if isinstance(tool, FunctionTool):
+
+            def create_wrapper(captured_tool):
+                async def on_invoke_tool_wrapper(
+                    tool_context: ToolContext[Any], tool_input: Any
+                ) -> Any:
+                    await sequential_tools_lock.acquire()
+
+                    async def invoke():
+                        result = await captured_tool.on_invoke_tool(
+                            tool_context, tool_input
+                        )
+                        # Ensure Pydantic objects are serialized to dict for LLM compatibility
+                        if hasattr(result, "model_dump"):
+                            return result.model_dump()
+                        elif hasattr(result, "dict"):
+                            return result.dict()
+                        return result
+
+                    try:
+                        if disable_tool_autowrapping:
+                            return await invoke()
+
+                        return await current_context().run_typed(
+                            captured_tool.name, invoke
+                        )
+                    finally:
+                        sequential_tools_lock.release()
+
+                return on_invoke_tool_wrapper
+
+            wrapped_tools.append(
+                dataclasses.replace(tool, on_invoke_tool=create_wrapper(tool))
+            )
+        else:
+            wrapped_tools.append(tool)
+
+    handoffs_with_wrapped_tools = []
+    for handoff in agent.handoffs:
+        # recursively wrap tools in handoff agents
+        handoffs_with_wrapped_tools.append(
+            sequentialize_and_wrap_tools(handoff, disable_tool_autowrapping)
+        )
+
+    return agent.clone(
+        tools=wrapped_tools,
+        handoffs=handoffs_with_wrapped_tools,
+    )

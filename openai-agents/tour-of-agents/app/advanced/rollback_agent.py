@@ -1,11 +1,11 @@
 from typing import Callable
 
 import restate
-from agents import Agent, RunConfig, Runner, function_tool, RunContextWrapper
+from agents import Agent, RunConfig, Runner, RunContextWrapper
 from pydantic import Field, BaseModel, ConfigDict
 from restate import TerminalError
 
-from app.utils.middleware import DurableModelCalls, raise_restate_errors
+from app.utils.middleware import Runner, function_tool
 from app.utils.models import HotelBooking, FlightBooking, BookingPrompt, BookingResult
 from app.utils.utils import (
     reserve_hotel,
@@ -25,7 +25,7 @@ class BookingContext(BaseModel):
 
 
 # Functions raise terminal errors instead of feeding them back to the agent
-@function_tool(failure_error_function=raise_restate_errors)
+@function_tool
 async def book_hotel(
     wrapper: RunContextWrapper[BookingContext], booking: HotelBooking
 ) -> BookingResult:
@@ -41,11 +41,14 @@ async def book_hotel(
 
     # Execute the workflow step
     return await booking_context.restate_context.run_typed(
-        "Book hotel", reserve_hotel, booking_id=booking_context.booking_id, booking=booking
+        "Book hotel",
+        reserve_hotel,
+        booking_id=booking_context.booking_id,
+        booking=booking,
     )
 
 
-@function_tool(failure_error_function=raise_restate_errors)
+@function_tool
 async def book_flight(
     wrapper: RunContextWrapper[BookingContext], booking: FlightBooking
 ) -> BookingResult:
@@ -58,7 +61,10 @@ async def book_flight(
         )
     )
     return await booking_context.restate_context.run_typed(
-        "Book flight", reserve_flight, booking_id=booking_context.booking_id, booking=booking
+        "Book flight",
+        reserve_flight,
+        booking_id=booking_context.booking_id,
+        booking=booking,
     )
 
 
@@ -83,14 +89,7 @@ async def book(restate_context: restate.Context, prompt: BookingPrompt) -> str:
     )
 
     try:
-        result = await Runner.run(
-            booking_agent,
-            input=prompt.message,
-            context=booking_context,
-            run_config=RunConfig(
-                model="gpt-4o", model_provider=DurableModelCalls(restate_context)
-            ),
-        )
+        result = await Runner.run(booking_agent, input=prompt.message)
     except TerminalError as e:
         # Run all the rollback actions on terminal errors
         for compensation in reversed(booking_context.on_rollback):

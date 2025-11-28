@@ -1,21 +1,21 @@
 import restate
-from agents import Agent, RunConfig, Runner, ModelSettings
+from agents import Agent
 
-from app.utils.middleware import DurableModelCalls, RestateSession
+from app.utils.middleware import Runner, RestateSession
 from app.utils.utils import InsuranceClaim
 
-intake_agent = Agent[restate.ObjectContext](
+intake_agent = Agent(
     name="IntakeAgent",
     instructions="Route insurance claims to the appropriate specialist: medical, auto, or property.",
 )
 
-medical_specialist = Agent[restate.ObjectContext](
+medical_specialist = Agent(
     name="MedicalSpecialist",
     handoff_description="I handle medical insurance claims from intake to final decision.",
     instructions="Review medical claims for coverage and necessity. Approve/deny up to $50,000.",
 )
 
-auto_specialist = Agent[restate.ObjectContext](
+auto_specialist = Agent(
     name="AutoSpecialist",
     handoff_description="I handle auto insurance claims from intake to final decision.",
     instructions="Assess auto claims for liability and damage. Approve/deny up to $25,000.",
@@ -42,19 +42,10 @@ async def run(restate_context: restate.ObjectContext, claim: InsuranceClaim) -> 
     )
     last_agent = agent_dict.get(last_agent_name, intake_agent)
 
-    restate_session = await RestateSession.create(
-        session_id=restate_context.key(), ctx=restate_context
-    )
     result = await Runner.run(
         last_agent,
         input=f"Claim: {claim.model_dump_json()}",
-        context=restate_context,
-        run_config=RunConfig(
-            model="gpt-4o",
-            model_provider=DurableModelCalls(restate_context),
-            model_settings=ModelSettings(parallel_tool_calls=False),
-        ),
-        session=restate_session,
+        session=RestateSession(),
     )
 
     restate_context.set("last_agent_name", result.last_agent.name)
