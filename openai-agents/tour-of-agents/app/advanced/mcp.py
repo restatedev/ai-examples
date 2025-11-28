@@ -1,6 +1,11 @@
 from typing import List
 
-from agents import Agent, Runner, WebSearchTool, HostedMCPTool, TResponseInputItem
+from agents import (
+    Agent,
+    Runner,
+    HostedMCPTool,
+    TResponseInputItem,
+)
 from openai.types.responses.tool_param import Mcp
 from restate import VirtualObject, ObjectContext, ObjectSharedContext
 
@@ -11,21 +16,22 @@ chat = VirtualObject("McpChat")
 
 
 @chat.handler()
-async def message(_ctx: ObjectContext, chat_message: ChatMessage) -> dict:
+async def message(_ctx: ObjectContext, chat_message: ChatMessage) -> str:
+
     result = await Runner.run(
         Agent(
             name="Assistant",
             instructions="You are a helpful assistant.",
-            tools = [
+            tools=[
                 HostedMCPTool(
                     tool_config=Mcp(
                         type="mcp",
                         server_label="restate_docs",
                         server_description="A knowledge base about Restate's documentation.",
                         server_url="https://docs.restate.dev/mcp",
-                    )
-                ),
-                WebSearchTool()
+                        require_approval="never",
+                    ),
+                )
             ],
         ),
         input=chat_message.message,

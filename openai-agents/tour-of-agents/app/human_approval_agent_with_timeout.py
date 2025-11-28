@@ -60,6 +60,6 @@ async def run(restate_context: restate.Context, prompt: ClaimPrompt) -> str:
         claim_approval_agent,
         input=prompt.message,
         disable_tool_autowrapping=True,
-        context=restate_context
+        context=restate_context,
     )
     return result.final_output

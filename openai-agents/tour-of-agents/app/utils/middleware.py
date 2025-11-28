@@ -32,7 +32,6 @@ from agents.tool import ToolFunction, ToolErrorFunction, FunctionTool
 from agents.tool_context import ToolContext
 from agents.util._types import MaybeAwaitable
 from pydantic import BaseModel
-from restate import TerminalError
 from restate.extensions import current_context
 
 
@@ -286,7 +285,9 @@ class Runner:
             current_run_config,
             model_provider=DurableModelCalls(),
         )
-        restate_agent = sequentialize_and_wrap_tools(starting_agent, disable_tool_autowrapping)
+        restate_agent = sequentialize_and_wrap_tools(
+            starting_agent, disable_tool_autowrapping
+        )
         return await OpenAIRunner.run(
             restate_agent, *args, run_config=new_run_config, **kwargs
         )
@@ -317,20 +318,26 @@ def sequentialize_and_wrap_tools(
                     await sequential_tools_lock.acquire()
 
                     async def invoke():
-                        result = await captured_tool.on_invoke_tool(tool_context, tool_input)
+                        result = await captured_tool.on_invoke_tool(
+                            tool_context, tool_input
+                        )
                         # Ensure Pydantic objects are serialized to dict for LLM compatibility
-                        if hasattr(result, 'model_dump'):
+                        if hasattr(result, "model_dump"):
                             return result.model_dump()
-                        elif hasattr(result, 'dict'):
+                        elif hasattr(result, "dict"):
                             return result.dict()
                         return result
+
                     try:
                         if disable_tool_autowrapping:
                             return await invoke()
 
-                        return await current_context().run_typed(captured_tool.name, invoke)
+                        return await current_context().run_typed(
+                            captured_tool.name, invoke
+                        )
                     finally:
                         sequential_tools_lock.release()
+
                 return on_invoke_tool_wrapper
 
             wrapped_tools.append(
@@ -342,7 +349,9 @@ def sequentialize_and_wrap_tools(
     handoffs_with_wrapped_tools = []
     for handoff in agent.handoffs:
         # recursively wrap tools in handoff agents
-        handoffs_with_wrapped_tools.append(sequentialize_and_wrap_tools(handoff, disable_tool_autowrapping))
+        handoffs_with_wrapped_tools.append(
+            sequentialize_and_wrap_tools(handoff, disable_tool_autowrapping)
+        )
 
     return agent.clone(
         tools=wrapped_tools,
