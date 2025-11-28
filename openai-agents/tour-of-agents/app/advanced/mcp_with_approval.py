@@ -9,7 +9,7 @@ from app.utils.middleware import Runner, RestateSession
 from app.utils.models import ChatMessage
 from app.utils.utils import request_human_review, request_mcp_approval
 
-chat = VirtualObject("McpChat")
+chat = VirtualObject("McpWithApprovalsChat")
 
 async def approve_func(req: MCPToolApprovalRequest) -> MCPToolApprovalFunctionResult:
     restate_context = req.ctx_wrapper.context

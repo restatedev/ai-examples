@@ -17,7 +17,9 @@ from app.human_approval_agent_with_timeout import (
 )
 from app.advanced.rollback_agent import agent_service as booking_with_rollback_agent
 from app.advanced.manual_loop_agent import manual_loop_agent
-from app.mcp import chat as mcp_chat
+from app.advanced.mcp import chat as mcp_chat
+from app.advanced.mcp_with_approval import chat as mcp_with_approvals_chat
+from app.advanced.websearch import chat as websearch_chat
 
 from app.parallel_agents import agent_service as parallel_agent_claim_approval
 from app.parallel_tools_agent import agent_service as parallel_tool_claim_agent
@@ -46,6 +48,8 @@ app = restate.app(
         booking_with_rollback_agent,
         manual_loop_agent,
         mcp_chat,
+        mcp_with_approvals_chat,
+        websearch_chat,
         # Error handling
         # Parallel processing
         parallel_agent_claim_approval,
