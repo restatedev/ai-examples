@@ -8,7 +8,6 @@ import restate
 from agents import (
     Usage,
     Model,
-    default_tool_error_function,
     RunContextWrapper,
     AgentsException,
     Runner as OpenAIRunner,
@@ -18,7 +17,6 @@ from agents import (
     Agent,
     AgentBase,
     ModelBehaviorError,
-    UserError,
 )
 from agents.function_schema import DocstringStyle
 from agents.models.multi_provider import MultiProvider
