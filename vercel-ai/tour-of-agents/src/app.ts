@@ -14,6 +14,7 @@ import stopOnTerminalErrorAgent from "./errorhandling/stop-on-terminal-tool-agen
 import failOnTerminalErrorAgent from "./errorhandling/fail-on-terminal-tool-agent";
 import manualLoopAgent from "./advanced/manual-loop-agent";
 import bookingWithRollbackAgent from "./advanced/rollback-agent";
+import mcpAgent from "./mcp/mcp-agent"
 import {
   eligibilityAgent,
   fraudCheckAgent,
@@ -42,6 +43,7 @@ restate.serve({
     // Advanced examples
     bookingWithRollbackAgent,
     manualLoopAgent,
+    mcpAgent,
     // Utils and sub-agents
     eligibilityAgent,
     fraudCheckAgent,
