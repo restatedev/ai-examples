@@ -10,14 +10,14 @@ import { handlers } from "@restatedev/restate-sdk";
 import shared = handlers.object.shared;
 import {createRestateMCPClient} from "./restate-mcp-client";
 import {google} from "@ai-sdk/google";
+import {openai} from "@ai-sdk/openai";
 
 export default restate.object({
     name: "McpChat",
     handlers: {
         message: async (ctx: restate.ObjectContext, req: { message: string }) => {
             const model = wrapLanguageModel({
-                // model: openai('gpt-4o-mini'),
-                model: google('gemini-2.5-flash-lite'),
+                model: openai('gpt-4o-mini'),
                 middleware: durableCalls(ctx, { maxRetryAttempts: 3 }),
             });
 
