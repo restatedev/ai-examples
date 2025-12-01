@@ -13,6 +13,7 @@ import parallelToolClaimAgent from "./parallelwork/parallel-tools-agent";
 import stopOnTerminalErrorAgent from "./errorhandling/stop-on-terminal-tool-agent";
 import failOnTerminalErrorAgent from "./errorhandling/fail-on-terminal-tool-agent";
 import bookingWithRollbackAgent from "./advanced/rollback-agent";
+import mcpAgent from "./mcp/mcp-agent"
 import {
   eligibilityAgent,
   fraudCheckAgent,
@@ -40,6 +41,7 @@ restate.serve({
     failOnTerminalErrorAgent,
     // Advanced examples
     bookingWithRollbackAgent,
+    mcpAgent,
     // Utils and sub-agents
     eligibilityAgent,
     fraudCheckAgent,
