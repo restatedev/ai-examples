@@ -4,13 +4,10 @@ from google.adk.agents.llm_agent import Agent
 from google.adk.apps import App
 from google.adk.tools.tool_context import ToolContext
 from google.genai.types import Content, Part
+from restate.ext.adk import RestatePlugin, RestateSessionService
 
 from app.utils.models import ClaimPrompt, InsuranceClaim
 from app.utils.utils import request_human_review
-
-from middleware.restate_plugin import RestatePlugin
-from middleware.restate_session_service import RestateSessionService
-from middleware.restate_utils import restate_overrides
 
 APP_NAME = "agents"
 
@@ -55,22 +52,17 @@ agent_service = restate.VirtualObject("HumanClaimApprovalAgent")
 
 # HANDLER
 @agent_service.handler()
-async def run(ctx: restate.ObjectContext, req: ClaimPrompt) -> str:
-    session_id = ctx.key()
-    with restate_overrides(ctx):
-        await session_service.create_session(
-            app_name=APP_NAME, user_id=req.user_id, session_id=session_id
-        )
-        runner = Runner(app=app, session_service=session_service)
+async def run(ctx: restate.ObjectContext, req: ClaimPrompt) -> str | None:
+    runner = Runner(app=app, session_service=session_service)
+    events = runner.run_async(
+        user_id=req.user_id,
+        session_id=ctx.key(),
+        new_message=Content(role="user", parts=[Part.from_text(text=req.message)]),
+    )
 
-        events = runner.run_async(
-            user_id=req.user_id,
-            session_id=session_id,
-            new_message=Content(role="user", parts=[Part.from_text(text=req.message)]),
-        )
-        final_response = ""
-        async for event in events:
-            if event.is_final_response() and event.content and event.content.parts:
-                if event.content.parts[0].text:
-                    final_response = event.content.parts[0].text
-        return final_response
+    final_response = None
+    async for event in events:
+        if event.is_final_response() and event.content and event.content.parts:
+            if event.content.parts[0].text:
+                final_response = event.content.parts[0].text
+    return final_response

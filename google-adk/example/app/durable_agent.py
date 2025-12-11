@@ -4,13 +4,12 @@ from google.adk import Runner
 from google.adk.apps import App
 from google.adk.sessions import InMemorySessionService
 from google.genai.types import Content, Part
-from app.utils.models import WeatherResponse, WeatherPrompt
-from app.utils.utils import call_weather_api
 from google.adk.tools.tool_context import ToolContext
 from google.adk.agents.llm_agent import Agent
+from restate.ext.adk import RestatePlugin
 
-from middleware.restate_plugin import RestatePlugin
-from middleware.restate_utils import restate_overrides
+from app.utils.models import WeatherResponse, WeatherPrompt
+from app.utils.utils import call_weather_api
 
 APP_NAME = "agents"
 
@@ -41,23 +40,22 @@ agent_service = restate.Service("WeatherAgent")
 
 
 @agent_service.handler()
-async def run(ctx: restate.Context, req: WeatherPrompt) -> str:
+async def run(ctx: restate.Context, req: WeatherPrompt) -> str | None:
     session_id = str(ctx.uuid())
-    with restate_overrides(ctx):
-        session_service = InMemorySessionService()
-        await session_service.create_session(
-            app_name=APP_NAME, user_id=req.user_id, session_id=session_id
-        )
-        runner = Runner(app=app, session_service=session_service)
+    session_service = InMemorySessionService()
+    await session_service.create_session(
+        app_name=APP_NAME, user_id=req.user_id, session_id=session_id
+    )
+    runner = Runner(app=app, session_service=session_service)
 
-        events = runner.run_async(
-            user_id=req.user_id,
-            session_id=session_id,
-            new_message=Content(role="user", parts=[Part.from_text(text=req.message)]),
-        )
-        final_response = ""
-        async for event in events:
-            if event.is_final_response() and event.content and event.content.parts:
-                if event.content.parts[0].text:
-                    final_response = event.content.parts[0].text
-        return final_response
+    events = runner.run_async(
+        user_id=req.user_id,
+        session_id=session_id,
+        new_message=Content(role="user", parts=[Part.from_text(text=req.message)]),
+    )
+    final_response = None
+    async for event in events:
+        if event.is_final_response() and event.content and event.content.parts:
+            if event.content.parts[0].text:
+                final_response = event.content.parts[0].text
+    return final_response
