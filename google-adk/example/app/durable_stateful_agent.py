@@ -12,7 +12,6 @@ from app.utils.utils import call_weather_api
 APP_NAME = "agents"
 
 
-# TOOLS
 async def get_weather(city: str) -> WeatherResponse:
     """Get the current weather for a given city."""
     #  call tool wrapped as Restate durable step
@@ -24,8 +23,7 @@ async def get_weather(city: str) -> WeatherResponse:
 agent = Agent(
     model="gemini-2.5-flash",
     name="weather_agent",
-    instruction="""You are a helpful agent that provides weather updates.
-    Use the get_weather tool to fetch current weather information.""",
+    instruction="You are a helpful agent that provides weather updates.",
     tools=[get_weather],
 )
 
@@ -35,7 +33,6 @@ runner = Runner(app=app, session_service=RestateSessionService())
 agent_service = restate.VirtualObject("StatefulWeatherAgent")
 
 
-# HANDLER
 @agent_service.handler()
 async def run(ctx: restate.ObjectContext, req: WeatherPrompt) -> str | None:
     events = runner.run_async(

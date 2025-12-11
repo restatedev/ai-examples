@@ -10,7 +10,6 @@ from app.utils.models import ChatMessage
 
 APP_NAME = "agents"
 
-# AGENT
 agent = Agent(
     model="gemini-2.5-flash",
     name="assistant",
@@ -24,7 +23,6 @@ runner = Runner(app=app, session_service=RestateSessionService())
 chat = restate.VirtualObject("Chat")
 
 
-# HANDLER
 @chat.handler()
 async def message(ctx: restate.ObjectContext, req: ChatMessage) -> str | None:
     events = runner.run_async(

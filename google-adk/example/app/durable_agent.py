@@ -13,7 +13,6 @@ from app.utils.utils import call_weather_api
 APP_NAME = "agents"
 
 
-# TOOLS
 async def get_weather(city: str) -> WeatherResponse:
     """Get the current weather for a given city."""
     #  Do one or more durable steps using the Restate context
@@ -26,8 +25,7 @@ async def get_weather(city: str) -> WeatherResponse:
 agent = Agent(
     model="gemini-2.5-flash",
     name="weather_agent",
-    instruction="""You are a helpful agent that provides weather updates.
-    Use the get_weather tool to fetch current weather information.""",
+    instruction="You are a helpful agent that provides weather updates.",
     tools=[get_weather],
 )
 
