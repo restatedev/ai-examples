@@ -33,7 +33,7 @@ async def calculate_metrics(
 
 # AGENT
 agent = Agent(
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     name="parallel_tools_agent",
     description="Analyzes insurance claims using parallel tool execution.",
     instruction="You are a claim analysis agent that analyzes insurance claims. "
@@ -56,8 +56,8 @@ async def run(ctx: restate.ObjectContext, claim: InsuranceClaim) -> str | None:
 
     runner = Runner(app=app, session_service=session_service)
     events = runner.run_async(
-        user_id=claim.user_id,
-        session_id=ctx.key(),
+        user_id=ctx.key(),
+        session_id=claim.session_id,
         new_message=Content(role="user", parts=[Part.from_text(text=prompt)]),
     )
 

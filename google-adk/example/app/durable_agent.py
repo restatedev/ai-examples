@@ -40,17 +40,16 @@ agent_service = restate.Service("WeatherAgent")
 
 
 @agent_service.handler()
-async def run(ctx: restate.Context, req: WeatherPrompt) -> str | None:
-    session_id = str(ctx.uuid())
+async def run(_ctx: restate.Context, req: WeatherPrompt) -> str | None:
     session_service = InMemorySessionService()
     await session_service.create_session(
-        app_name=APP_NAME, user_id=req.user_id, session_id=session_id
+        app_name=APP_NAME, user_id=req.session_id, session_id=req.session_id
     )
     runner = Runner(app=app, session_service=session_service)
 
     events = runner.run_async(
-        user_id=req.user_id,
-        session_id=session_id,
+        user_id="user-123",
+        session_id=req.session_id,
         new_message=Content(role="user", parts=[Part.from_text(text=req.message)]),
     )
     final_response = None

@@ -30,8 +30,8 @@ chat = restate.VirtualObject("Chat")
 async def message(ctx: restate.ObjectContext, req: ChatMessage) -> str | None:
     runner = Runner(app=app, session_service=session_service)
     events = runner.run_async(
-        user_id=req.user_id,
-        session_id=ctx.key(),
+        user_id=ctx.key(),
+        session_id=req.session_id,
         new_message=Content(
             role="user", parts=[Part.from_text(text=req.message)]
         ),

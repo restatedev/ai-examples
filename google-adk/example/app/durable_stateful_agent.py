@@ -43,8 +43,8 @@ agent_service = restate.VirtualObject("StatefulWeatherAgent")
 async def run(ctx: restate.ObjectContext, req: WeatherPrompt) -> str | None:
     runner = Runner(app=app, session_service=session_service)
     events = runner.run_async(
-        user_id=req.user_id,
-        session_id=ctx.key(),
+        user_id=ctx.key(),
+        session_id=req.session_id,
         new_message=Content(role="user", parts=[Part.from_text(text=req.message)]),
     )
 

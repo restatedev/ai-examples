@@ -97,8 +97,8 @@ async def run_eligibility_agent(
 ) -> str:
     runner = Runner(app=eligibility_app, session_service=eligibility_session_service)
     events = runner.run_async(
-        user_id=claim.user_id,
-        session_id=ctx.key(),
+        user_id=ctx.key(),
+        session_id=claim.session_id,
         new_message=Content(
             role="user",
             parts=[Part.from_text(text=f"Claim: {claim.model_dump_json()}")],
@@ -131,8 +131,8 @@ async def run_rate_comparison_agent(
 ) -> str:
     runner = Runner(app=rate_comparison_app, session_service=rate_comparison_session_service)
     events = runner.run_async(
-        user_id=claim.user_id,
-        session_id=ctx.key(),
+        user_id=ctx.key(),
+        session_id=claim.session_id,
         new_message=Content(
             role="user",
             parts=[Part.from_text(text=f"Claim: {claim.model_dump_json()}")],
@@ -164,8 +164,8 @@ fraud_agent_service = restate.VirtualObject("FraudAgent")
 async def run_fraud_agent(ctx: restate.ObjectContext, claim: InsuranceClaim) -> str:
     runner = Runner(app=fraud_app, session_service=fraud_session_service)
     events = runner.run_async(
-        user_id=claim.user_id,
-        session_id=ctx.key(),
+        user_id=ctx.key(),
+        session_id=claim.session_id,
         new_message=Content(
             role="user",
             parts=[Part.from_text(text=f"Claim: {claim.model_dump_json()}")],

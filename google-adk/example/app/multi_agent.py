@@ -55,8 +55,8 @@ agent_service = restate.VirtualObject("MultiAgentClaimApproval")
 async def run(ctx: restate.ObjectContext, claim: InsuranceClaim) -> str | None:
     runner = Runner(app=app, session_service=session_service)
     events = runner.run_async(
-        user_id=claim.user_id,
-        session_id=ctx.key(),
+        user_id=ctx.key(),
+        session_id=claim.session_id,
         new_message=Content(
             role="user",
             parts=[Part.from_text(text=f"Claim: {claim.model_dump_json()}")],

@@ -16,7 +16,7 @@ from app.utils.utils import (
 APP_NAME = "agents"
 
 agent = Agent(
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     name="claim_decision_agent",
     description="Makes final claim approval decisions based on analysis results.",
     instruction="You are a claim decision engine. Analyze the provided assessments and make a final approval decision.",
@@ -53,8 +53,8 @@ async def run(ctx: restate.ObjectContext, claim: InsuranceClaim) -> str | None:
     Eligibility: {eligibility_result} Cost: {cost_result} Fraud: {fraud_result}"""
 
     events = runner.run_async(
-        user_id=claim.user_id,
-        session_id=ctx.key(),
+        user_id=ctx.key(),
+        session_id=claim.session_id,
         new_message=Content(role="user", parts=[Part.from_text(text=prompt)]),
     )
 
