@@ -14,7 +14,6 @@ APP_NAME = "agents"
 agent = Agent(
     model="gemini-2.5-flash",
     name="assistant",
-    description="A helpful assistant that can answer questions.",
     instruction="You are a helpful assistant. Be concise and helpful.",
 )
 

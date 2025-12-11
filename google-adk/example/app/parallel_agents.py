@@ -18,7 +18,6 @@ APP_NAME = "agents"
 agent = Agent(
     model="gemini-2.5-flash",
     name="claim_decision_agent",
-    description="Makes final claim approval decisions based on analysis results.",
     instruction="You are a claim decision engine. Analyze the provided assessments and make a final approval decision.",
 )
 
@@ -48,8 +47,7 @@ async def run(ctx: restate.ObjectContext, claim: InsuranceClaim) -> str | None:
     # Run decision agent on outputs
     runner = Runner(app=app, session_service=session_service)
 
-    prompt = f"""Decide about claim: {claim.model_dump_json()}. 
-    Base your decision on the following analyses: 
+    prompt = f"""Decide about claim: {claim.model_dump_json()}. Assessments:
     Eligibility: {eligibility_result} Cost: {cost_result} Fraud: {fraud_result}"""
 
     events = runner.run_async(

@@ -35,7 +35,6 @@ async def calculate_metrics(
 agent = Agent(
     model="gemini-2.5-flash",
     name="parallel_tools_agent",
-    description="Analyzes insurance claims using parallel tool execution.",
     instruction="You are a claim analysis agent that analyzes insurance claims. "
     "Use your tools to calculate key metrics and decide whether to approve the claim.",
     tools=[calculate_metrics],
@@ -51,8 +50,7 @@ agent_service = restate.VirtualObject("ParallelToolClaimAgent")
 
 @agent_service.handler()
 async def run(ctx: restate.ObjectContext, claim: InsuranceClaim) -> str | None:
-    prompt = f"""Analyze the claim {claim.model_dump_json()}. 
-    Use your tools to calculate key metrics and decide whether to approve."""
+    prompt = f"Analyze the claim: {claim.model_dump_json()}."
 
     runner = Runner(app=app, session_service=session_service)
     events = runner.run_async(

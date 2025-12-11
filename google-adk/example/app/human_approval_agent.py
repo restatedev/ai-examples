@@ -36,7 +36,6 @@ async def human_approval(tool_context: ToolContext, claim: InsuranceClaim) -> st
 agent = Agent(
     model="gemini-2.5-flash",
     name="claim_approval_agent",
-    description="Insurance claim evaluation agent that handles human approval workflows.",
     instruction="""You are an insurance claim evaluation agent. Use these rules: 
     - if the amount is more than 1000, ask for human approval using tools; 
     - if the amount is less than 1000, decide by yourself.""",

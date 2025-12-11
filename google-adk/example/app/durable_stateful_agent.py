@@ -25,7 +25,6 @@ async def get_weather(tool_context: ToolContext, city: str) -> WeatherResponse:
 agent = Agent(
     model="gemini-2.5-flash",
     name="weather_agent",
-    description="Agent that provides weather updates for cities.",
     instruction="""You are a helpful agent that provides weather updates.
     Use the get_weather tool to fetch current weather information.""",
     tools=[get_weather],
