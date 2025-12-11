@@ -9,7 +9,6 @@ dependencies = [
     "pydantic>=2.10.6",
     "restate_sdk[serde]>=0.13.0",
     "google-adk>=1.18.0",
-    "litellm"
 ]
 
 [tool.hatch.build.targets.wheel]

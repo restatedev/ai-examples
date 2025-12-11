@@ -19,7 +19,7 @@ agent = Agent(
 
 # Enables retries and recovery for model calls and tool executions
 app = App(name=APP_NAME, root_agent=agent, plugins=[RestatePlugin()])
-session_service = RestateSessionService()
+runner = Runner(app=app, session_service=RestateSessionService())
 
 chat = restate.VirtualObject("Chat")
 
@@ -27,13 +27,10 @@ chat = restate.VirtualObject("Chat")
 # HANDLER
 @chat.handler()
 async def message(ctx: restate.ObjectContext, req: ChatMessage) -> str | None:
-    runner = Runner(app=app, session_service=session_service)
     events = runner.run_async(
         user_id=ctx.key(),
         session_id=req.session_id,
-        new_message=Content(
-            role="user", parts=[Part.from_text(text=req.message)]
-        ),
+        new_message=Content(role="user", parts=[Part.from_text(text=req.message)]),
     )
     final_response = None
     async for event in events:

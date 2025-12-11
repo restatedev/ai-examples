@@ -42,8 +42,7 @@ agent = Agent(
 
 
 app = App(name=APP_NAME, root_agent=agent, plugins=[RestatePlugin()])
-session_service = RestateSessionService()
-
+runner = Runner(app=app, session_service=RestateSessionService())
 
 agent_service = restate.VirtualObject("ParallelToolClaimAgent")
 
@@ -51,8 +50,6 @@ agent_service = restate.VirtualObject("ParallelToolClaimAgent")
 @agent_service.handler()
 async def run(ctx: restate.ObjectContext, claim: InsuranceClaim) -> str | None:
     prompt = f"Analyze the claim: {claim.model_dump_json()}."
-
-    runner = Runner(app=app, session_service=session_service)
     events = runner.run_async(
         user_id=ctx.key(),
         session_id=claim.session_id,

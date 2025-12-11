@@ -44,7 +44,7 @@ agent = Agent(
 
 
 app = App(name=APP_NAME, root_agent=agent, plugins=[RestatePlugin()])
-session_service = RestateSessionService()
+runner = Runner(app=app, session_service=RestateSessionService())
 
 agent_service = restate.VirtualObject("HumanClaimApprovalAgent")
 
@@ -52,7 +52,6 @@ agent_service = restate.VirtualObject("HumanClaimApprovalAgent")
 # HANDLER
 @agent_service.handler()
 async def run(ctx: restate.ObjectContext, req: ClaimPrompt) -> str | None:
-    runner = Runner(app=app, session_service=session_service)
     events = runner.run_async(
         user_id=ctx.key(),
         session_id=req.session_id,

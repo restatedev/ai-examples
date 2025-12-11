@@ -23,7 +23,7 @@ agent = Agent(
 
 
 app = App(name=APP_NAME, root_agent=agent, plugins=[RestatePlugin()])
-session_service = RestateSessionService()
+runner = Runner(app=app, session_service=RestateSessionService())
 
 agent_service = restate.VirtualObject("ParallelAgentClaimApproval")
 
@@ -45,8 +45,6 @@ async def run(ctx: restate.ObjectContext, claim: InsuranceClaim) -> str | None:
     fraud_result = await fraud
 
     # Run decision agent on outputs
-    runner = Runner(app=app, session_service=session_service)
-
     prompt = f"""Decide about claim: {claim.model_dump_json()}. Assessments:
     Eligibility: {eligibility_result} Cost: {cost_result} Fraud: {fraud_result}"""
 

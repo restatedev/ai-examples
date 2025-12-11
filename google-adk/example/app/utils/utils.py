@@ -86,23 +86,25 @@ eligibility_agent = Agent(
     instruction="Respond with eligible if it's a medical claim, and not eligible otherwise.",
 )
 
-eligibility_app = App(name=APP_NAME, root_agent=eligibility_agent, plugins=[RestatePlugin()])
-eligibility_session_service = RestateSessionService()
+eligibility_app = App(
+    name=APP_NAME, root_agent=eligibility_agent, plugins=[RestatePlugin()]
+)
+eligibility_runner = Runner(
+    app=eligibility_app, session_service=RestateSessionService()
+)
 
 eligibility_agent_service = restate.VirtualObject("EligibilityAgent")
+
 
 @eligibility_agent_service.handler()
 async def run_eligibility_agent(
     ctx: restate.ObjectContext, claim: InsuranceClaim
 ) -> str:
-    runner = Runner(app=eligibility_app, session_service=eligibility_session_service)
-    events = runner.run_async(
+    prompt = f"Claim: {claim.model_dump_json()}"
+    events = eligibility_runner.run_async(
         user_id=ctx.key(),
         session_id=claim.session_id,
-        new_message=Content(
-            role="user",
-            parts=[Part.from_text(text=f"Claim: {claim.model_dump_json()}")],
-        ),
+        new_message=Content(role="user", parts=[Part.from_text(text=prompt)]),
     )
 
     final_response = ""
@@ -112,6 +114,7 @@ async def run_eligibility_agent(
                 final_response = event.content.parts[0].text
     return final_response
 
+
 rate_comparison_agent = Agent(
     model="gemini-2.5-flash",
     name="RateComparisonAgent",
@@ -119,8 +122,12 @@ rate_comparison_agent = Agent(
     instruction="Respond with reasonable or not reasonable.",
 )
 
-rate_comparison_app = App(name=APP_NAME, root_agent=rate_comparison_agent, plugins=[RestatePlugin()])
-rate_comparison_session_service = RestateSessionService()
+rate_comparison_app = App(
+    name=APP_NAME, root_agent=rate_comparison_agent, plugins=[RestatePlugin()]
+)
+rate_comparison_runner = Runner(
+    app=rate_comparison_app, session_service=RestateSessionService()
+)
 
 rate_comparison_agent_service = restate.VirtualObject("RateComparisonAgent")
 
@@ -129,14 +136,11 @@ rate_comparison_agent_service = restate.VirtualObject("RateComparisonAgent")
 async def run_rate_comparison_agent(
     ctx: restate.ObjectContext, claim: InsuranceClaim
 ) -> str:
-    runner = Runner(app=rate_comparison_app, session_service=rate_comparison_session_service)
-    events = runner.run_async(
+    prompt = f"Claim: {claim.model_dump_json()}"
+    events = rate_comparison_runner.run_async(
         user_id=ctx.key(),
         session_id=claim.session_id,
-        new_message=Content(
-            role="user",
-            parts=[Part.from_text(text=f"Claim: {claim.model_dump_json()}")],
-        ),
+        new_message=Content(role="user", parts=[Part.from_text(text=prompt)]),
     )
 
     final_response = ""
@@ -155,21 +159,18 @@ fraud_agent = Agent(
 )
 
 fraud_app = App(name=APP_NAME, root_agent=fraud_agent, plugins=[RestatePlugin()])
-fraud_session_service = RestateSessionService()
+fraud_runner = Runner(app=fraud_app, session_service=RestateSessionService())
 
 fraud_agent_service = restate.VirtualObject("FraudAgent")
 
 
 @fraud_agent_service.handler()
 async def run_fraud_agent(ctx: restate.ObjectContext, claim: InsuranceClaim) -> str:
-    runner = Runner(app=fraud_app, session_service=fraud_session_service)
-    events = runner.run_async(
+    prompt = f"Claim: {claim.model_dump_json()}"
+    events = fraud_runner.run_async(
         user_id=ctx.key(),
         session_id=claim.session_id,
-        new_message=Content(
-            role="user",
-            parts=[Part.from_text(text=f"Claim: {claim.model_dump_json()}")],
-        ),
+        new_message=Content(role="user", parts=[Part.from_text(text=prompt)]),
     )
 
     final_response = ""

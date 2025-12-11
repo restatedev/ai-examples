@@ -19,7 +19,9 @@ async def get_weather(tool_context: ToolContext, city: str) -> WeatherResponse:
     restate_context = tool_context.session.state["restate_context"]
 
     #  call tool wrapped as Restate durable step
-    return await restate_context.run_typed(f"Get weather {city}", call_weather_api, city=city)
+    return await restate_context.run_typed(
+        f"Get weather {city}", call_weather_api, city=city
+    )
 
 
 agent = Agent(
@@ -31,8 +33,7 @@ agent = Agent(
 )
 
 app = App(name=APP_NAME, root_agent=agent, plugins=[RestatePlugin()])
-session_service = RestateSessionService()
-
+runner = Runner(app=app, session_service=RestateSessionService())
 
 agent_service = restate.VirtualObject("StatefulWeatherAgent")
 
@@ -40,7 +41,6 @@ agent_service = restate.VirtualObject("StatefulWeatherAgent")
 # HANDLER
 @agent_service.handler()
 async def run(ctx: restate.ObjectContext, req: WeatherPrompt) -> str | None:
-    runner = Runner(app=app, session_service=session_service)
     events = runner.run_async(
         user_id=ctx.key(),
         session_id=req.session_id,
