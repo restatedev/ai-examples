@@ -2,9 +2,8 @@ import restate
 from google.adk import Runner
 from google.adk.agents.llm_agent import Agent
 from google.adk.apps import App
-from google.adk.tools.tool_context import ToolContext
 from google.genai.types import Content, Part
-from restate.ext.adk import RestatePlugin, RestateSessionService
+from restate.ext.adk import RestatePlugin, RestateSessionService, restate_object_context
 
 from app.utils.models import ClaimPrompt, InsuranceClaim
 from app.utils.utils import request_human_review
@@ -13,15 +12,15 @@ APP_NAME = "agents"
 
 
 # TOOLS
-async def human_approval(tool_context: ToolContext, claim: InsuranceClaim) -> str:
+async def human_approval(claim: InsuranceClaim) -> str:
     """Ask for human approval for high-value claims."""
-    restate_context = tool_context.session.state["restate_context"]
+    ctx = restate_object_context()
 
     # Create an awakeable for human approval
-    approval_id, approval_promise = restate_context.awakeable(type_hint=str)
+    approval_id, approval_promise = ctx.awakeable(type_hint=str)
 
     # Request human review
-    await restate_context.run_typed(
+    await ctx.run_typed(
         "Request review",
         request_human_review,
         claim=claim,

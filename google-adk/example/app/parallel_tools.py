@@ -3,11 +3,10 @@ import restate
 from google.adk import Runner
 from google.adk.agents.llm_agent import Agent
 from google.adk.apps import App
-from google.adk.tools.tool_context import ToolContext
 from google.genai.types import Content, Part
 from typing import List
 
-from restate.ext.adk import RestatePlugin, RestateSessionService
+from restate.ext.adk import RestatePlugin, RestateSessionService, restate_object_context
 
 from app.utils.models import InsuranceClaim
 from app.utils.utils import check_eligibility, compare_to_standard_rates, check_fraud
@@ -15,18 +14,15 @@ from app.utils.utils import check_eligibility, compare_to_standard_rates, check_
 APP_NAME = "agents"
 
 
-async def calculate_metrics(
-    tool_context: ToolContext,
-    claim: InsuranceClaim,
-) -> List[str]:
+async def calculate_metrics(claim: InsuranceClaim) -> List[str]:
     """Calculate claim metrics using parallel execution."""
-    restate_context = tool_context.session.state["restate_context"]
+    ctx = restate_object_context()
 
     # Run tools/steps in parallel with durable execution
     results_done = await restate.gather(
-        restate_context.run_typed("eligibility", check_eligibility, claim=claim),
-        restate_context.run_typed("cost", compare_to_standard_rates, claim=claim),
-        restate_context.run_typed("fraud", check_fraud, claim=claim),
+        ctx.run_typed("eligibility", check_eligibility, claim=claim),
+        ctx.run_typed("cost", compare_to_standard_rates, claim=claim),
+        ctx.run_typed("fraud", check_fraud, claim=claim),
     )
     return [await result for result in results_done]
 
