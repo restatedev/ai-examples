@@ -5,7 +5,7 @@ from google.adk.apps import App
 from google.adk.sessions import InMemorySessionService
 from google.genai.types import Content, Part
 from google.adk.agents.llm_agent import Agent
-from restate.ext.adk import RestatePlugin, restate_object_context
+from restate.ext.adk import RestatePlugin, restate_context
 
 from app.utils.models import WeatherResponse, WeatherPrompt
 from app.utils.utils import call_weather_api
@@ -16,7 +16,7 @@ APP_NAME = "agents"
 async def get_weather(city: str) -> WeatherResponse:
     """Get the current weather for a given city."""
     #  Do one or more durable steps using the Restate context
-    return await restate_object_context().run_typed(
+    return await restate_context().run_typed(
         f"Get weather {city}", call_weather_api, city=city
     )
 
