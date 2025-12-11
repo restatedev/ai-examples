@@ -1,6 +1,6 @@
 # Restate and Vercel AI SDK examples
 
-A set of examples illustrating how to use [Restate](https://restate.dev/) ([Github](https://github.com/restatedev/)) to add durable execution, state, and communication to agents built with the [Vercel AI SDK](https://ai-sdk.dev)
+A set of examples illustrating how to use [Restate](https://restate.dev/) to add durable execution, state, and communication to agents built with the [Vercel AI SDK](https://ai-sdk.dev)
 
 ## Setting up an Environment
 
