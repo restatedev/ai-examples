@@ -42,15 +42,16 @@ agent_service = restate.Service("WeatherAgent")
 async def run(_ctx: restate.Context, req: WeatherPrompt) -> str | None:
     session_service = InMemorySessionService()
     await session_service.create_session(
-        app_name=APP_NAME, user_id=req.session_id, session_id=req.session_id
+        app_name=APP_NAME, user_id="user-123", session_id=req.session_id
     )
-    runner = Runner(app=app, session_service=session_service)
 
+    runner = Runner(app=app, session_service=session_service)
     events = runner.run_async(
         user_id="user-123",
         session_id=req.session_id,
         new_message=Content(role="user", parts=[Part.from_text(text=req.message)]),
     )
+
     final_response = None
     async for event in events:
         if event.is_final_response() and event.content and event.content.parts:

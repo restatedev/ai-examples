@@ -19,7 +19,7 @@ async def get_weather(tool_context: ToolContext, city: str) -> WeatherResponse:
     restate_context = tool_context.session.state["restate_context"]
 
     #  call tool wrapped as Restate durable step
-    return await restate_context.run_typed("Get weather", call_weather_api, city=city)
+    return await restate_context.run_typed(f"Get weather {city}", call_weather_api, city=city)
 
 
 agent = Agent(
