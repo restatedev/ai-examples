@@ -1,10 +1,12 @@
 import restate
 from agents import (
     Agent,
-    RunContextWrapper,
+    Runner,
+    function_tool,
 )
+from restate.ext.openai import restate_context
+from restate.ext.openai import DurableOpenAIAgents
 
-from app.utils.middleware import Runner, function_tool
 from app.utils.models import ClaimPrompt
 from app.utils.utils import (
     InsuranceClaim,
@@ -18,15 +20,13 @@ human_approval_workflow = restate.Service("HumanApprovalWorkflow")
 
 
 @human_approval_workflow.handler("requestApproval")
-async def request_approval(
-    restate_context: restate.Context, claim: InsuranceClaim
-) -> str:
+async def request_approval(ctx: restate.Context, claim: InsuranceClaim) -> str:
     """Request human approval for a claim and wait for response."""
     # Create an awakeable that can be resolved via HTTP
-    approval_id, approval_promise = restate_context.awakeable(type_hint=str)
+    approval_id, approval_promise = ctx.awakeable(type_hint=str)
 
     # Request human review
-    await restate_context.run_typed(
+    await ctx.run_typed(
         "Request review", request_human_review, claim=claim, awakeable_id=approval_id
     )
 
@@ -39,20 +39,15 @@ async def request_approval(
 
 # <start_here>
 @function_tool
-async def human_approval(
-    wrapper: RunContextWrapper[restate.Context], claim: InsuranceClaim
-) -> str:
+async def human_approval(claim: InsuranceClaim) -> str:
     """Ask for human approval for high-value claims using sub-workflow."""
-    restate_context = wrapper.context
-
-    # Call the human approval sub-workflow
-    return await restate_context.service_call(request_approval, claim)
+    return await restate_context().service_call(request_approval, claim)
 
 
 # <end_here>
 
 
-sub_workflow_agent = Agent[restate.Context](
+sub_workflow_agent = Agent(
     name="ClaimApprovalAgent",
     instructions="You are an insurance claim evaluation agent. "
     "Use these rules: if the amount is more than 1000, ask for human approval; "
@@ -61,16 +56,12 @@ sub_workflow_agent = Agent[restate.Context](
 )
 
 
-agent_service = restate.Service("SubWorkflowClaimApprovalAgent")
+agent_service = restate.Service(
+    "SubWorkflowClaimApprovalAgent", invocation_context_managers=[DurableOpenAIAgents]
+)
 
 
 @agent_service.handler()
-async def run(restate_context: restate.Context, prompt: ClaimPrompt) -> str:
-    result = await Runner.run(
-        sub_workflow_agent,
-        input=prompt.message,
-        disable_tool_autowrapping=True,
-        context=restate_context,
-    )
-
+async def run(_ctx: restate.Context, prompt: ClaimPrompt) -> str:
+    result = await Runner.run(sub_workflow_agent, input=prompt.message)
     return result.final_output

@@ -1,15 +1,10 @@
 from typing import List
 
-from agents import (
-    Agent,
-    Runner,
-    HostedMCPTool,
-    TResponseInputItem,
-)
+from agents import Agent, HostedMCPTool, TResponseInputItem, Runner
 from openai.types.responses.tool_param import Mcp
 from restate import VirtualObject, ObjectContext, ObjectSharedContext
+from restate.ext.openai.runner_wrapper import RestateSession
 
-from app.utils.middleware import Runner, RestateSession
 from app.utils.models import ChatMessage
 
 chat = VirtualObject("McpChat")
@@ -42,5 +37,4 @@ async def message(_ctx: ObjectContext, chat_message: ChatMessage) -> str:
 
 @chat.handler(kind="shared")
 async def get_history(_ctx: ObjectSharedContext) -> List[TResponseInputItem]:
-    session = RestateSession()
-    return await session.get_items()
+    return await RestateSession().get_items()

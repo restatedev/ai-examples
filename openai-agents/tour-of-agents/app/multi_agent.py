@@ -1,7 +1,7 @@
 import restate
-from agents import Agent
+from agents import Agent, Runner
+from restate.ext.openai.runner_wrapper import RestateSession, DurableOpenAIAgents
 
-from app.utils.middleware import Runner, RestateSession
 from app.utils.utils import InsuranceClaim
 
 intake_agent = Agent(
@@ -30,7 +30,9 @@ agent_dict = {
     "AutoSpecialist": auto_specialist,
 }
 
-agent_service = restate.VirtualObject("MultiAgentClaimApproval")
+agent_service = restate.VirtualObject(
+    "MultiAgentClaimApproval", invocation_context_managers=[DurableOpenAIAgents]
+)
 
 
 @agent_service.handler()

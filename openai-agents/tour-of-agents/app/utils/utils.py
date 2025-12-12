@@ -1,11 +1,10 @@
 import httpx
 import restate
-from app.utils.middleware import Runner, function_tool
-from agents import Agent
+from agents import Agent, Runner, function_tool
 from openai.types.chat import ChatCompletionMessage, ChatCompletionAssistantMessageParam
 from restate import TerminalError
+from restate.ext.openai import DurableOpenAIAgents
 
-from app.utils.middleware import DurableModelCalls
 from app.utils.models import (
     WeatherResponse,
     InsuranceClaim,
@@ -127,13 +126,13 @@ async def cancel_flight(booking_id: str) -> None:
     print(f"❌ Cancelling flight booking {booking_id}")
 
 
-eligibility_agent_service = restate.Service("EligibilityAgent")
+eligibility_agent_service = restate.Service(
+    "EligibilityAgent", invocation_context_managers=[DurableOpenAIAgents]
+)
 
 
 @eligibility_agent_service.handler()
-async def run_eligibility_agent(
-    restate_context: restate.Context, claim: InsuranceClaim
-) -> str:
+async def run_eligibility_agent(_ctx: restate.Context, claim: InsuranceClaim) -> str:
     result = await Runner.run(
         Agent(
             name="EligibilityAgent",
@@ -145,12 +144,14 @@ async def run_eligibility_agent(
     return result.final_output
 
 
-rate_comparison_agent_service = restate.Service("RateComparisonAgent")
+rate_comparison_agent_service = restate.Service(
+    "RateComparisonAgent", invocation_context_managers=[DurableOpenAIAgents]
+)
 
 
 @rate_comparison_agent_service.handler()
 async def run_rate_comparison_agent(
-    restate_context: restate.Context, claim: InsuranceClaim
+    _ctx: restate.Context, claim: InsuranceClaim
 ) -> str:
     result = await Runner.run(
         Agent(
@@ -163,13 +164,13 @@ async def run_rate_comparison_agent(
     return result.final_output
 
 
-fraud_agent_service = restate.Service("FraudAgent")
+fraud_agent_service = restate.Service(
+    "FraudAgent", invocation_context_managers=[DurableOpenAIAgents]
+)
 
 
 @fraud_agent_service.handler()
-async def run_fraud_agent(
-    restate_context: restate.Context, claim: InsuranceClaim
-) -> str:
+async def run_fraud_agent(_ctx: restate.Context, claim: InsuranceClaim) -> str:
     result = await Runner.run(
         Agent(
             name="FraudAgent",

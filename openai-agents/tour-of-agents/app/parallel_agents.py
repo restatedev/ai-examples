@@ -1,7 +1,7 @@
 import restate
 from agents import Agent, Runner
+from restate.ext.openai import DurableOpenAIAgents
 
-from app.utils.middleware import Runner
 from app.utils.utils import (
     InsuranceClaim,
     run_eligibility_agent,
@@ -9,7 +9,9 @@ from app.utils.utils import (
     run_rate_comparison_agent,
 )
 
-agent_service = restate.Service("ParallelAgentClaimApproval")
+agent_service = restate.Service(
+    "ParallelAgentClaimApproval", invocation_context_managers=[DurableOpenAIAgents]
+)
 
 
 # <start_here>

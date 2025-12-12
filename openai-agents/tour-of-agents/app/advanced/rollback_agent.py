@@ -1,11 +1,11 @@
 from typing import Callable
 
 import restate
-from agents import Agent, RunConfig, Runner, RunContextWrapper
+from agents import Agent, Runner, RunContextWrapper, function_tool
 from pydantic import Field, BaseModel, ConfigDict
 from restate import TerminalError
+from restate.ext.openai import restate_context
 
-from app.utils.middleware import Runner, function_tool
 from app.utils.models import HotelBooking, FlightBooking, BookingPrompt, BookingResult
 from app.utils.utils import (
     reserve_hotel,
@@ -18,9 +18,7 @@ from app.utils.utils import (
 # Enrich the agent context with a list to track rollback actions
 class BookingContext(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
-
     booking_id: str
-    restate_context: restate.Context
     on_rollback: list[Callable] = Field(default=[])
 
 
@@ -30,20 +28,19 @@ async def book_hotel(
     wrapper: RunContextWrapper[BookingContext], booking: HotelBooking
 ) -> BookingResult:
     """Book a hotel"""
-    booking_context = wrapper.context
-
+    ctx = restate_context()
     # Register a rollback action for each step, in case of failures further on in the workflow
-    booking_context.on_rollback.append(
-        lambda: booking_context.restate_context.run_typed(
-            "Cancel hotel", cancel_hotel, booking_id=booking_context.booking_id
+    wrapper.context.on_rollback.append(
+        lambda: ctx.run_typed(
+            "Cancel hotel", cancel_hotel, booking_id=wrapper.context.booking_id
         )
     )
 
     # Execute the workflow step
-    return await booking_context.restate_context.run_typed(
+    return await ctx.run_typed(
         "Book hotel",
         reserve_hotel,
-        booking_id=booking_context.booking_id,
+        booking_id=wrapper.context.booking_id,
         booking=booking,
     )
 
@@ -53,17 +50,16 @@ async def book_flight(
     wrapper: RunContextWrapper[BookingContext], booking: FlightBooking
 ) -> BookingResult:
     """Book a flight"""
-    booking_context = wrapper.context
-
-    booking_context.on_rollback.append(
-        lambda: booking_context.restate_context.run_typed(
-            "Cancel flight", cancel_flight, booking_id=booking_context.booking_id
+    ctx = restate_context()
+    wrapper.context.on_rollback.append(
+        lambda: ctx.run_typed(
+            "Cancel flight", cancel_flight, booking_id=wrapper.context.booking_id
         )
     )
-    return await booking_context.restate_context.run_typed(
+    return await ctx.run_typed(
         "Book flight",
         reserve_flight,
-        booking_id=booking_context.booking_id,
+        booking_id=wrapper.context.booking_id,
         booking=booking,
     )
 
@@ -75,11 +71,9 @@ agent_service = restate.Service("BookingWithRollbackAgent")
 
 
 @agent_service.handler()
-async def book(restate_context: restate.Context, prompt: BookingPrompt) -> str:
+async def book(_ctx: restate.Context, prompt: BookingPrompt) -> str:
 
-    booking_context = BookingContext(
-        booking_id=prompt.booking_id, restate_context=restate_context
-    )
+    booking_context = BookingContext(booking_id=prompt.booking_id)
 
     booking_agent = Agent[BookingContext](
         name="BookingWithRollbackAgent",

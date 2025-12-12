@@ -2,11 +2,11 @@ from typing import List
 
 from agents import Agent, Runner, TResponseInputItem
 from restate import VirtualObject, ObjectContext, ObjectSharedContext
+from restate.ext.openai.runner_wrapper import DurableOpenAIAgents, RestateSession
 
-from app.utils.middleware import Runner, RestateSession
 from app.utils.models import ChatMessage
 
-chat = VirtualObject("Chat")
+chat = VirtualObject("Chat", invocation_context_managers=[DurableOpenAIAgents])
 
 
 @chat.handler()
@@ -21,5 +21,4 @@ async def message(_ctx: ObjectContext, chat_message: ChatMessage) -> dict:
 
 @chat.handler(kind="shared")
 async def get_history(_ctx: ObjectSharedContext) -> List[TResponseInputItem]:
-    session = RestateSession()
-    return await session.get_items()
+    return await RestateSession().get_items()
