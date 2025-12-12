@@ -19,8 +19,8 @@ from app.utils.utils import (
 human_approval_workflow = restate.Service("HumanApprovalWorkflow")
 
 
-@human_approval_workflow.handler("requestApproval")
-async def request_approval(ctx: restate.Context, claim: InsuranceClaim) -> str:
+@human_approval_workflow.handler()
+async def review(ctx: restate.Context, claim: InsuranceClaim) -> str:
     """Request human approval for a claim and wait for response."""
     # Create an awakeable that can be resolved via HTTP
     approval_id, approval_promise = ctx.awakeable(type_hint=str)
@@ -41,7 +41,7 @@ async def request_approval(ctx: restate.Context, claim: InsuranceClaim) -> str:
 @function_tool
 async def human_approval(claim: InsuranceClaim) -> str:
     """Ask for human approval for high-value claims using sub-workflow."""
-    return await restate_context().service_call(request_approval, claim)
+    return await restate_context().service_call(review, claim)
 
 
 # <end_here>
