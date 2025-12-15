@@ -1,19 +1,19 @@
 from typing import List
 
-from agents import Agent, Runner, TResponseInputItem
+from agents import Agent, TResponseInputItem
 from restate import VirtualObject, ObjectContext, ObjectSharedContext
-from restate.ext.openai.runner_wrapper import DurableOpenAIAgents, RestateSession
+from restate.ext.openai import DurableRunner, RestateSession
 
 from app.utils.models import ChatMessage
 
-chat = VirtualObject("Chat", invocation_context_managers=[DurableOpenAIAgents])
+chat = VirtualObject("Chat")
 
 
 @chat.handler()
-async def message(_ctx: ObjectContext, chat_message: ChatMessage) -> dict:
-    result = await Runner.run(
+async def message(_ctx: ObjectContext, req: ChatMessage) -> dict:
+    result = await DurableRunner.run(
         Agent(name="Assistant", instructions="You are a helpful assistant."),
-        input=chat_message.message,
+        req.message,
         session=RestateSession(),
     )
     return result.final_output

@@ -12,7 +12,7 @@ class WeatherPrompt(BaseModel):
 
 
 class ClaimPrompt(BaseModel):
-    message: str = "Process my hospital bill of 3000USD for a broken leg."
+    message: str = "Process my hospital bill of 2024-10-01 for 3000USD for a broken leg at General Hospital."
 
 
 class ChatMessage(BaseModel):
@@ -23,11 +23,11 @@ class InsuranceClaim(BaseModel):
     """Insurance claim data structure."""
 
     model_config = ConfigDict(populate_by_name=True, alias_generator=camelize)
-    date: str
-    amount: float
-    category: str
-    place_of_service: str
-    reason: str
+    date: str = "2024-10-01"
+    amount: float = 3000
+    category: str = "orthopedic"
+    place_of_service: str = "General Hospital"
+    reason: str = "hospital bill for a broken leg"
 
 
 class WeatherRequest(BaseModel):
@@ -42,9 +42,6 @@ class WeatherResponse(BaseModel):
 
     temperature: float
     description: str
-
-
-# Booking-related models
 
 
 class HotelBooking(BaseModel):
@@ -68,9 +65,8 @@ class BookingPrompt(BaseModel):
     """Booking request data structure."""
 
     booking_id: str = "booking_123"
-    message: str = (
-        "I need to book a business trip to San Francisco from March 15-17. Flying from JFK, need a hotel downtown for 1 guest."
-    )
+    message: str = """Book a business trip to San Francisco from March 15-17. 
+    Flying from JFK, need a hotel downtown for 1 guest."""
 
 
 class BookingResult(BaseModel):

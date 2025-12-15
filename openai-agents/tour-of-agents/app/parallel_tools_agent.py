@@ -1,6 +1,7 @@
 import restate
-from agents import Agent, Runner, function_tool
-from restate.ext.openai import DurableOpenAIAgents, restate_context
+
+from agents import Agent, function_tool
+from restate.ext.openai import restate_context, DurableRunner
 
 from app.utils.utils import (
     InsuranceClaim,
@@ -28,23 +29,18 @@ async def calculate_metrics(claim: InsuranceClaim) -> list[str]:
 # <end_here>
 
 
-parallel_tools_agent = Agent(
+agent = Agent(
     name="ParallelToolsAgent",
-    instructions="You are a claim analysis agent that analyzes insurance claims.",
+    instructions="You are a claim analysis agent that analyzes insurance claims."
+    "Use the calculate_metrics tool and decide whether to approve.",
     tools=[calculate_metrics],
 )
 
 
-agent_service = restate.Service(
-    "ParallelToolClaimAgent", invocation_context_managers=[DurableOpenAIAgents]
-)
+agent_service = restate.Service("ParallelToolClaimAgent")
 
 
 @agent_service.handler()
 async def run(_ctx: restate.Context, claim: InsuranceClaim) -> str:
-    result = await Runner.run(
-        parallel_tools_agent,
-        input=f"Analyze the claim {claim.model_dump_json()}."
-        "Use your tools to calculate key metrics and decide whether to approve.",
-    )
+    result = await DurableRunner.run(agent, f"Claim: {claim.model_dump_json()}")
     return result.final_output

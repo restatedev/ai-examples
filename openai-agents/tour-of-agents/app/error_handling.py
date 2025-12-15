@@ -1,43 +1,40 @@
 import restate
 
-from agents import Agent, Runner
-from restate.ext.openai import DurableOpenAIAgents
-from restate.ext.openai.runner_wrapper import durable_function_tool
+from agents import Agent, function_tool
+from restate.ext.openai import restate_context, DurableRunner, raise_terminal_errors
 
 from app.utils.models import WeatherPrompt, WeatherRequest, WeatherResponse
 from app.utils.utils import fetch_weather
 
 
 # <start_here>
-@durable_function_tool
-async def get_weather(req: WeatherRequest) -> WeatherResponse:
+@function_tool(failure_error_function=raise_terminal_errors)
+async def get_weather(city: WeatherRequest) -> WeatherResponse:
     """Get the current weather for a given city."""
-    return await fetch_weather(req.city)
+    return await restate_context().run_typed("get weather", fetch_weather, city=city)
 
 
 # <end_here>
 
 
-weather_agent = Agent(
+agent = Agent(
     name="WeatherAgent",
     instructions="You are a helpful agent that provides weather updates.",
     tools=[get_weather],
 )
 
 
-agent_service = restate.Service(
-    "WeatherAgent", invocation_context_managers=[DurableOpenAIAgents]
-)
+agent_service = restate.Service("WeatherAgent")
 
 
 @agent_service.handler()
-async def run(prompt: WeatherPrompt) -> str:
+async def run(_ctx: restate.Context, req: WeatherPrompt) -> str:
     # <start_handle>
     try:
-        result = await Runner.run(weather_agent, input=prompt.message)
+        result = await DurableRunner.run(agent, req.message)
     except restate.TerminalError as e:
         # Handle terminal errors gracefully
-        return "The agent couldn't complete the request."
+        return f"The agent couldn't complete the request: {e.message}"
     # <end_handle>
 
     return result.final_output

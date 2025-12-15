@@ -1,10 +1,9 @@
-from typing import Callable
-
 import restate
-from agents import Agent, Runner, RunContextWrapper, function_tool
+
+from typing import Callable
+from agents import Agent, RunContextWrapper, function_tool
 from pydantic import Field, BaseModel, ConfigDict
-from restate import TerminalError
-from restate.ext.openai import restate_context
+from restate.ext.openai import restate_context, DurableRunner, raise_terminal_errors
 
 from app.utils.models import HotelBooking, FlightBooking, BookingPrompt, BookingResult
 from app.utils.utils import (
@@ -23,70 +22,61 @@ class BookingContext(BaseModel):
 
 
 # Functions raise terminal errors instead of feeding them back to the agent
-@function_tool
+@function_tool(failure_error_function=raise_terminal_errors)
 async def book_hotel(
     wrapper: RunContextWrapper[BookingContext], booking: HotelBooking
 ) -> BookingResult:
     """Book a hotel"""
     ctx = restate_context()
+    booking_ctx, booking_id = wrapper.context, wrapper.context.booking_id
     # Register a rollback action for each step, in case of failures further on in the workflow
-    wrapper.context.on_rollback.append(
-        lambda: ctx.run_typed(
-            "Cancel hotel", cancel_hotel, booking_id=wrapper.context.booking_id
-        )
+    booking_ctx.on_rollback.append(
+        lambda: ctx.run_typed("Cancel hotel", cancel_hotel, id=booking_id)
     )
 
     # Execute the workflow step
     return await ctx.run_typed(
-        "Book hotel",
-        reserve_hotel,
-        booking_id=wrapper.context.booking_id,
-        booking=booking,
+        "Book hotel", reserve_hotel, id=booking_id, booking=booking
     )
 
 
-@function_tool
+@function_tool(failure_error_function=raise_terminal_errors)
 async def book_flight(
     wrapper: RunContextWrapper[BookingContext], booking: FlightBooking
 ) -> BookingResult:
     """Book a flight"""
     ctx = restate_context()
-    wrapper.context.on_rollback.append(
-        lambda: ctx.run_typed(
-            "Cancel flight", cancel_flight, booking_id=wrapper.context.booking_id
-        )
+    booking_ctx, booking_id = wrapper.context, wrapper.context.booking_id
+    booking_ctx.on_rollback.append(
+        lambda: ctx.run_typed("Cancel flight", cancel_flight, id=booking_id)
     )
     return await ctx.run_typed(
-        "Book flight",
-        reserve_flight,
-        booking_id=wrapper.context.booking_id,
-        booking=booking,
+        "Book flight", reserve_flight, id=booking_id, booking=booking
     )
 
 
 # ... Do the same for cars ...
 
 
+agent = Agent[BookingContext](
+    name="BookingWithRollbackAgent",
+    instructions="Book a complete travel package with the requirements in the prompt."
+    "Use tools to first book the hotel, then the flight.",
+    tools=[book_hotel, book_flight],
+)
+
+
 agent_service = restate.Service("BookingWithRollbackAgent")
 
 
 @agent_service.handler()
-async def book(_ctx: restate.Context, prompt: BookingPrompt) -> str:
-
-    booking_context = BookingContext(booking_id=prompt.booking_id)
-
-    booking_agent = Agent[BookingContext](
-        name="BookingWithRollbackAgent",
-        instructions="Book a complete travel package with the requirements in the prompt."
-        "Use tools to first book the hotel, then the flight.",
-        tools=[book_hotel, book_flight],
-    )
-
+async def book(_ctx: restate.Context, req: BookingPrompt) -> str:
+    booking_ctx = BookingContext(booking_id=req.booking_id)
     try:
-        result = await Runner.run(booking_agent, input=prompt.message)
-    except TerminalError as e:
+        result = await DurableRunner.run(agent, req.message, context=booking_ctx)
+    except restate.TerminalError as e:
         # Run all the rollback actions on terminal errors
-        for compensation in reversed(booking_context.on_rollback):
+        for compensation in reversed(booking_ctx.on_rollback):
             await compensation()
         raise e
 

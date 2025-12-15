@@ -321,6 +321,33 @@ wheels = [
 ]
 
 [[package]]
+name = "hello-world"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "hypercorn" },
+    { name = "openai-agents" },
+    { name = "pydantic" },
+    { name = "restate-sdk", extra = ["serde"] },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "mypy" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "hypercorn", specifier = ">=0.17.3" },
+    { name = "openai-agents", specifier = ">=0.6.2" },
+    { name = "pydantic", specifier = ">=2.10.6" },
+    { name = "restate-sdk", extras = ["serde"], path = "../../../sdk-python/dist/restate_sdk-0.13.1-cp313-cp313-linux_x86_64.whl" },
+]
+
+[package.metadata.requires-dev]
+dev = [{ name = "mypy", specifier = ">=1.18.2" }]
+
+[[package]]
 name = "hpack"
 version = "4.1.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1142,35 +1169,6 @@ sdist = { url = "https://files.pythonhosted.org/packages/ba/b8/73a0e6a6e079a9d9c
 wheels = [
     { url = "https://files.pythonhosted.org/packages/d9/52/1064f510b141bd54025f9b55105e26d1fa970b9be67ad766380a3c9b74b0/starlette-0.50.0-py3-none-any.whl", hash = "sha256:9e5391843ec9b6e472eed1365a78c8098cfceb7a74bfd4d6b1c0c0095efb3bca", size = 74033 },
 ]
-
-[[package]]
-name = "tour-of-agents"
-version = "0.1.0"
-source = { editable = "." }
-dependencies = [
-    { name = "httpx" },
-    { name = "hypercorn" },
-    { name = "openai-agents" },
-    { name = "pydantic" },
-    { name = "restate-sdk", extra = ["serde"] },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "mypy" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "httpx" },
-    { name = "hypercorn" },
-    { name = "openai-agents", specifier = ">=0.6.2" },
-    { name = "pydantic", specifier = ">=2.11.9" },
-    { name = "restate-sdk", extras = ["serde"], path = "../../../sdk-python/dist/restate_sdk-0.13.1-cp313-cp313-linux_x86_64.whl" },
-]
-
-[package.metadata.requires-dev]
-dev = [{ name = "mypy", specifier = ">=1.18.2" }]
 
 [[package]]
 name = "tqdm"

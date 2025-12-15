@@ -1,6 +1,6 @@
 import restate
-from agents import Agent, Runner
-from restate.ext.openai import DurableOpenAIAgents
+from agents import Agent
+from restate.ext.openai import DurableRunner
 
 from app.utils.utils import (
     InsuranceClaim,
@@ -9,9 +9,7 @@ from app.utils.utils import (
     run_rate_comparison_agent,
 )
 
-agent_service = restate.Service(
-    "ParallelAgentClaimApproval", invocation_context_managers=[DurableOpenAIAgents]
-)
+agent_service = restate.Service("ParallelAgentClaimApproval")
 
 
 # <start_here>
@@ -27,7 +25,7 @@ async def run(restate_context: restate.Context, claim: InsuranceClaim) -> str:
     await restate.gather(eligibility, cost, fraud)
 
     # Run decision agent on outputs
-    result = await Runner.run(
+    result = await DurableRunner.run(
         Agent(
             name="ClaimApprovalAgent", instructions="You are a claim decision engine."
         ),

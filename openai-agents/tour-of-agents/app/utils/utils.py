@@ -1,9 +1,9 @@
 import httpx
 import restate
-from agents import Agent, Runner, function_tool
+from agents import Agent, Runner
 from openai.types.chat import ChatCompletionMessage, ChatCompletionAssistantMessageParam
 from restate import TerminalError
-from restate.ext.openai import DurableOpenAIAgents
+from restate.ext.openai import DurableRunner
 
 from app.utils.models import (
     WeatherResponse,
@@ -126,14 +126,12 @@ async def cancel_flight(booking_id: str) -> None:
     print(f"❌ Cancelling flight booking {booking_id}")
 
 
-eligibility_agent_service = restate.Service(
-    "EligibilityAgent", invocation_context_managers=[DurableOpenAIAgents]
-)
+eligibility_agent_service = restate.Service("EligibilityAgent")
 
 
 @eligibility_agent_service.handler()
 async def run_eligibility_agent(_ctx: restate.Context, claim: InsuranceClaim) -> str:
-    result = await Runner.run(
+    result = await DurableRunner.run(
         Agent(
             name="EligibilityAgent",
             instructions="Decide whether the following claim is eligible for reimbursement."
@@ -144,16 +142,14 @@ async def run_eligibility_agent(_ctx: restate.Context, claim: InsuranceClaim) ->
     return result.final_output
 
 
-rate_comparison_agent_service = restate.Service(
-    "RateComparisonAgent", invocation_context_managers=[DurableOpenAIAgents]
-)
+rate_comparison_agent_service = restate.Service("RateComparisonAgent")
 
 
 @rate_comparison_agent_service.handler()
 async def run_rate_comparison_agent(
     _ctx: restate.Context, claim: InsuranceClaim
 ) -> str:
-    result = await Runner.run(
+    result = await DurableRunner.run(
         Agent(
             name="RateComparisonAgent",
             instructions="Decide whether the cost of the claim is reasonable given the treatment."
@@ -164,14 +160,12 @@ async def run_rate_comparison_agent(
     return result.final_output
 
 
-fraud_agent_service = restate.Service(
-    "FraudAgent", invocation_context_managers=[DurableOpenAIAgents]
-)
+fraud_agent_service = restate.Service("FraudAgent")
 
 
 @fraud_agent_service.handler()
 async def run_fraud_agent(_ctx: restate.Context, claim: InsuranceClaim) -> str:
-    result = await Runner.run(
+    result = await DurableRunner.run(
         Agent(
             name="FraudAgent",
             instructions="Decide whether the claim is fraudulent."
@@ -180,15 +174,3 @@ async def run_fraud_agent(_ctx: restate.Context, claim: InsuranceClaim) -> str:
         input=claim.model_dump_json(),
     )
     return result.final_output
-
-
-def as_chat_completion_param(msg: ChatCompletionMessage):
-    return ChatCompletionAssistantMessageParam(
-        role="assistant",
-        content=msg.content,
-        tool_calls=[
-            {"id": tc.id, "type": tc.type, "function": tc.function}  # type: ignore
-            for tc in (msg.tool_calls or [])
-        ]
-        or None,
-    )

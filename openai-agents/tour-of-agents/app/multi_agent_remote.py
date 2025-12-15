@@ -1,6 +1,7 @@
 import restate
-from agents import Agent, Runner, function_tool
-from restate.ext.openai import restate_context
+
+from agents import Agent, function_tool
+from restate.ext.openai import restate_context, DurableRunner
 
 from app.utils.utils import InsuranceClaim, run_eligibility_agent, run_fraud_agent
 
@@ -20,7 +21,7 @@ async def check_fraud(claim: InsuranceClaim) -> str:
     return await restate_context().service_call(run_fraud_agent, claim)
 
 
-claim_approval_coordinator = Agent(
+agent = Agent(
     name="ClaimApprovalCoordinator",
     instructions="You are a claim approval engine. Analyze the claim and use your tools to decide whether to approve it.",
     tools=[check_eligibility, check_fraud],
@@ -31,10 +32,7 @@ agent_service = restate.Service("RemoteMultiAgentClaimApproval")
 
 @agent_service.handler()
 async def run(_ctx: restate.Context, claim: InsuranceClaim) -> str:
-    result = await Runner.run(
-        claim_approval_coordinator,
-        input=f"Claim: {claim.model_dump_json()}",
-    )
+    result = await DurableRunner.run(agent, f"Claim: {claim.model_dump_json()}")
     return result.final_output
 
 

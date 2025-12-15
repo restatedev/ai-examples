@@ -1,6 +1,7 @@
 import restate
-from agents import Agent, Runner
-from restate.ext.openai.runner_wrapper import RestateSession, DurableOpenAIAgents
+
+from agents import Agent
+from restate.ext.openai.runner_wrapper import RestateSession, DurableRunner
 
 from app.utils.utils import InsuranceClaim
 
@@ -30,26 +31,19 @@ agent_dict = {
     "AutoSpecialist": auto_specialist,
 }
 
-agent_service = restate.VirtualObject(
-    "MultiAgentClaimApproval", invocation_context_managers=[DurableOpenAIAgents]
-)
+agent_service = restate.VirtualObject("MultiAgentClaimApproval")
 
 
 @agent_service.handler()
-async def run(restate_context: restate.ObjectContext, claim: InsuranceClaim) -> str:
+async def run(ctx: restate.ObjectContext, claim: InsuranceClaim) -> str:
 
     # Store context in Restate's key-value store
-    last_agent_name = (
-        await restate_context.get("last_agent_name", type_hint=str) or "IntakeAgent"
-    )
+    last_agent_name = await ctx.get("last_agent_name", type_hint=str) or "IntakeAgent"
     last_agent = agent_dict.get(last_agent_name, intake_agent)
 
-    result = await Runner.run(
-        last_agent,
-        input=f"Claim: {claim.model_dump_json()}",
-        session=RestateSession(),
+    result = await DurableRunner.run(
+        last_agent, f"Claim: {claim.model_dump_json()}", session=RestateSession()
     )
 
-    restate_context.set("last_agent_name", result.last_agent.name)
-
+    ctx.set("last_agent_name", result.last_agent.name)
     return result.final_output

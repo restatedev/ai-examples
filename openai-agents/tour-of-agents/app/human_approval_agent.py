@@ -1,6 +1,7 @@
 import restate
-from agents import Agent, Runner, function_tool
-from restate.ext.openai import DurableOpenAIAgents, restate_context
+
+from agents import Agent, function_tool
+from restate.ext.openai import restate_context, DurableRunner
 
 from app.utils.models import ClaimPrompt
 from app.utils.utils import (
@@ -29,7 +30,7 @@ async def human_approval(claim: InsuranceClaim) -> str:
 # <end_here>
 
 
-claim_approval_agent = Agent(
+agent = Agent(
     name="HumanClaimApprovalAgent",
     instructions="You are an insurance claim evaluation agent. "
     "Use these rules: if the amount is more than 1000, ask for human approval; "
@@ -38,13 +39,10 @@ claim_approval_agent = Agent(
 )
 
 
-agent_service = restate.Service(
-    "HumanClaimApprovalAgent",
-    invocation_context_managers=[DurableOpenAIAgents],
-)
+agent_service = restate.Service("HumanClaimApprovalAgent")
 
 
 @agent_service.handler()
-async def run(_ctx: restate.Context, prompt: ClaimPrompt) -> str:
-    result = await Runner.run(claim_approval_agent, prompt.message)
+async def run(_ctx: restate.Context, req: ClaimPrompt) -> str:
+    result = await DurableRunner.run(agent, req.message)
     return result.final_output
