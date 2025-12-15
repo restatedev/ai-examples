@@ -15,7 +15,6 @@ agent_service = restate.Service("ParallelAgentClaimApproval")
 # <start_here>
 @agent_service.handler()
 async def run(restate_context: restate.Context, claim: InsuranceClaim) -> str:
-
     # Start multiple agents in parallel with auto retries and recovery
     eligibility = restate_context.service_call(run_eligibility_agent, claim)
     cost = restate_context.service_call(run_rate_comparison_agent, claim)

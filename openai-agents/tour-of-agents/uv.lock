@@ -970,7 +970,7 @@ name = "restate-sdk"
 version = "0.13.1"
 source = { path = "../../../sdk-python/dist/restate_sdk-0.13.1-cp313-cp313-linux_x86_64.whl" }
 wheels = [
-    { filename = "restate_sdk-0.13.1-cp313-cp313-linux_x86_64.whl", hash = "sha256:bf974b7317fa04907519b4db5636fd38523e389beb2108bd711dbbd3ed5308e6" },
+    { filename = "restate_sdk-0.13.1-cp313-cp313-linux_x86_64.whl", hash = "sha256:c0a4b95781e366f4efe9d47f3de514121e65c094f00980d53c754fdca2af1782" },
 ]
 
 [package.optional-dependencies]

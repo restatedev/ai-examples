@@ -36,7 +36,6 @@ agent_service = restate.VirtualObject("MultiAgentClaimApproval")
 
 @agent_service.handler()
 async def run(ctx: restate.ObjectContext, claim: InsuranceClaim) -> str:
-
     # Store context in Restate's key-value store
     last_agent_name = await ctx.get("last_agent_name", type_hint=str) or "IntakeAgent"
     last_agent = agent_dict.get(last_agent_name, intake_agent)

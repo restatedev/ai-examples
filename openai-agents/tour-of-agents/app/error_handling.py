@@ -1,7 +1,14 @@
+from datetime import timedelta
+
 import restate
 
 from agents import Agent, function_tool
-from restate.ext.openai import restate_context, DurableRunner, raise_terminal_errors
+from restate.ext.openai import (
+    restate_context,
+    DurableRunner,
+    raise_terminal_errors,
+    LlmRetryOpts,
+)
 
 from app.utils.models import WeatherPrompt, WeatherRequest, WeatherResponse
 from app.utils.utils import fetch_weather
@@ -31,7 +38,13 @@ agent_service = restate.Service("WeatherAgent")
 async def run(_ctx: restate.Context, req: WeatherPrompt) -> str:
     # <start_handle>
     try:
-        result = await DurableRunner.run(agent, req.message)
+        result = await DurableRunner.run(
+            agent,
+            req.message,
+            llm_retry_opts=LlmRetryOpts(
+                max_attempts=3, initial_retry_interval=timedelta(seconds=2)
+            ),
+        )
     except restate.TerminalError as e:
         # Handle terminal errors gracefully
         return f"The agent couldn't complete the request: {e.message}"
