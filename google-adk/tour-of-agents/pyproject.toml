@@ -1,7 +1,7 @@
 [project]
-name = "hello-world"
+name = "tour-of-agents"
 version = "0.1.0"
-description = "Example hello world project"
+description = "Tour of Google ADK agents using Restate for durability"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
