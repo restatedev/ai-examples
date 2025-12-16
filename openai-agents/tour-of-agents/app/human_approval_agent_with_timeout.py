@@ -26,7 +26,7 @@ async def human_approval(claim: InsuranceClaim) -> str:
     # Wait for human approval for at most 3 hours to reach our SLA
     match await restate.select(
         approval=approval_promise,
-        timeout=restate_context().sleep(timedelta(seconds=3)),
+        timeout=restate_context().sleep(timedelta(hours=3)),
     ):
         case ["approval", approved]:
             return "Approved" if approved else "Rejected"
