@@ -31,10 +31,10 @@ async def human_approval(claim: InsuranceClaim) -> str:
 
 
 agent = Agent(
-    name="HumanClaimApprovalAgent",
-    instructions="You are an insurance claim evaluation agent. "
-    "Use these rules: if the amount is more than 1000, ask for human approval; "
-    "if the amount is less than 1000, decide by yourself.",
+    name="ClaimApprovalAgent",
+    instructions="""You are an insurance claim evaluation agent. Use these rules: 
+    - if the amount is more than 1000, ask for human approval using tools; 
+    - if the amount is less than 1000, decide by yourself.""",
     tools=[human_approval],
 )
 

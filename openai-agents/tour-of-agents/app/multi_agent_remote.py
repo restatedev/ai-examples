@@ -9,7 +9,7 @@ from app.utils.utils import InsuranceClaim, run_eligibility_agent, run_fraud_age
 # Durable service call to the eligibility agent; persisted and retried by Restate
 @function_tool
 async def check_eligibility(claim: InsuranceClaim) -> str:
-    """ "Analyze claim eligibility."""
+    """Analyze claim eligibility."""
     return await restate_context().service_call(run_eligibility_agent, claim)
 
 

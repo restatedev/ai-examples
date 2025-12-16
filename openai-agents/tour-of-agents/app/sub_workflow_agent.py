@@ -35,7 +35,7 @@ async def review(ctx: restate.Context, claim: InsuranceClaim) -> str:
 # <start_here>
 @function_tool
 async def human_approval(claim: InsuranceClaim) -> str:
-    """Ask for human approval for high-value claims using sub-workflow."""
+    """Ask for human approval for high-value claims."""
     return await restate_context().service_call(review, claim)
 
 
@@ -44,9 +44,9 @@ async def human_approval(claim: InsuranceClaim) -> str:
 
 agent = Agent(
     name="ClaimApprovalAgent",
-    instructions="You are an insurance claim evaluation agent. "
-    "Use these rules: if the amount is more than 1000, ask for human approval; "
-    "if the amount is less than 1000, decide by yourself.",
+    instructions="""You are an insurance claim evaluation agent. Use these rules: 
+    - if the amount is more than 1000, ask for human approval using tools; 
+    - if the amount is less than 1000, decide by yourself.""",
     tools=[human_approval],
 )
 
