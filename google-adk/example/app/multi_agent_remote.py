@@ -4,40 +4,38 @@ from google.adk import Runner
 from google.adk.agents.llm_agent import Agent
 from google.adk.apps import App
 from google.genai.types import Content, Part
-from restate.ext.adk import RestatePlugin, RestateSessionService
+from restate.ext.adk import RestatePlugin, RestateSessionService, restate_context
 
 from app.utils.models import InsuranceClaim
+from app.utils.utils import run_eligibility_agent, run_fraud_agent
 
 APP_NAME = "agents"
 
-# AGENTS
-# Determine which specialist to use based on claim type
-medical_agent = Agent(
-    model="gemini-2.5-flash",
-    name="medical_specialist",
-    description="Reviews medical insurance claims for coverage and necessity.",
-    instruction="Review medical claims for coverage and necessity. Approve/deny up to $50,000.",
-)
 
-car_agent = Agent(
-    model="gemini-2.5-flash",
-    name="car_specialist",
-    description="Assesses car insurance claims for liability and damage.",
-    instruction="Assess car claims for liability and damage. Approve/deny up to $25,000.",
-)
+# Durable service call to the eligibility agent; persisted and retried by Restate
+async def check_eligibility(claim: InsuranceClaim) -> str:
+    """Analyze claim eligibility."""
+    return await restate_context().service_call(run_eligibility_agent, claim)
+
+
+# <start_here>
+# Durable service call to the fraud agent; persisted and retried by Restate
+async def check_fraud(claim: InsuranceClaim) -> str:
+    """Analyze the probability of fraud."""
+    return await restate_context().service_call(run_fraud_agent, claim)
+
 
 agent = Agent(
     model="gemini-2.5-flash",
-    name="intake_agent",
-    instruction="Route insurance claims to the appropriate specialist",
-    sub_agents=[car_agent, medical_agent],
+    name="ClaimApprovalCoordinator",
+    instruction="You are a claim approval engine. Analyze the claim and use your tools to decide whether to approve it.",
+    tools=[check_fraud, check_eligibility],
 )
 
-# Enables retries and recovery for model calls and tool executions
 app = App(name=APP_NAME, root_agent=agent, plugins=[RestatePlugin()])
 runner = Runner(app=app, session_service=RestateSessionService())
 
-agent_service = restate.VirtualObject("MultiAgentClaimApproval")
+agent_service = restate.VirtualObject("RemoteMultiAgentClaimApproval")
 
 
 @agent_service.handler()
@@ -57,3 +55,6 @@ async def run(ctx: restate.ObjectContext, claim: InsuranceClaim) -> str | None:
             if event.content.parts[0].text:
                 final_response = event.content.parts[0].text
     return final_response
+
+
+# <end_here>
