@@ -4,6 +4,7 @@ import restate
 from google.adk import Runner
 from google.adk.agents.llm_agent import Agent
 from google.adk.apps import App
+from google.adk.sessions import InMemorySessionService
 from google.genai.types import Content, Part
 from restate.ext.adk import RestatePlugin, RestateSessionService, restate_object_context
 

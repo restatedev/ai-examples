@@ -2,6 +2,7 @@ import restate
 from google.adk import Runner
 from google.adk.agents.llm_agent import Agent
 from google.adk.apps import App
+from google.adk.sessions import InMemorySessionService
 from google.genai.types import Content, Part
 from restate.ext.adk import RestatePlugin, RestateSessionService, restate_object_context
 
@@ -11,7 +12,7 @@ from app.utils.utils import request_human_review
 APP_NAME = "agents"
 
 
-# TOOLS
+# <start_here>
 async def human_approval(claim: InsuranceClaim) -> str:
     """Ask for human approval for high-value claims."""
     ctx = restate_object_context()
@@ -29,6 +30,7 @@ async def human_approval(claim: InsuranceClaim) -> str:
 
     # Wait for human approval
     return await approval_promise
+# <end_here>
 
 
 # AGENT

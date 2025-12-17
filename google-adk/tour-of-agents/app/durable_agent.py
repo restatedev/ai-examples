@@ -5,7 +5,7 @@ from google.adk.apps import App
 from google.adk.sessions import InMemorySessionService
 from google.genai.types import Content, Part
 from google.adk.agents.llm_agent import Agent
-from restate.ext.adk import RestatePlugin, restate_context
+from restate.ext.adk import RestatePlugin, restate_context, RestateSessionService
 
 from app.utils.models import WeatherResponse, WeatherPrompt
 from app.utils.utils import call_weather_api
@@ -30,20 +30,15 @@ agent = Agent(
 )
 
 app = App(name=APP_NAME, root_agent=agent, plugins=[RestatePlugin()])
+runner = Runner(app=app, session_service=RestateSessionService())
 
-agent_service = restate.Service("WeatherAgent")
+agent_service = restate.VirtualObject("WeatherAgent")
 
 
 @agent_service.handler()
-async def run(_ctx: restate.Context, req: WeatherPrompt) -> str | None:
-    session_service = InMemorySessionService()
-    await session_service.create_session(
-        app_name=APP_NAME, user_id="user-123", session_id=req.session_id
-    )
-
-    runner = Runner(app=app, session_service=session_service)
+async def run(ctx: restate.ObjectContext, req: WeatherPrompt) -> str | None:
     events = runner.run_async(
-        user_id="user-123",
+        user_id=ctx.key(),
         session_id=req.session_id,
         new_message=Content(role="user", parts=[Part.from_text(text=req.message)]),
     )

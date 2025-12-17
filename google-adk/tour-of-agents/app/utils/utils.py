@@ -12,10 +12,12 @@ from app.utils.models import (
 )
 
 
+# <start_weather>
 async def call_weather_api(city: str) -> WeatherResponse:
     fail_on_denver(city)
     weather_data = await fetch_weather(city)
     return parse_weather_data(weather_data)
+# <end_weather>
 
 
 def fail_on_denver(city):
