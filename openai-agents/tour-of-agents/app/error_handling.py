@@ -18,7 +18,7 @@ from app.utils.utils import fetch_weather
 @function_tool(failure_error_function=raise_terminal_errors)
 async def get_weather(city: WeatherRequest) -> WeatherResponse:
     """Get the current weather for a given city."""
-    return await restate_context().run_typed("get weather", fetch_weather, city=city)
+    return await restate_context().run_typed("get weather", fetch_weather, req=city)
 
 
 # <end_here>

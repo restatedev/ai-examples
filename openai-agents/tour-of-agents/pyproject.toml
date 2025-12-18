@@ -7,16 +7,13 @@ requires-python = ">=3.11"
 dependencies = [
     "httpx",
     "hypercorn",
-    "restate-sdk[serde]>=0.13.1",
+    "restate-sdk[serde]>=0.13.2",
     "pydantic>=2.11.9",
     "openai-agents>=0.6.2",
 ]
 
 [tool.hatch.build.targets.wheel]
 packages = ["app"]
-
-[tool.uv.sources]
-restate-sdk = { path = "../../../sdk-python/dist/restate_sdk-0.13.1-cp313-cp313-linux_x86_64.whl" }
 
 [build-system]
 requires = ["hatchling"]
