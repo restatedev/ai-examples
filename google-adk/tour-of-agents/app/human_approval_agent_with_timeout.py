@@ -6,10 +6,10 @@ from google.adk.agents.llm_agent import Agent
 from google.adk.apps import App
 from google.adk.sessions import InMemorySessionService
 from google.genai.types import Content, Part
-from restate.ext.adk import RestatePlugin, RestateSessionService, restate_object_context
+from restate.ext.adk import RestatePlugin, restate_context
 
 from app.utils.models import ClaimPrompt, InsuranceClaim
-from app.utils.utils import request_human_review
+from app.utils.utils import request_human_review, get_or_create_session
 
 APP_NAME = "agents"
 
@@ -17,13 +17,11 @@ APP_NAME = "agents"
 # TOOLS
 async def human_approval(claim: InsuranceClaim) -> str:
     """Ask for human approval for high-value claims."""
-    ctx = restate_object_context()
-
     # Create an awakeable for human approval
-    approval_id, approval_promise = ctx.awakeable(type_hint=str)
+    approval_id, approval_promise = restate_context().awakeable(type_hint=str)
 
     # Request human review
-    await ctx.run_typed(
+    await restate_context().run_typed(
         "Request review",
         request_human_review,
         claim=claim,
@@ -34,7 +32,7 @@ async def human_approval(claim: InsuranceClaim) -> str:
     # Wait for human approval for at most 3 hours to reach our SLA
     match await restate.select(
         approval=approval_promise,
-        timeout=ctx.sleep(timedelta(hours=3)),
+        timeout=restate_context().sleep(timedelta(hours=3)),
     ):
         case ["approval", approved]:
             return "Approved" if approved else "Rejected"
@@ -43,7 +41,6 @@ async def human_approval(claim: InsuranceClaim) -> str:
     # <end_here>
 
 
-# AGENT
 agent = Agent(
     model="gemini-2.5-flash",
     name="claim_approval_agent",
@@ -55,16 +52,17 @@ agent = Agent(
 
 
 app = App(name=APP_NAME, root_agent=agent, plugins=[RestatePlugin()])
-runner = Runner(app=app, session_service=RestateSessionService())
+session_service = InMemorySessionService()
 
-agent_service = restate.VirtualObject("HumanClaimApprovalWithTimeoutsAgent")
+agent_service = restate.Service("HumanClaimApprovalWithTimeoutsAgent")
 
 
-# HANDLER
 @agent_service.handler()
-async def run(ctx: restate.ObjectContext, req: ClaimPrompt) -> str | None:
+async def run(_ctx: restate.Context, req: ClaimPrompt) -> str | None:
+    await get_or_create_session(session_service, APP_NAME, req.user_id, req.session_id)
+    runner = Runner(app=app, session_service=session_service)
     events = runner.run_async(
-        user_id=ctx.key(),
+        user_id=req.user_id,
         session_id=req.session_id,
         new_message=Content(role="user", parts=[Part.from_text(text=req.message)]),
     )

@@ -2,11 +2,12 @@ import restate
 from google.adk import Runner
 from google.adk.agents.llm_agent import Agent
 from google.adk.apps import App
+from google.adk.sessions import InMemorySessionService
 from google.genai.types import Content, Part
-from restate.ext.adk import RestatePlugin, RestateSessionService, restate_object_context
+from restate.ext.adk import RestatePlugin, restate_context
 
 from app.utils.models import ClaimPrompt, InsuranceClaim
-from app.utils.utils import request_human_review
+from app.utils.utils import request_human_review, get_or_create_session
 
 APP_NAME = "agents"
 
@@ -37,7 +38,7 @@ async def review(ctx: restate.Context, claim: InsuranceClaim) -> str:
 # <start_here>
 async def human_approval(claim: InsuranceClaim) -> str:
     """Ask for human approval for high-value claims."""
-    return await restate_object_context().service_call(review, claim)
+    return await restate_context().service_call(review, claim)
 
 
 # <end_here>
@@ -54,16 +55,18 @@ agent = Agent(
 
 
 app = App(name=APP_NAME, root_agent=agent, plugins=[RestatePlugin()])
-runner = Runner(app=app, session_service=RestateSessionService())
+session_service = InMemorySessionService()
 
 agent_service = restate.VirtualObject("SubWorkflowClaimApprovalAgent")
 
 
 # HANDLER
 @agent_service.handler()
-async def run(ctx: restate.ObjectContext, req: ClaimPrompt) -> str | None:
+async def run(_ctx: restate.Context, req: ClaimPrompt) -> str | None:
+    await get_or_create_session(session_service, APP_NAME, req.user_id, req.session_id)
+    runner = Runner(app=app, session_service=session_service)
     events = runner.run_async(
-        user_id=ctx.key(),
+        user_id=req.user_id,
         session_id=req.session_id,
         new_message=Content(role="user", parts=[Part.from_text(text=req.message)]),
     )

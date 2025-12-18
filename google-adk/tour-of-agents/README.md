@@ -12,6 +12,17 @@ AI agent examples using [Restate](https://restate.dev) for durable execution and
 - **Human-in-the-loop** - Resilient approval workflows (with timeouts) ([see human-in-the-loop agent](./app/human_approval_agent.py))
 - **Parallel processing** - Concurrent agent and tool execution that can be deterministically recovered ([see parallel agent](./app/parallel_agents.py) and [parallel tools](./app/parallel_tools.py))
 
+
+## Tour of AI Agents with Restate - Python OpenAI Agents SDK
+Learn how to implement resilient agents with durable execution, human-in-the-loop, multi-agent communication, and parallel execution.
+
+[Learn more](https://docs.restate.dev/tour/google-adk)
+
+To run:
+```shell
+uv run .
+```
+
 ## Quick Start
 
 Export your Google API key:
@@ -36,13 +47,14 @@ docker.restate.dev/restatedev/restate:latest
 
 Go to the Restate UI at `http://localhost:9070`. Click on `register deployment`. And fill in the agent url `http://host.docker.internal:9080`.
 
-![Register service](./docs/images/register_deployment.png)
+![Register service](/docs/images/register_deployment.png)
 
 Click on one of the handlers of the registered services and send the default request (if prompted to do so, add a session key in the key field). 
 
 For example, click on the `run` handler of the `WeatherAgent` service and send the request:
 
-![Send request](./docs/images/request.png)
+![Send request](/docs/images/request.png)
 
 In the invocations tab, you see the execution journal when clicking on the invocation ID:
-![See journal](./docs/images/journal.png)
+![See journal](/docs/images/journal.png)
+
