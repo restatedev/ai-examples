@@ -1,7 +1,7 @@
 import restate
 
-from agents import Agent, function_tool
-from restate.ext.openai import restate_context, DurableRunner
+from agents import Agent
+from restate.ext.openai import restate_context, DurableRunner, durable_function_tool
 
 from utils.utils import (
     fetch_weather,
@@ -11,7 +11,7 @@ from utils.utils import (
 )
 
 
-@function_tool
+@durable_function_tool
 async def get_weather(req: WeatherRequest) -> WeatherResponse:
     """Get the current weather for a given city."""
     # Do durable steps using the Restate context

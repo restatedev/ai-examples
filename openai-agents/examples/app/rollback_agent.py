@@ -1,9 +1,9 @@
 import restate
 
 from typing import Callable
-from agents import Agent, RunContextWrapper, function_tool
+from agents import Agent, RunContextWrapper
 from pydantic import Field, BaseModel, ConfigDict
-from restate.ext.openai import restate_context, DurableRunner, raise_terminal_errors
+from restate.ext.openai import restate_context, DurableRunner, durable_function_tool
 
 from app.utils.models import HotelBooking, FlightBooking, BookingPrompt, BookingResult
 from app.utils.utils import (
@@ -22,7 +22,7 @@ class BookingContext(BaseModel):
 
 
 # Functions raise terminal errors instead of feeding them back to the agent
-@function_tool(failure_error_function=raise_terminal_errors)
+@durable_function_tool
 async def book_hotel(
     wrapper: RunContextWrapper[BookingContext], booking: HotelBooking
 ) -> BookingResult:
@@ -40,7 +40,7 @@ async def book_hotel(
     )
 
 
-@function_tool(failure_error_function=raise_terminal_errors)
+@durable_function_tool
 async def book_flight(
     wrapper: RunContextWrapper[BookingContext], booking: FlightBooking
 ) -> BookingResult:
