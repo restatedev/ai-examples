@@ -28,6 +28,7 @@ runner = Runner(app=app, session_service=RestateSessionService())
 agent_service = restate.VirtualObject("ParallelAgentClaimApproval")
 
 
+# <start_here>
 @agent_service.handler()
 async def run(ctx: restate.ObjectContext, claim: InsuranceClaim) -> str | None:
 
@@ -60,3 +61,4 @@ async def run(ctx: restate.ObjectContext, claim: InsuranceClaim) -> str | None:
             if event.content.parts[0].text:
                 final_response = event.content.parts[0].text
     return final_response
+# <end_here>

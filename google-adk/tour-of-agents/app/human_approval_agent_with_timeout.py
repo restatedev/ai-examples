@@ -57,7 +57,7 @@ agent = Agent(
 app = App(name=APP_NAME, root_agent=agent, plugins=[RestatePlugin()])
 runner = Runner(app=app, session_service=RestateSessionService())
 
-agent_service = restate.VirtualObject("HumanClaimApprovalAgent")
+agent_service = restate.VirtualObject("HumanClaimApprovalWithTimeoutsAgent")
 
 
 # HANDLER
