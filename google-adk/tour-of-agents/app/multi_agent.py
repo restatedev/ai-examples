@@ -12,36 +12,25 @@ APP_NAME = "agents"
 
 # AGENTS
 # Determine which specialist to use based on claim type
-review_agent = Agent(
+medical_agent = Agent(
     model="gemini-2.5-flash",
     name="medical_specialist",
     description="Reviews medical insurance claims for coverage and necessity.",
-    instruction="""You are a medical specialist. Review medical claims for coverage and necessity. 
-    You can approve/deny claims up to $50,000. Make a final decision on this claim.""",
+    instruction="Review medical claims for coverage and necessity. Approve/deny up to $50,000.",
 )
 
 car_agent = Agent(
     model="gemini-2.5-flash",
-    name="auto_specialist",
-    description="Assesses auto insurance claims for liability and damage.",
-    instruction="""You are an auto specialist. Assess auto claims for liability and damage. 
-    You can approve/deny claims up to $25,000. Make a final decision on this claim.""",
-)
-
-property_agent = Agent(
-    model="gemini-2.5-flash",
-    name="property_specialist",
-    description="Evaluates property insurance claims for damage and coverage.",
-    instruction="""You are a property specialist. Evaluate property claims for damage and coverage. 
-    Make a final decision on this claim.""",
+    name="car_specialist",
+    description="Assesses car insurance claims for liability and damage.",
+    instruction="Assess car claims for liability and damage. Approve/deny up to $25,000.",
 )
 
 agent = Agent(
     model="gemini-2.5-flash",
     name="intake_agent",
-    description="Routes insurance claims to appropriate specialists.",
-    instruction=f"""You are an intake agent. Analyze the claim and determine if it should go to a specialist.""",
-    sub_agents=[property_agent, car_agent, review_agent],
+    instruction="Route insurance claims to the appropriate specialist",
+    sub_agents=[car_agent, medical_agent],
 )
 
 # Enables retries and recovery for model calls and tool executions

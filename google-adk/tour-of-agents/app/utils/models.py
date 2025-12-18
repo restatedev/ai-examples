@@ -8,11 +8,13 @@ from pydantic import BaseModel, ConfigDict
 
 
 class WeatherPrompt(BaseModel):
+    user_id: str = "user-123"
     session_id: str = "session-123"
     message: str = "What is the weather like in San Francisco?"
 
 
 class ClaimPrompt(BaseModel):
+    user_id: str = "user-123"
     session_id: str = "session-123"
     message: str = "Process my hospital bill of 3000USD for a broken leg."
 

@@ -25,9 +25,12 @@ jobs:
           draft: true
           files: |
                   python-openai-agents-tour-of-agents.zip
+                  python-openai-agents-examples.zip
                   python-openai-agents-template.zip
+                  python-google-adk-tour-of-agents.zip
                   python-patterns.zip
                   typescript-vercel-ai-examples.zip
                   typescript-vercel-ai-template.zip
                   typescript-vercel-ai-template-nextjs.zip
                   typescript-vercel-ai-tour-of-agents.zip
+                  typescript-patterns.zip

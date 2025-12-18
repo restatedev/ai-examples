@@ -14,6 +14,7 @@ from app.utils.utils import check_eligibility, compare_to_standard_rates, check_
 APP_NAME = "agents"
 
 
+# <start_here>
 async def calculate_metrics(claim: InsuranceClaim) -> List[str]:
     """Calculate claim metrics using parallel execution."""
     ctx = restate_object_context()
@@ -25,6 +26,9 @@ async def calculate_metrics(claim: InsuranceClaim) -> List[str]:
         ctx.run_typed("fraud", check_fraud, claim=claim),
     )
     return [await result for result in results_done]
+
+
+# <end_here>
 
 
 # AGENT

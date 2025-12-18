@@ -19,7 +19,11 @@ search_and_replace_version $PROJECT_ROOT/a2a
 
 # OpenAI agents Python examples
 search_and_replace_version $PROJECT_ROOT/openai-agents/tour-of-agents
+search_and_replace_version $PROJECT_ROOT/openai-agents/examples
 search_and_replace_version $PROJECT_ROOT/openai-agents/template
+
+# Google ADK agents Python examples
+search_and_replace_version $PROJECT_ROOT/google-adk/tour-of-agents
 
 # Pattern Python examples
 search_and_replace_version $PROJECT_ROOT/python-patterns

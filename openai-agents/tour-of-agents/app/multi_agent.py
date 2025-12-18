@@ -22,7 +22,7 @@ car_agent = Agent(
 intake_agent = Agent(
     name="IntakeAgent",
     instructions="Route insurance claims to the appropriate specialist",
-    handoffs = [medical_agent, car_agent]
+    handoffs=[medical_agent, car_agent],
 )
 
 agent_dict = {

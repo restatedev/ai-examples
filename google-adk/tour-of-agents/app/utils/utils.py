@@ -3,6 +3,7 @@ import httpx
 
 from google.adk import Agent, Runner
 from google.adk.apps import App
+from google.adk.sessions import InMemorySessionService
 from google.genai.types import Content, Part
 from restate.ext.adk import RestateSessionService, RestatePlugin
 
@@ -12,10 +13,30 @@ from app.utils.models import (
 )
 
 
+async def get_or_create_session(
+    session_service: InMemorySessionService,
+    APP_NAME: str,
+    user_id: str,
+    session_id: str,
+) -> None:
+    session = await session_service.get_session(
+        app_name=APP_NAME, user_id=user_id, session_id=session_id
+    )
+    if not session:
+        print(f"Creating new session for user {user_id} with session ID {session_id}")
+        await session_service.create_session(
+            app_name=APP_NAME, user_id=user_id, session_id=session_id
+        )
+
+
+# <start_weather>
 async def call_weather_api(city: str) -> WeatherResponse:
     fail_on_denver(city)
     weather_data = await fetch_weather(city)
     return parse_weather_data(weather_data)
+
+
+# <end_weather>
 
 
 def fail_on_denver(city):
