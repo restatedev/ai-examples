@@ -47,14 +47,14 @@ docker.restate.dev/restatedev/restate:latest
 
 Go to the Restate UI at `http://localhost:9070`. Click on `register deployment`. And fill in the agent url `http://host.docker.internal:9080`.
 
-![Register service](/docs/images/register_deployment.png)
+![Register service](./docs/images/register_deployment.png)
 
 Click on one of the handlers of the registered services and send the default request (if prompted to do so, add a session key in the key field). 
 
 For example, click on the `run` handler of the `WeatherAgent` service and send the request:
 
-![Send request](/docs/images/request.png)
+![Send request](./docs/images/request.png)
 
 In the invocations tab, you see the execution journal when clicking on the invocation ID:
-![See journal](/docs/images/journal.png)
+![See journal](./docs/images/journal.png)
 
