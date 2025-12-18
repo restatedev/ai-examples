@@ -1,6 +1,6 @@
 import restate
-from agents import Agent, function_tool
-from restate.ext.openai import restate_context, DurableRunner
+from agents import Agent
+from restate.ext.openai import restate_context, DurableRunner, durable_function_tool
 
 from app.utils.models import ClaimPrompt
 from app.utils.utils import (
@@ -33,7 +33,7 @@ async def review(ctx: restate.Context, claim: InsuranceClaim) -> str:
 
 
 # <start_here>
-@function_tool
+@durable_function_tool
 async def human_approval(claim: InsuranceClaim) -> str:
     """Ask for human approval for high-value claims."""
     return await restate_context().service_call(review, claim)

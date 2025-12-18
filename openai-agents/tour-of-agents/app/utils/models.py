@@ -1,5 +1,3 @@
-from typing import Optional, Dict, Any
-
 from pydantic.alias_generators import to_camel as camelize
 
 from pydantic import BaseModel, ConfigDict
@@ -12,7 +10,9 @@ class WeatherPrompt(BaseModel):
 
 
 class ClaimPrompt(BaseModel):
-    message: str = "Process my hospital bill of 2024-10-01 for 3000USD for a broken leg at General Hospital."
+    message: str = (
+        "Process my hospital bill of 2024-10-01 for 3000USD for a broken leg at General Hospital."
+    )
 
 
 class ChatMessage(BaseModel):

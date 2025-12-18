@@ -1,8 +1,8 @@
 from datetime import timedelta
 
 import restate
-from agents import Agent, function_tool
-from restate.ext.openai import restate_context, DurableRunner
+from agents import Agent
+from restate.ext.openai import restate_context, DurableRunner, durable_function_tool
 
 from app.utils.models import ClaimPrompt
 from app.utils.utils import (
@@ -11,7 +11,7 @@ from app.utils.utils import (
 )
 
 
-@function_tool
+@durable_function_tool
 async def human_approval(claim: InsuranceClaim) -> str:
     """Ask for human approval for high-value claims."""
     # Create an awakeable for human approval
