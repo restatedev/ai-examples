@@ -6,16 +6,15 @@ from agents import (
     RunConfig,
     RunContextWrapper,
     ModelSettings,
-    function_tool,
 )
 from restate import Service, VirtualObject
-from restate.ext.openai import restate_context, DurableRunner
+from restate.ext.openai import restate_context, DurableRunner, durable_function_tool
 
 from app.utils.models import WeatherPrompt, WeatherRequest, WeatherResponse
 from app.utils.utils import fetch_weather
 
 
-@function_tool
+@durable_function_tool
 async def get_weather(city: WeatherRequest) -> WeatherResponse:
     """Get the current weather for a given city."""
     return await restate_context().run_typed("get weather", fetch_weather, req=city)

@@ -1,7 +1,7 @@
 import restate
 
-from agents import Agent, function_tool
-from restate.ext.openai import restate_context, DurableRunner
+from agents import Agent
+from restate.ext.openai import restate_context, DurableRunner, durable_function_tool
 
 from app.utils.utils import (
     InsuranceClaim,
@@ -12,7 +12,7 @@ from app.utils.utils import (
 
 
 # <start_here>
-@function_tool
+@durable_function_tool
 async def calculate_metrics(claim: InsuranceClaim) -> list[str]:
     """Calculate claim metrics."""
     ctx = restate_context()

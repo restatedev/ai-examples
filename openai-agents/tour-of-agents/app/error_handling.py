@@ -2,12 +2,12 @@ from datetime import timedelta
 
 import restate
 
-from agents import Agent, function_tool
+from agents import Agent
 from restate.ext.openai import (
     restate_context,
     DurableRunner,
-    raise_terminal_errors,
     LlmRetryOpts,
+    durable_function_tool,
 )
 
 from app.utils.models import WeatherPrompt, WeatherRequest, WeatherResponse
@@ -15,7 +15,7 @@ from app.utils.utils import fetch_weather
 
 
 # <start_here>
-@function_tool(failure_error_function=raise_terminal_errors)
+@durable_function_tool
 async def get_weather(city: WeatherRequest) -> WeatherResponse:
     """Get the current weather for a given city."""
     return await restate_context().run_typed("get weather", fetch_weather, req=city)

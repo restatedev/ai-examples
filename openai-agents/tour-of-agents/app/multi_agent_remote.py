@@ -1,13 +1,13 @@
 import restate
 
-from agents import Agent, function_tool
-from restate.ext.openai import restate_context, DurableRunner
+from agents import Agent
+from restate.ext.openai import restate_context, DurableRunner, durable_function_tool
 
 from app.utils.utils import InsuranceClaim, run_eligibility_agent, run_fraud_agent
 
 
 # Durable service call to the eligibility agent; persisted and retried by Restate
-@function_tool
+@durable_function_tool
 async def check_eligibility(claim: InsuranceClaim) -> str:
     """Analyze claim eligibility."""
     return await restate_context().service_call(run_eligibility_agent, claim)
@@ -15,7 +15,7 @@ async def check_eligibility(claim: InsuranceClaim) -> str:
 
 # <start_here>
 # Durable service call to the fraud agent; persisted and retried by Restate
-@function_tool
+@durable_function_tool
 async def check_fraud(claim: InsuranceClaim) -> str:
     """Analyze the probability of fraud."""
     return await restate_context().service_call(run_fraud_agent, claim)
