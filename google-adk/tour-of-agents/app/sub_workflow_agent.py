@@ -57,7 +57,7 @@ agent = Agent(
 app = App(name=APP_NAME, root_agent=agent, plugins=[RestatePlugin()])
 session_service = InMemorySessionService()
 
-agent_service = restate.VirtualObject("SubWorkflowClaimApprovalAgent")
+agent_service = restate.Service("SubWorkflowClaimApprovalAgent")
 
 
 # HANDLER
