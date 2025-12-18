@@ -7,6 +7,12 @@ import restate
 from pydantic import BaseModel
 
 
+class WeatherPrompt(BaseModel):
+    """Request to get the weather for a city."""
+
+    message: str = "What is the weather in Detroit?"
+
+
 class WeatherRequest(BaseModel):
     """Request to get the weather for a city."""
 

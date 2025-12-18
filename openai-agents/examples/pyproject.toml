@@ -1,14 +1,13 @@
 [project]
-name = "tour-of-agents"
+name = "hello-world"
 version = "0.1.0"
-description = "Tour of OpenAI agents using Restate for durability"
+description = "Example hello world project"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "httpx",
-    "hypercorn",
+    "hypercorn>=0.17.3",
+    "pydantic>=2.10.6",
     "restate-sdk[serde]>=0.13.2",
-    "pydantic>=2.11.9",
     "openai-agents>=0.6.2",
 ]
 

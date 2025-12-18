@@ -1,53 +1,36 @@
 import restate
 
+from datetime import timedelta
 from agents import (
     Agent,
     RunConfig,
-    Runner,
-    function_tool,
     RunContextWrapper,
     ModelSettings,
+    function_tool,
 )
+from restate import Service, VirtualObject
+from restate.ext.openai import restate_context, DurableRunner
 
-from app.utils.middleware import DurableModelCalls, raise_restate_errors
 from app.utils.models import WeatherPrompt, WeatherRequest, WeatherResponse
 from app.utils.utils import fetch_weather
 
 
-@function_tool(failure_error_function=raise_restate_errors)
-async def get_weather(
-    wrapper: RunContextWrapper[restate.Context], req: WeatherRequest
-) -> WeatherResponse:
+@function_tool
+async def get_weather(city: WeatherRequest) -> WeatherResponse:
     """Get the current weather for a given city."""
-    # Do durable steps using the Restate context
-    restate_context = wrapper.context
-    return await restate_context.run_typed("Get weather", fetch_weather, city=req.city)
+    return await restate_context().run_typed("get weather", fetch_weather, req=city)
 
 
-weather_agent = Agent[restate.Context](
+agent = Agent(
     name="WeatherAgent",
     instructions="You are a helpful agent that provides weather updates.",
     tools=[get_weather],
 )
 
-
 agent_service = restate.Service("WeatherAgent")
 
 
 @agent_service.handler()
-async def run(restate_context: restate.Context, prompt: WeatherPrompt) -> str:
-
-    result = await Runner.run(
-        weather_agent,
-        input=prompt.message,
-        # Pass the Restate context to tools to make tool execution steps durable
-        context=restate_context,
-        # Choose any model and let Restate persist your calls
-        run_config=RunConfig(
-            model="gpt-4o",
-            model_provider=DurableModelCalls(restate_context),
-            model_settings=ModelSettings(parallel_tool_calls=False),
-        ),
-    )
-
+async def run(_ctx: restate.Context, req: WeatherPrompt) -> str:
+    result = await DurableRunner.run(agent, req.message)
     return result.final_output
