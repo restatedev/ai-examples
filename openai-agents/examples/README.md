@@ -11,7 +11,7 @@ uv run .
 ```
 
 
-Run Restate and register the service, similar to [the AI Quickstart](http://localhost:3000/ai-quickstart#python-%2B-openai). 
+Run Restate and register the service, similar to [the AI Quickstart](https://docs.restate.dev/ai-quickstart#python-%2B-openai). 
 
 Then invoke the agents that were registered, via the UI playground, using their default messages. 
 
