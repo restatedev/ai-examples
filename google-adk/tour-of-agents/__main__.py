@@ -5,7 +5,9 @@ import restate
 from app.chat import chat
 from app.durable_agent import agent_service as weather_agent
 from app.human_approval_agent import agent_service as human_claim_approval_agent
-from app.human_approval_agent_with_timeout import agent_service as human_claim_approval_with_timeout_agent
+from app.human_approval_agent_with_timeout import (
+    agent_service as human_claim_approval_with_timeout_agent,
+)
 from app.multi_agent import agent_service as multi_agent_claim_approval
 from app.multi_agent_remote import agent_service as multi_agent_remote
 from app.parallel_agents import agent_service as parallel_agent_claim_approval

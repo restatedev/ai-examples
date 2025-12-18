@@ -13,7 +13,12 @@ from app.utils.models import (
 )
 
 
-async def get_or_create_session(session_service: InMemorySessionService, APP_NAME: str, user_id: str, session_id: str) -> None:
+async def get_or_create_session(
+    session_service: InMemorySessionService,
+    APP_NAME: str,
+    user_id: str,
+    session_id: str,
+) -> None:
     session = await session_service.get_session(
         app_name=APP_NAME, user_id=user_id, session_id=session_id
     )
@@ -23,11 +28,14 @@ async def get_or_create_session(session_service: InMemorySessionService, APP_NAM
             app_name=APP_NAME, user_id=user_id, session_id=session_id
         )
 
+
 # <start_weather>
 async def call_weather_api(city: str) -> WeatherResponse:
     fail_on_denver(city)
     weather_data = await fetch_weather(city)
     return parse_weather_data(weather_data)
+
+
 # <end_weather>
 
 

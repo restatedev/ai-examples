@@ -31,7 +31,9 @@ agent = Agent(
 )
 
 # <start_retries>
-app = App(name=APP_NAME, root_agent=agent, plugins=[RestatePlugin(max_model_call_retries=3)])
+app = App(
+    name=APP_NAME, root_agent=agent, plugins=[RestatePlugin(max_model_call_retries=3)]
+)
 # <end_retries>
 session_service = InMemorySessionService()
 
@@ -42,7 +44,9 @@ agent_service = restate.Service("ErrorHandlingAgent")
 @agent_service.handler()
 async def run(_ctx: restate.Context, req: WeatherPrompt) -> str | None:
     try:
-        await get_or_create_session(session_service, APP_NAME, req.user_id, req.session_id)
+        await get_or_create_session(
+            session_service, APP_NAME, req.user_id, req.session_id
+        )
         runner = Runner(app=app, session_service=session_service)
         events = runner.run_async(
             user_id=req.user_id,
@@ -60,4 +64,6 @@ async def run(_ctx: restate.Context, req: WeatherPrompt) -> str | None:
         # Handle the error appropriately, e.g., log it or return a default response
         print(f"An error occurred: {e}")
         return "Sorry, I'm unable to process your request at the moment."
+
+
 # <end_handle>

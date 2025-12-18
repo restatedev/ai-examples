@@ -6,7 +6,8 @@ from restate.ext.openai import restate_context, DurableRunner
 from utils.utils import (
     fetch_weather,
     WeatherRequest,
-    WeatherResponse, WeatherPrompt,
+    WeatherResponse,
+    WeatherPrompt,
 )
 
 
@@ -14,7 +15,9 @@ from utils.utils import (
 async def get_weather(req: WeatherRequest) -> WeatherResponse:
     """Get the current weather for a given city."""
     # Do durable steps using the Restate context
-    return await restate_context().run_typed("Get weather", fetch_weather, city=req.city)
+    return await restate_context().run_typed(
+        "Get weather", fetch_weather, city=req.city
+    )
 
 
 weather_agent = Agent(

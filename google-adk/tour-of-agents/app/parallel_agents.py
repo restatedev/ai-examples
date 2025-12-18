@@ -61,4 +61,6 @@ async def run(ctx: restate.ObjectContext, claim: InsuranceClaim) -> str | None:
             if event.content.parts[0].text:
                 final_response = event.content.parts[0].text
     return final_response
+
+
 # <end_here>
