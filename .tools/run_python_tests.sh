@@ -28,7 +28,11 @@ function python_mypi_lint() {
 
 # OpenAI agents Python examples
 pushd $PROJECT_ROOT/openai-agents/template && python_mypi_lint && popd
-pushd $PROJECT_ROOT/openai-agents/tour-of-agents && python_mypi_lint && popd
+pushd $PROJECT_ROOT/openai-agents/tour-of-agents && python_mypi_lint &&
+pushd $PROJECT_ROOT/openai-agents/examples && python_mypi_lint && popd
+
+# Google ADK agents Python examples
+pushd $PROJECT_ROOT/google-adk/tour-of-agents && python_mypi_lint && popd
 
 # Pattern Python examples
 pushd $PROJECT_ROOT/python-patterns && python_mypi_lint && popd
