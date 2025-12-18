@@ -6,7 +6,7 @@ from restate.ext.openai import restate_context, DurableRunner
 from utils.utils import (
     fetch_weather,
     WeatherRequest,
-    WeatherResponse,
+    WeatherResponse, WeatherPrompt,
 )
 
 
@@ -28,7 +28,7 @@ agent_service = restate.Service("agent")
 
 
 @agent_service.handler()
-async def run(_ctx: restate.Context, message: str) -> str:
+async def run(_ctx: restate.Context, req: WeatherPrompt) -> str:
     # Runner that persists the agent execution for recoverability
-    result = await DurableRunner.run(weather_agent, message)
+    result = await DurableRunner.run(weather_agent, req.message)
     return result.final_output

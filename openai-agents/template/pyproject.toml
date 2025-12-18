@@ -7,7 +7,7 @@ requires-python = ">=3.12"
 dependencies = [
     "httpx",
     "hypercorn",
-    "restate-sdk[serde]>=0.13.1",
+    "restate-sdk[serde]>=0.13.2",
     "pydantic>=2.11.9",
     "openai-agents==0.3.1",
 ]
@@ -16,6 +16,3 @@ dependencies = [
 dev = [
     "mypy>=1.18.2",
 ]
-
-[tool.uv.sources]
-restate-sdk = { path = "../../../sdk-python/dist/restate_sdk-0.13.1-cp313-cp313-linux_x86_64.whl" }
