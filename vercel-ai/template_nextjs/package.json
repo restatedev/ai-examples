@@ -10,9 +10,9 @@
   },
   "dependencies": {
     "@ai-sdk/openai": "^2.0.23",
-    "@restatedev/restate-sdk": "^1.9.1",
-    "@restatedev/restate-sdk-clients": "^1.9.1",
-    "@restatedev/restate-sdk-zod": "^1.9.1",
+    "@restatedev/restate-sdk": "^1.10.1",
+    "@restatedev/restate-sdk-clients": "^1.10.1",
+    "@restatedev/restate-sdk-zod": "^1.10.1",
     "@restatedev/vercel-ai-middleware": "^0.2.0",
     "ai": "^5.0.30",
     "next": "15.2.4"
