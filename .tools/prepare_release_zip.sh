@@ -20,6 +20,9 @@ create_release_zip() {
 create_release_zip openai-agents/tour-of-agents python-openai-agents-tour-of-agents
 create_release_zip openai-agents/template python-openai-agents-template
 
+# Google ADK examples
+create_release_zip google-adk/tour-of-agents python-google-adk-tour-of-agents
+
 # Pattern examples
 create_release_zip python-patterns python-patterns
 
