@@ -6,7 +6,6 @@ from restate.ext.openai import DurableRunner
 
 from app.utils.models import ChatMessage
 
-
 agent = Agent(
     name="Assistant",
     instructions="You are a helpful assistant.",

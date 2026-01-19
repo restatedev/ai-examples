@@ -11,6 +11,7 @@ agent = Agent(
     instructions="You are a helpful assistant.",
 )
 
+
 @agent_service.main()
 async def on_send(ctx: restate.WorkflowContext, user_query: str):
     # Process the user's query with the AI agent
@@ -21,6 +22,7 @@ async def on_send(ctx: restate.WorkflowContext, user_query: str):
 
     # Return synchronous response
     return response.final_output
+
 
 @agent_service.handler()
 async def on_notify(ctx: restate.WorkflowContext, email: str):

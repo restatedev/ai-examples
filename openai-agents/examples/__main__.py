@@ -9,7 +9,13 @@ from app.rollback_agent import agent_service as rollback_agent
 from app.notify_when_ready import agent_service as notification_agent
 
 app = restate.app(
-    services=[mcp_agent, mcp_with_approval_agent, websearch_agent, rollback_agent, notification_agent]
+    services=[
+        mcp_agent,
+        mcp_with_approval_agent,
+        websearch_agent,
+        rollback_agent,
+        notification_agent,
+    ]
 )
 
 
