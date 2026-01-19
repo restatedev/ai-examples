@@ -17,7 +17,7 @@ agent = Agent(
 
 
 @agent_service.main()
-async def on_send(ctx: restate.WorkflowContext, user_query: str):
+async def run(ctx: restate.WorkflowContext, user_query: str):
     # Process the user's query with the AI agent
     response = await DurableRunner.run(agent, user_query)
 
