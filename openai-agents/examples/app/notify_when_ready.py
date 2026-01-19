@@ -27,7 +27,7 @@ async def on_send(ctx: restate.WorkflowContext, user_query: str):
 @agent_service.handler()
 async def on_notify(ctx: restate.WorkflowContext, email: str):
     # Wait for the agent's response
-    response = await ctx.promise("agent_response").value()
+    response = await ctx.promise("agent_response", type_hint=str).value()
 
     # Send the email
     await ctx.run_typed("Email", send_email, email=email, body=response)
