@@ -47,3 +47,7 @@ async def cancel_hotel(id: str) -> None:
 async def cancel_flight(id: str) -> None:
     """Cancel flight booking."""
     print(f"❌ Cancelling flight booking {id}")
+
+
+async def send_email(email: str, body: str) -> None:
+    print(f"Agent done. Sending email to {email}: {body}")
