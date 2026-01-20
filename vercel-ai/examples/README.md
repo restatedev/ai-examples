@@ -215,7 +215,7 @@ const model = wrapLanguageModel({
 **Note:** This is an early experiment for now.
 
 The [Multi Tool Agent Example](./restate/services/multi_agent.ts) publishes the intermediate
-messages to a pubsub stream, which is implemented using Restate's pubsub library (see [endpoint.ts](./restate/services/endpoint.ts)).
+messages to a pubsub stream, which is implemented using Restate's pubsub library (see [endpoint.ts](./restate/endpoint.ts)).
 
 The pubsub stream is accessible via the [/pubsub/[topic]](app/pubsub/[topic]/route.ts) route.
 
