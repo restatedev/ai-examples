@@ -3,7 +3,7 @@ import { NextRequest } from "next/server";
 
 const pubsub = createPubsubClient({
   url: process.env.INGRESS_URL || "http://localhost:8080",
-  name: "pubsub", // <-- same as your pubsub virtual object above.
+  name: "pubsub",
 });
 
 export async function GET(request: NextRequest, { params }: any) {
