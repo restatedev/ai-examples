@@ -9,12 +9,14 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@ai-sdk/openai": "^2.0.30",
+    "@ai-sdk/openai": "^3.0.12",
     "@restatedev/restate-sdk": "^1.10.1",
     "@restatedev/restate-sdk-clients": "^1.10.1",
     "@restatedev/restate-sdk-zod": "^1.10.1",
-    "@restatedev/vercel-ai-middleware": "^0.2.0",
-    "ai": "^5.0.30",
+    "@restatedev/vercel-ai-middleware": "^0.3.0",
+    "@restatedev/pubsub": "0.3.1",
+    "@restatedev/pubsub-client": "0.3.1",
+    "ai": "^6.0.41",
     "mathjs": "^14.7.0",
     "next": "15.5.3",
     "superjson": "^2.2.2"

@@ -10,13 +10,12 @@ A set of examples illustrating how to use [Restate](https://restate.dev/) to add
 npx @restatedev/restate-server@latest
 ```
 
-```bash
-
 ### Starting the Agents NextJS app
 
 The project is a basic Next.js project, bootstrapped form the standard template.
 
 ```bash
+npm install
 npm run dev
 ```
 
@@ -216,7 +215,7 @@ const model = wrapLanguageModel({
 **Note:** This is an early experiment for now.
 
 The [Multi Tool Agent Example](./restate/services/multi_agent.ts) publishes the intermediate
-messages to a pubsub stream, which is implemented as a Restate Virtual Object (see [pubsub.ts](./restate/services/pubsub.ts)).
+messages to a pubsub stream, which is implemented using Restate's pubsub library (see [endpoint.ts](./restate/services/endpoint.ts)).
 
 The pubsub stream is accessible via the [/pubsub/[topic]](app/pubsub/[topic]/route.ts) route.
 
