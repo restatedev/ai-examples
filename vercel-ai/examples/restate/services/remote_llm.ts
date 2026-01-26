@@ -4,12 +4,12 @@ import { serde } from "@restatedev/restate-sdk-zod";
 import { z } from "zod";
 
 import { openai } from "@ai-sdk/openai";
-import { generateObject, generateText, wrapLanguageModel } from "ai";
+import {generateText, Output, wrapLanguageModel} from "ai";
 import { superJson } from "@restatedev/vercel-ai-middleware";
 import {
-  LanguageModelV2,
-  LanguageModelV2CallOptions,
-  LanguageModelV2Middleware,
+  LanguageModelV3,
+  LanguageModelV3CallOptions,
+  LanguageModelV3Middleware,
 } from "@ai-sdk/provider";
 
 export const translation = restate.service({
@@ -76,16 +76,18 @@ async function translateWithFeedback(
   // Evaluation-optimization loop
   while (iterations < MAX_ITERATIONS) {
     // Evaluate current translation
-    const { object: evaluation } = await generateObject({
+    const result = await generateText({
       model: gpt4o, // use a larger model to evaluate
-      schema: z.object({
-        qualityScore: z.number().min(1).max(10),
-        preservesTone: z.boolean(),
-        preservesNuance: z.boolean(),
-        culturallyAccurate: z.boolean(),
-        specificIssues: z.array(z.string()),
-        improvementSuggestions: z.array(z.string()),
-      }),
+      output: Output.object({
+          schema: z.object({
+            qualityScore: z.number().min(1).max(10),
+            preservesTone: z.boolean(),
+            preservesNuance: z.boolean(),
+            culturallyAccurate: z.boolean(),
+            specificIssues: z.array(z.string()),
+            improvementSuggestions: z.array(z.string()),
+          })
+        }),
       system: "You are an expert in evaluating literary translations.",
       prompt: `Evaluate this translation:
 
@@ -98,6 +100,7 @@ async function translateWithFeedback(
       3. Preservation of nuance
       4. Cultural accuracy`,
     });
+    const evaluation = result.output
 
     // Check if quality meets threshold
     if (
@@ -133,7 +136,7 @@ async function translateWithFeedback(
 
 export namespace remote {
   export type DoGenerateResponseType = Awaited<
-    ReturnType<LanguageModelV2["doGenerate"]>
+    ReturnType<LanguageModelV3["doGenerate"]>
   >;
 
   export type RemoteModelCallOptions = {
@@ -145,7 +148,7 @@ export namespace remote {
   } & Omit<restate.RunOptions<DoGenerateResponseType>, "serde">;
 
   export type RemoteModelRequest = {
-    params: LanguageModelV2CallOptions;
+    params: LanguageModelV3CallOptions;
     modelProvider: string;
     modelId: string;
     runOpts?: Omit<restate.RunOptions<DoGenerateResponseType>, "serde">;
@@ -165,8 +168,9 @@ export namespace remote {
   export const remoteCalls = (
     ctx: restate.Context,
     opts: RemoteModelCallOptions,
-  ): LanguageModelV2Middleware => {
+  ): LanguageModelV3Middleware => {
     return {
+      specificationVersion: "v3",
       wrapGenerate({ model, params }) {
         const request = {
           modelProvider: model.provider,

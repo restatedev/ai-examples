@@ -5,10 +5,15 @@ import { z } from "zod";
 
 import { openai } from "@ai-sdk/openai";
 import { generateText, stepCountIs, tool, wrapLanguageModel } from "ai";
-import { publishMessage } from "./pubsub";
 
 import * as mathjs from "mathjs";
 import { durableCalls, superJson } from "@restatedev/vercel-ai-middleware";
+import { createPubsubClient } from "@restatedev/pubsub-client";
+
+const pubsub = createPubsubClient({
+  url: "http://localhost:8080",
+  name: "pubsub", // <-- same as your pubsub virtual object above.
+});
 
 // the Restate service that is the durable entry point for the
 // agent workflow
@@ -43,10 +48,9 @@ async function toolsExample(
   prompt: string,
   topic: string,
 ) {
-  publishMessage(ctx, topic, {
+  await pubsub.publish(topic, {
     role: "user",
-    content: prompt,
-    topic,
+    content: prompt
   });
 
   const model = wrapLanguageModel({
@@ -80,21 +84,21 @@ async function toolsExample(
     maxRetries: 0,
     onStepFinish: async (step) => {
       step.toolCalls.forEach((toolCall) => {
-        publishMessage(ctx, topic, {
+        pubsub.publish(topic, {
           role: "assistant",
           content: `Tool call: ${toolCall.toolName}(${JSON.stringify(
-            toolCall.input,
+              toolCall.input,
           )})`,
         });
       });
       step.toolResults.forEach((toolResult) => {
-        publishMessage(ctx, topic, {
+        pubsub.publish(topic, {
           role: "assistant",
           content: `Tool result: ${JSON.stringify(toolResult)}`,
         });
       });
       if (step.text.length > 0) {
-        publishMessage(ctx, topic, {
+        pubsub.publish(topic, {
           role: "assistant",
           content: step.text,
         });

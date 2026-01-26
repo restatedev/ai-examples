@@ -7,8 +7,10 @@ import {
   multiAgentLoanWorkflow,
   riskAssementAgent,
 } from "@/restate/services/multi_agent";
-import { pubsub } from "@/restate/services/pubsub";
 import { remote, translation } from "@/restate/services/remote_llm";
+import { createPubsubObject } from "@restatedev/pubsub";
+
+const pubsub = createPubsubObject("pubsub", {});
 
 export const endpoint = restate.createEndpointHandler({
   services: [
