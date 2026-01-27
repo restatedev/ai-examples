@@ -1,7 +1,10 @@
 import * as restate from "@restatedev/restate-sdk";
-import { durableCalls } from "@restatedev/vercel-ai-middleware";
+import {
+  durableCalls,
+  createRestateMCPClient,
+  RestateMCPClient,
+} from "@restatedev/vercel-ai-middleware";
 import { generateText, stepCountIs, wrapLanguageModel } from "ai";
-import { createRestateMCPClient, RestateMCPClient } from "./restate-mcp-client";
 import { openai } from "@ai-sdk/openai";
 
 export default restate.service({

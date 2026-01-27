@@ -15,9 +15,8 @@
     "app-dev": "npm run dev"
   },
   "dependencies": {
-    "@ai-sdk/openai": "^3.0.12",
-    "@ai-sdk/provider": "^3.0.4",
     "@ai-sdk/mcp": "^1.0.10",
+    "@ai-sdk/openai": "^3.0.12",
     "@modelcontextprotocol/sdk": "^1.25.3",
     "@restatedev/restate-sdk": "^1.10.1",
     "@restatedev/restate-sdk-zod": "^1.10.1",
@@ -28,6 +27,7 @@
     "@types/node": "^20.14.2",
     "esbuild": "^0.25.4",
     "tsx": "^4.19.2",
-    "typescript": "^5.4.5"
+    "typescript": "^5.4.5",
+    "prettier": "^3.8.1"
   }
 }
