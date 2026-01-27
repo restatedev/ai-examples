@@ -13,25 +13,27 @@ import { ModelMessage } from "@ai-sdk/provider-utils";
 const examplePrompt = "Write a poem about Durable Execution";
 
 // <start_here>
-async function message(ctx: ObjectContext, { message }: { message: string }) {
-  const messages = (await ctx.get<Array<ModelMessage>>("memory")) ?? [];
-  messages.push({ role: "user", content: message });
-
-  // Use your preferred LLM SDK here
-  const result = await ctx.run("LLM call", async () => llmCall(messages));
-
-  messages.push({ role: "assistant", content: result.text });
-  ctx.set("memory", messages);
-
-  return result.text;
-}
-
 export default restate.object({
   name: "Chat",
   handlers: {
     message: restate.createObjectHandler(
       { input: zodPrompt(examplePrompt) },
-      message,
+      async (ctx: ObjectContext, { message }: { message: string }) => {
+        const messages = (await ctx.get<Array<ModelMessage>>("memory")) ?? [];
+        messages.push({ role: "user", content: message });
+
+        // Use your preferred LLM SDK here
+        const result = await ctx.run("LLM call", async () => llmCall(messages));
+
+        messages.push({ role: "assistant", content: result.text });
+        ctx.set("memory", messages);
+
+        return result.text;
+      },
+    ),
+    getHistory: restate.createObjectSharedHandler(
+      async (ctx: restate.ObjectSharedContext) =>
+        ctx.get<Array<ModelMessage>>("memory"),
     ),
   },
 });
