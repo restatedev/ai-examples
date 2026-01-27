@@ -41,3 +41,8 @@ async def message(ctx: restate.ObjectContext, msg: ChatMessage) -> str | None:
     ctx.set("memory", messages)
 
     return result.content
+
+
+@chat.handler(kind="shared")
+async def get_history(ctx: restate.ObjectSharedContext):
+    return await ctx.get("memory", type_hint=list[dict]) or []

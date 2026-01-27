@@ -17,7 +17,6 @@
   "dependencies": {
     "@ai-sdk/mcp": "^1.0.14",
     "@ai-sdk/openai": "^3.0.12",
-    "@modelcontextprotocol/sdk": "^1.25.3",
     "@restatedev/restate-sdk": "^1.10.2",
     "@restatedev/restate-sdk-zod": "^1.10.2",
     "@restatedev/vercel-ai-middleware": "^0.3.1",
@@ -26,7 +25,6 @@
   "devDependencies": {
     "@types/node": "^20.14.2",
     "esbuild": "^0.25.4",
-    "prettier": "^3.8.1",
     "tsx": "^4.19.2",
     "typescript": "^5.4.5"
   }

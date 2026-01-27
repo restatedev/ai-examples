@@ -84,7 +84,7 @@ async function evaluateLoan(
           // this call to the other agent automatically suspends this agent
           // until the other agent responded
           const response = await ctx
-            .workflowClient<RiskAssementAgent>(
+            .workflowClient<RiskAssessmentAgent>(
               { name: "risk_assess" },
               riskAgentWorkflowId,
             )
@@ -138,7 +138,7 @@ async function evaluateLoan(
 //  The risk assessment agent
 // ----------------------------------------------------------------------------
 
-export const riskAssementAgent = restate.workflow({
+export const riskAssessmentAgent = restate.workflow({
   name: "risk_assess",
   handlers: {
     run: wf.workflow(
@@ -189,4 +189,4 @@ export const riskAssementAgent = restate.workflow({
   },
 });
 
-export type RiskAssementAgent = typeof riskAssementAgent;
+export type RiskAssessmentAgent = typeof riskAssessmentAgent;

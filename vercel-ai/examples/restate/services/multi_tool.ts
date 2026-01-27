@@ -18,7 +18,7 @@ const pubsub = createPubsubClient({
 // the Restate service that is the durable entry point for the
 // agent workflow
 
-const tools = restate.service({
+const multiToolAgent = restate.service({
   name: "tools",
   handlers: {
     message: restate.handlers.handler(
@@ -116,5 +116,5 @@ async function toolsExample(
   return `Answer: ${answer}`;
 }
 
-export default tools;
-export type Tool = typeof tools;
+export default multiToolAgent;
+export type MultiToolAgent = typeof multiToolAgent;

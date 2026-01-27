@@ -5,7 +5,7 @@ import chat from "@/restate/services/chat";
 import human from "@/restate/services/human_approval";
 import {
   multiAgentLoanWorkflow,
-  riskAssementAgent,
+  riskAssessmentAgent,
 } from "@/restate/services/multi_agent";
 import { remote, translation } from "@/restate/services/remote_llm";
 import { createPubsubObject } from "@restatedev/pubsub";
@@ -19,7 +19,7 @@ export const endpoint = restate.createEndpointHandler({
     multi_tool,
     pubsub,
     multiAgentLoanWorkflow,
-    riskAssementAgent,
+    riskAssessmentAgent,
     translation,
     remote.models,
   ],
