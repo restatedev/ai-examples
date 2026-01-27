@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import * as clients from "@restatedev/restate-sdk-clients";
-import { Tool } from "@/restate/services/multi_tool";
+import { MultiToolAgent } from "@/restate/services/multi_tool";
 
 export async function POST(
   request: NextRequest,
@@ -15,7 +15,7 @@ export async function POST(
   });
 
   await ingress
-    .serviceSendClient<Tool>({ name: "tools" })
+    .serviceSendClient<MultiToolAgent>({ name: "tools" })
     .message({ prompt: message, topic });
 
   return Response.json({ ok: true });
