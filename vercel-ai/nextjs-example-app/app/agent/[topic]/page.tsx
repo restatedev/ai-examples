@@ -1,7 +1,7 @@
 "use client";
 import Form from "next/form";
-import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import {useEffect, useState} from "react";
+import {useParams} from "next/navigation";
 
 export default function Agent() {
   const { topic } = useParams<{ topic: string }>();
@@ -17,7 +17,7 @@ export default function Agent() {
     const obtainAPIResponse = async () => {
       try {
         evtSource = new EventSource(`/pubsub/${topic}?offset=${offset}`);
-        const handleMessage = (event: MessageEvent) => {
+        evtSource.onmessage = (event: MessageEvent) => {
           console.log("Message received:", event);
           if (event.data && !cancelled) {
             const parsedData = JSON.parse(event.data);
@@ -35,10 +35,6 @@ export default function Agent() {
             });
           }
         };
-        evtSource.onmessage = handleMessage;
-        // Workaround: pubsub-client sends "event: ping\n" without terminating \n\n,
-        // causing the first data message to be parsed as a "ping" event
-        evtSource.addEventListener("ping", handleMessage);
         evtSource.onopen = () => {
           setTimeout(() => {
             setIsConnecting(false);
