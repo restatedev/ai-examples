@@ -1,7 +1,7 @@
 {
   "name": "restate-ts-template",
   "version": "0.0.1",
-  "description": "Template for JavaScript/TypeScript services running with Restate (https://github.com/restatedev/) ",
+  "description": "Tour of Agents with Restate and AI SDK",
   "main": "app.js",
   "type": "commonjs",
   "scripts": {
@@ -15,7 +15,6 @@
     "app-dev": "npm run dev"
   },
   "dependencies": {
-    "@ai-sdk/mcp": "^1.0.14",
     "@ai-sdk/openai": "^3.0.12",
     "@restatedev/restate-sdk": "^1.10.2",
     "@restatedev/restate-sdk-zod": "^1.10.2",

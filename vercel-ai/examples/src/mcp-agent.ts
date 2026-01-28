@@ -18,6 +18,7 @@ export default restate.service({
           middleware: durableCalls(ctx, { maxRetryAttempts: 3 }),
         });
 
+        // Create a Restate MPC client that persists responses from the MCP server
         mcpClient = await createRestateMCPClient(ctx, {
           name: "my-mcp-client",
           transport: {
