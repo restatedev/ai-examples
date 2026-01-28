@@ -1,19 +1,21 @@
 import * as restate from "@restatedev/restate-sdk";
 import { Context } from "@restatedev/restate-sdk";
 import { serde } from "@restatedev/restate-sdk-zod";
-import { z } from "zod";
 import { openai } from "@ai-sdk/openai";
-import { generateText, stepCountIs, tool, wrapLanguageModel } from "ai";
-import * as mathjs from "mathjs";
-import { durableCalls, superJson } from "@restatedev/vercel-ai-middleware";
+import {generateText, stepCountIs, wrapLanguageModel} from "ai";
+import { durableCalls } from "@restatedev/vercel-ai-middleware";
 import { createPubsubClient } from "@restatedev/pubsub-client";
+import { calculatorTool } from "./tools/calculator";
+import { z } from "zod";
 
-const Prompt = z.object({
+export const Prompt = z.object({
   prompt: z.string(),
   topic: z.string().describe("The pub/sub topic for streaming updates"),
 });
-type Prompt = z.infer<typeof Prompt>;
+export type Prompt = z.infer<typeof Prompt>;
 
+
+// <start_here>
 const pubsub = createPubsubClient({
   url: "http://localhost:8080",
   name: "pubsub",
@@ -27,62 +29,42 @@ async function runAgent(ctx: Context, { prompt, topic }: Prompt) {
   );
 
   const model = wrapLanguageModel({
-    model: openai("gpt-4o-2024-08-06"),
+    model: openai("gpt-4o"),
     middleware: durableCalls(ctx, { maxRetryAttempts: 3 }),
   });
 
   const { text: answer } = await generateText({
     model,
-    tools: {
-      calculate: tool({
-        description:
-          "A tool for evaluating mathematical expressions. " +
-          "Example expressions: '1.2 * (2 + 4.5)', '12.7 cm to inch', 'sin(45 deg) ^ 2'.",
-        inputSchema: z.object({ expression: z.string() }),
-        execute: async ({ expression }) => {
-          return await ctx.run(
-            `evaluating ${expression}`,
-            async () => mathjs.evaluate(expression),
-            { serde: superJson },
-          );
-        },
-      }),
-    },
-    stopWhen: [stepCountIs(10)],
+    system:
+        "You are a helpful assistant with access to a calculator. " +
+        "Use the calculator tool for any math. " +
+        "Reason step by step and explain your answer.",
+    prompt,
+    tools: { calculate: calculatorTool(ctx) },
     onStepFinish: async (step) => {
-      step.toolCalls.forEach((toolCall) => {
-        const content = `Tool call: ${toolCall.toolName}(${JSON.stringify(toolCall.input)})`;
-          pubsub.publish(
-              topic,
-              { role: "assistant", content },
-              ctx.rand.uuidv4(),
-          );
+      async function publish(content: string) {
+        pubsub.publish(
+          topic,
+          { role: "assistant", content },
+          ctx.rand.uuidv4(),
+        );
+      }
+      step.toolCalls.forEach(({ toolName, input }) => {
+        publish(`Tool call: ${toolName}(${JSON.stringify(input)})`);
       });
       step.toolResults.forEach((toolResult) => {
-        const content = `Tool result: ${JSON.stringify(toolResult)}`;
-          pubsub.publish(
-              topic,
-              { role: "assistant", content },
-              ctx.rand.uuidv4(),
-          );
+        publish(`Tool result: ${JSON.stringify(toolResult)}`);
       });
       if (step.text.length > 0) {
-          pubsub.publish(
-              topic,
-              { role: "assistant", content: step.text },
-              ctx.rand.uuidv4(),
-          );
+        publish(step.text);
       }
     },
-    system:
-      "You are a helpful assistant with access to a calculator. " +
-      "Use the calculator tool for any math. " +
-      "Reason step by step and explain your answer.",
-    prompt,
+    stopWhen: [stepCountIs(10)],
   });
 
   return answer;
 }
+// <end_here>
 
 const agent = restate.service({
   name: "agent",

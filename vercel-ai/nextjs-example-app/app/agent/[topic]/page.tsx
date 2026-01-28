@@ -18,7 +18,6 @@ export default function Agent() {
       try {
         evtSource = new EventSource(`/pubsub/${topic}?offset=${offset}`);
         evtSource.onmessage = (event: MessageEvent) => {
-          console.log("Message received:", event);
           if (event.data && !cancelled) {
             const parsedData = JSON.parse(event.data);
             setMessages((messages) => {
