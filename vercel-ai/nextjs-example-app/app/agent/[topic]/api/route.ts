@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import * as clients from "@restatedev/restate-sdk-clients";
-import { MultiToolAgent } from "@/restate/services/multi_tool";
+import { Agent } from "@/restate/services/agent";
 
 export async function POST(
   request: NextRequest,
@@ -10,13 +10,11 @@ export async function POST(
   const { message } = await request.json();
   const ingressUrl = process.env.INGRESS_URL || "http://localhost:8080";
 
-  const ingress = clients.connect({
-    url: ingressUrl,
-  });
+  const ingress = clients.connect({ url: ingressUrl });
 
   await ingress
-    .serviceSendClient<MultiToolAgent>({ name: "tools" })
-    .message({ prompt: message, topic });
+    .serviceSendClient<Agent>({ name: "agent" })
+    .chat({ prompt: message, topic });
 
   return Response.json({ ok: true });
 }
