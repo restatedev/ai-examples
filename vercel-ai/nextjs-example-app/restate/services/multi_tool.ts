@@ -50,7 +50,7 @@ async function toolsExample(
 ) {
   await pubsub.publish(topic, {
     role: "user",
-    content: prompt
+    content: prompt,
   });
 
   const model = wrapLanguageModel({
@@ -87,7 +87,7 @@ async function toolsExample(
         pubsub.publish(topic, {
           role: "assistant",
           content: `Tool call: ${toolCall.toolName}(${JSON.stringify(
-              toolCall.input,
+            toolCall.input,
           )})`,
         });
       });

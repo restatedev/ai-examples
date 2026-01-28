@@ -4,7 +4,7 @@ import { serde } from "@restatedev/restate-sdk-zod";
 import { z } from "zod";
 
 import { openai } from "@ai-sdk/openai";
-import {generateText, Output, wrapLanguageModel} from "ai";
+import { generateText, Output, wrapLanguageModel } from "ai";
 import { superJson } from "@restatedev/vercel-ai-middleware";
 import {
   LanguageModelV3,
@@ -79,15 +79,15 @@ async function translateWithFeedback(
     const result = await generateText({
       model: gpt4o, // use a larger model to evaluate
       output: Output.object({
-          schema: z.object({
-            qualityScore: z.number().min(1).max(10),
-            preservesTone: z.boolean(),
-            preservesNuance: z.boolean(),
-            culturallyAccurate: z.boolean(),
-            specificIssues: z.array(z.string()),
-            improvementSuggestions: z.array(z.string()),
-          })
+        schema: z.object({
+          qualityScore: z.number().min(1).max(10),
+          preservesTone: z.boolean(),
+          preservesNuance: z.boolean(),
+          culturallyAccurate: z.boolean(),
+          specificIssues: z.array(z.string()),
+          improvementSuggestions: z.array(z.string()),
         }),
+      }),
       system: "You are an expert in evaluating literary translations.",
       prompt: `Evaluate this translation:
 
@@ -100,7 +100,7 @@ async function translateWithFeedback(
       3. Preservation of nuance
       4. Cultural accuracy`,
     });
-    const evaluation = result.output
+    const evaluation = result.output;
 
     // Check if quality meets threshold
     if (

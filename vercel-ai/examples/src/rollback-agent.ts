@@ -1,4 +1,5 @@
 import * as restate from "@restatedev/restate-sdk";
+import { Context } from "@restatedev/restate-sdk";
 import { generateText, stepCountIs, tool, wrapLanguageModel } from "ai";
 import { openai } from "@ai-sdk/openai";
 import {
@@ -14,11 +15,13 @@ import {
   FlightBookingSchema,
   HotelBooking,
   HotelBookingSchema,
-} from "../utils";
+} from "./utils/utils";
+import { BookingRequest } from "./utils/types";
+const schema = restate.serde.schema;
 
 // <start_here>
-const book = async (ctx: restate.Context, { bookingId, prompt }: { bookingId: string, prompt: string }) => {
-  const on_rollback: { (): restate.RestatePromise<any> }[] = [];
+const book = async (ctx: Context, { id, prompt }: BookingRequest) => {
+  const undo_list: { (): restate.RestatePromise<any> }[] = [];
 
   const model = wrapLanguageModel({
     model: openai("gpt-4o"),
@@ -36,23 +39,18 @@ const book = async (ctx: restate.Context, { bookingId, prompt }: { bookingId: st
           description: "Book a hotel reservation",
           inputSchema: HotelBookingSchema,
           execute: async (req: HotelBooking) => {
-            on_rollback.push(() =>
-              ctx.run("cancel-hotel", () => cancelHotel(bookingId)),
-            );
-            return ctx.run("book-hotel", () => reserveHotel(bookingId, req));
+            undo_list.push(() => ctx.run("🏨-cancel", () => cancelHotel(id)));
+            return ctx.run("🏨-book", () => reserveHotel(id, req));
           },
         }),
         bookFlight: tool({
           description: "Book a flight",
           inputSchema: FlightBookingSchema,
           execute: async (req: FlightBooking) => {
-            on_rollback.push(() =>
-              ctx.run("cancel-flight", () => cancelFlight(bookingId)),
-            );
-            return ctx.run("book-flight", () => reserveFlight(bookingId, req));
+            undo_list.push(() => ctx.run("✈️-cancel", () => cancelFlight(id)));
+            return ctx.run("✈️-book", () => reserveFlight(id, req));
           },
         }),
-        // ... similar for car rental ...
       },
       stopWhen: [stepCountIs(10)],
       onStepFinish: rethrowTerminalToolError,
@@ -60,16 +58,18 @@ const book = async (ctx: restate.Context, { bookingId, prompt }: { bookingId: st
     });
     return text;
   } catch (error) {
-    console.log("Error occurred, rolling back all bookings...");
-    for (const rollback of on_rollback.reverse()) {
-      await rollback();
+    console.log("Rolling back bookings");
+    for (const undo_step of undo_list.reverse()) {
+      await undo_step();
     }
     throw error;
   }
 };
-// <end_here>
 
 export default restate.service({
   name: "BookingWithRollbackAgent",
-  handlers: { book },
+  handlers: {
+    book: restate.createServiceHandler({ input: schema(BookingRequest) }, book),
+  },
 });
+// <end_here>

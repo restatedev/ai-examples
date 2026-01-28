@@ -20,7 +20,7 @@ Use this template when deploying the agent as a NextJS app, for example on Verce
     npm run dev
     ```
 
-4. [Start the Restate Server](https://docs.restate.dev/develop/local_dev) in a separate shell. The server is the durable orchstrator. It is queue, workflow engine, k/V store in one.
+4. [Start the Restate Server](https://docs.restate.dev/installation) in a separate shell. The server is the durable orchstrator. It is queue, workflow engine, k/V store in one.
     ```shell
     npx @restatedev/restate-server@latest
     ```

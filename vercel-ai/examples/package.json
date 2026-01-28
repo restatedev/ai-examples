@@ -1,33 +1,25 @@
 {
-  "name": "agents",
-  "version": "0.1.0",
-  "private": true,
+  "name": "restate-vercel-ai-examples",
+  "version": "0.0.1",
+  "description": "A variety of examples for an AI app with Restate and Vercel AI SDK",
+  "main": "app.js",
+  "type": "commonjs",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build --experimental-build-mode=compile",
-    "start": "next start",
-    "lint": "next lint"
+    "build": "tsc --noEmitOnError",
+    "app": "node ./dist/app.js",
+    "dev": "tsx watch ./src/app.ts"
   },
   "dependencies": {
+    "@ai-sdk/mcp": "^1.0.14",
     "@ai-sdk/openai": "^3.0.12",
-    "@restatedev/restate-sdk": "^1.10.1",
-    "@restatedev/restate-sdk-clients": "^1.10.1",
-    "@restatedev/restate-sdk-zod": "^1.10.1",
-    "@restatedev/vercel-ai-middleware": "^0.3.0",
-    "@restatedev/pubsub": "0.3.1",
-    "@restatedev/pubsub-client": "0.3.1",
-    "ai": "^6.0.41",
-    "mathjs": "^14.7.0",
-    "next": "15.5.3",
-    "superjson": "^2.2.2"
+    "@restatedev/restate-sdk": "^1.10.2",
+    "@restatedev/restate-sdk-zod": "^1.10.2",
+    "@restatedev/vercel-ai-middleware": "^0.3.1",
+    "ai": "^6.0.52"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3",
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
-    "@types/react": "19.1.6",
-    "eslint": "^9",
-    "eslint-config-next": "15.2.4",
-    "typescript": "^5"
+    "@types/node": "^20.14.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.4.5"
   }
 }

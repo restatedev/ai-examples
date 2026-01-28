@@ -11,7 +11,7 @@ Use this template when deploying the agent on generic containers, FaaS (Lambda, 
     ```shell
     export OPENAI_API_KEY=your_openai_api_key
     ```
-2. [Start the Restate Server](https://docs.restate.dev/develop/local_dev) in a separate shell. The server is the durable orchstrator. It is queue, workflow engine, K/V store in one.
+2. [Start the Restate Server](https://docs.restate.dev/installation) in a separate shell. The server is the durable orchstrator. It is queue, workflow engine, K/V store in one.
     ```shell
     npx @restatedev/restate-server@latest
     ```
