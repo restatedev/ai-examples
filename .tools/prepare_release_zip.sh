@@ -29,5 +29,5 @@ create_release_zip python-patterns python-patterns
 # Vercel AI examples
 create_release_zip vercel-ai/examples typescript-vercel-ai-examples
 create_release_zip vercel-ai/template typescript-vercel-ai-template
-create_release_zip vercel-ai/template_nextjs typescript-vercel-ai-template-nextjs
+create_release_zip vercel-ai/nextjs-template typescript-vercel-ai-template-nextjs
 create_release_zip vercel-ai/tour-of-agents typescript-vercel-ai-tour-of-agents
