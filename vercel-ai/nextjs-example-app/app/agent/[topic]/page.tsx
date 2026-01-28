@@ -17,7 +17,8 @@ export default function Agent() {
     const obtainAPIResponse = async () => {
       try {
         evtSource = new EventSource(`/pubsub/${topic}?offset=${offset}`);
-        evtSource.onmessage = (event) => {
+        const handleMessage = (event: MessageEvent) => {
+          console.log("Message received:", event);
           if (event.data && !cancelled) {
             const parsedData = JSON.parse(event.data);
             setMessages((messages) => {
@@ -34,6 +35,10 @@ export default function Agent() {
             });
           }
         };
+        evtSource.onmessage = handleMessage;
+        // Workaround: pubsub-client sends "event: ping\n" without terminating \n\n,
+        // causing the first data message to be parsed as a "ping" event
+        evtSource.addEventListener("ping", handleMessage);
         evtSource.onopen = () => {
           setTimeout(() => {
             setIsConnecting(false);
