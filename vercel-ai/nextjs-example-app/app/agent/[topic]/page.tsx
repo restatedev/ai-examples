@@ -1,7 +1,7 @@
 "use client";
 import Form from "next/form";
-import {useEffect, useState} from "react";
-import {useParams} from "next/navigation";
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 
 export default function Agent() {
   const { topic } = useParams<{ topic: string }>();
