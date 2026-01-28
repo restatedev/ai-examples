@@ -35,5 +35,6 @@ function bump_restate_sdk_deps() {
 # Vercel AI TypeScript examples
 bump_restate_sdk_deps $PROJECT_ROOT/vercel-ai/examples
 bump_restate_sdk_deps $PROJECT_ROOT/vercel-ai/template
-bump_restate_sdk_deps $PROJECT_ROOT/vercel-ai/template_nextjs
+bump_restate_sdk_deps $PROJECT_ROOT/vercel-ai/nextjs-template
+bump_restate_sdk_deps $PROJECT_ROOT/vercel-ai/nextjs-example-app
 bump_restate_sdk_deps $PROJECT_ROOT/vercel-ai/tour-of-agents

@@ -12,5 +12,6 @@ function npm_install_check() {
 # Vercel AI TypeScript examples
 npm_install_check $PROJECT_ROOT/vercel-ai/examples
 npm_install_check $PROJECT_ROOT/vercel-ai/template
-npm_install_check $PROJECT_ROOT/vercel-ai/template_nextjs
+npm_install_check $PROJECT_ROOT/vercel-ai/nextjs-template
+npm_install_check $PROJECT_ROOT/vercel-ai/nextjs-example-app
 npm_install_check $PROJECT_ROOT/vercel-ai/tour-of-agents

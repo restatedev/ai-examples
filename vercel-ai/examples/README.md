@@ -10,7 +10,7 @@ To get started, run:
 uv run .
 ```
 
-Run Restate and register the service, similar to [the AI Quickstart](https://docs.restate.dev/ai-quickstart#vercel-%2B-ai).
+Run Restate and register the service, similar to [the AI Quickstart](https://docs.restate.dev/ai-quickstart).
 
 Then invoke the agents that were registered, via the UI playground, using their default messages.
 

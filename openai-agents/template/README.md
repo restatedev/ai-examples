@@ -15,7 +15,7 @@ The example is an agent that can search for the weather in certain city.
     ```shell
     export OPENAI_API_KEY=your_openai_api_key
     ```
-2. [Start the Restate Server](https://docs.restate.dev/develop/local_dev) in a separate shell:
+2. [Start the Restate Server](https://docs.restate.dev/installation) in a separate shell:
     ```shell
     restate-server
     ```
