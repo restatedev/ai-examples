@@ -2,10 +2,10 @@ import restate
 from agents import Agent
 from restate.ext.openai import DurableRunner
 
-from app.utils.utils import send_email
+from utils import send_email
 
 # Let users request to be alerted when long-running agent tasks complete.
-# For example, when a user click on a "Notify" button in the UI, the agent 
+# For example, when a user click on a "Notify" button in the UI, the agent
 # response is send via an email when it's ready.
 
 agent_service = restate.Workflow("AsyncNotificationsAgent")

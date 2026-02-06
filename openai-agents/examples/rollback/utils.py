@@ -1,19 +1,38 @@
+from pydantic import BaseModel
 from restate import TerminalError
 
-from app.utils.models import (
-    BookingResult,
-    FlightBooking,
-    HotelBooking,
-)
+
+class HotelBooking(BaseModel):
+    """Hotel booking data structure."""
+
+    name: str
+    dates: str
+    guests: int
 
 
-async def request_mcp_approval(mcp_tool_name: str, awakeable_id: str) -> None:
-    """Simulate requesting human review."""
-    print(f"🔔 Human review requested: {mcp_tool_name}")
-    print(f"  Submit your mcp tool approval via: \n ")
-    print(
-        f"  curl localhost:8080/restate/awakeables/{awakeable_id}/resolve --json true"
+class FlightBooking(BaseModel):
+    """Flight booking data structure."""
+
+    origin: str
+    destination: str
+    date: str
+    passengers: int
+
+
+class BookingPrompt(BaseModel):
+    """Booking request data structure."""
+
+    booking_id: str = "booking_123"
+    message: str = (
+        "I need to book a business trip to San Francisco from March 15-17. Flying from JFK, need a hotel downtown for 1 guest."
     )
+
+
+class BookingResult(BaseModel):
+    """Booking result structure."""
+
+    id: str
+    confirmation: str
 
 
 async def reserve_hotel(id: str, booking: HotelBooking) -> BookingResult:
@@ -47,7 +66,3 @@ async def cancel_hotel(id: str) -> None:
 async def cancel_flight(id: str) -> None:
     """Cancel flight booking."""
     print(f"❌ Cancelling flight booking {id}")
-
-
-async def send_email(email: str, body: str) -> None:
-    print(f"Agent done. Sending email to {email}: {body}")

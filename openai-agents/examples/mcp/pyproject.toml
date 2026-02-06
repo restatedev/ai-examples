@@ -1,0 +1,18 @@
+[project]
+name = "mcp-example"
+version = "0.1.0"
+description = "MCP example with Restate and OpenAI Agents"
+requires-python = ">=3.11"
+dependencies = [
+    "hypercorn>=0.17.3",
+    "pydantic>=2.10.6",
+    "restate-sdk[serde]>=0.14.0",
+    "openai-agents>=0.6.5",
+]
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = ["agent", "utils"]
