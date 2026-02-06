@@ -29,11 +29,9 @@ function python_mypi_lint() {
 # OpenAI agents Python examples
 pushd $PROJECT_ROOT/openai-agents/template && python_mypi_lint && popd
 pushd $PROJECT_ROOT/openai-agents/tour-of-agents && python_mypi_lint && popd
-for dir in $PROJECT_ROOT/openai-agents/examples/*/; do
-  if [ -f "$dir/pyproject.toml" ]; then
-    pushd "$dir" && python_mypi_lint && popd
-  fi
-done
+while IFS= read -r dir; do
+  pushd "$dir" && python_mypi_lint && popd
+done < <(find "$PROJECT_ROOT/openai-agents/examples" -mindepth 2 -maxdepth 2 -name pyproject.toml -exec dirname {} \;)
 
 # Google ADK agents Python examples
 pushd $PROJECT_ROOT/google-adk/tour-of-agents && python_mypi_lint && popd

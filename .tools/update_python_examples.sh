@@ -19,11 +19,9 @@ search_and_replace_version $PROJECT_ROOT/a2a
 
 # OpenAI agents Python examples
 search_and_replace_version $PROJECT_ROOT/openai-agents/tour-of-agents
-for dir in $PROJECT_ROOT/openai-agents/examples/*/; do
-  if [ -f "$dir/pyproject.toml" ]; then
-    search_and_replace_version "$dir"
-  fi
-done
+while IFS= read -r dir; do
+  search_and_replace_version "$dir"
+done < <(find "$PROJECT_ROOT/openai-agents/examples" -mindepth 2 -maxdepth 2 -name pyproject.toml -exec dirname {} \;)
 search_and_replace_version $PROJECT_ROOT/openai-agents/template
 
 # Google ADK agents Python examples
