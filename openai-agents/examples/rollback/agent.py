@@ -5,12 +5,9 @@ from agents import Agent, RunContextWrapper
 from pydantic import Field, BaseModel, ConfigDict
 from restate.ext.openai import restate_context, DurableRunner, durable_function_tool
 
-from app.utils.models import HotelBooking, FlightBooking, BookingPrompt, BookingResult
-from app.utils.utils import (
-    reserve_hotel,
-    reserve_flight,
-    cancel_hotel,
-    cancel_flight,
+from utils import (
+    HotelBooking, FlightBooking, BookingPrompt, BookingResult,
+    reserve_hotel, reserve_flight, cancel_hotel, cancel_flight,
 )
 
 
@@ -31,12 +28,12 @@ async def book_hotel(
     booking_ctx, booking_id = wrapper.context, wrapper.context.booking_id
     # Register a rollback action for each step, in case of failures further on in the workflow
     booking_ctx.on_rollback.append(
-        lambda: ctx.run_typed("Cancel hotel", cancel_hotel, id=booking_id)
+        lambda: ctx.run_typed("🏨 Cancel hotel", cancel_hotel, id=booking_id)
     )
 
     # Execute the workflow step
     return await ctx.run_typed(
-        "Book hotel", reserve_hotel, id=booking_id, booking=booking
+        "🏨 Book hotel", reserve_hotel, id=booking_id, booking=booking
     )
 
 
@@ -48,10 +45,10 @@ async def book_flight(
     ctx = restate_context()
     booking_ctx, booking_id = wrapper.context, wrapper.context.booking_id
     booking_ctx.on_rollback.append(
-        lambda: ctx.run_typed("Cancel flight", cancel_flight, id=booking_id)
+        lambda: ctx.run_typed("✈️ Cancel flight", cancel_flight, id=booking_id)
     )
     return await ctx.run_typed(
-        "Book flight", reserve_flight, id=booking_id, booking=booking
+        "✈️ Book flight", reserve_flight, id=booking_id, booking=booking
     )
 
 
