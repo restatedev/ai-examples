@@ -9,7 +9,7 @@ async def get_weather(city: str):
         return { "temp": 25, "condition": "sunny"}
     # Do durable steps using the Restate context
     return await restate_context().run_typed(
-        "Get weather", fetch_weather, city=req.city
+        "Get weather", fetch_weather, city=city
     )
 
 
