@@ -51,7 +51,7 @@ analysis_agent = Agent(
 claim_service = restate.Service("InsuranceClaimAgent")
 
 @claim_service.handler()
-async def process_claim(ctx: restate.Context, claim: ClaimRequest) -> str:
+async def run(ctx: restate.Context, claim: ClaimRequest) -> str:
     # Step 1: Parse claim documents with LLM agent
     parsed = await DurableRunner.run(
         parser_agent,
