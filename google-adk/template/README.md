@@ -5,7 +5,7 @@ Use the Google ADK to implement your agent, and let Restate handle the persisten
 
 The example is an agent that can search for the weather in certain city.
 
-<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/get-started-openai/invocation_ui.png" alt="Using Agent SDK - journal" width="1200px"/>
+<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/get-started-google-adk/detailed_invocation_ui.png" alt="Using Agent SDK - journal" width="1200px"/>
 
 > Also check out the Tour of Agents with [the Google ADK + Restate](../tour-of-agents)
 
@@ -30,16 +30,18 @@ The example is an agent that can search for the weather in certain city.
 
 5. Send requests to your agent:
 
-    ```shell
-    curl localhost:8080/agent/run --json '"What is the weather in San Francisco?"'
-    ```
+```shell
+curl localhost:8080/agent/run --json '{
+  "message": "What is the weather like in San Francisco?",
+  "session_id": "session-123",
+  "user_id": "user-123"
+}'
+```
 
-   Returns: `The weather in San Francisco is currently 23°C and sunny.`
+Returns: `The weather in San Francisco is currently 23°C and sunny.`
 
 
-Check the Restate UI (`http://localhost:9080`) to see the journals of your invocations (remove the filters).
-
-<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/get-started-openai/detailed_invocation_ui.png" alt="Using Agent SDK - journal" width="1200px"/>
+Check the Restate UI (`http://localhost:9070`) to see the journals of your invocations.
 
 ## Integrating Restate with the Google ADK
 

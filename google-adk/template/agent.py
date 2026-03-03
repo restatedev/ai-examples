@@ -30,7 +30,7 @@ agent = Agent(
 app = App(name=APP_NAME, root_agent=agent, plugins=[RestatePlugin()])
 session_service = InMemorySessionService()
 
-agent_service = restate.Service("WeatherAgent")
+agent_service = restate.Service("agent")
 
 
 @agent_service.handler()
