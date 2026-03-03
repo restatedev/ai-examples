@@ -37,7 +37,7 @@ The example is an agent that can search for the weather in certain city.
     Returns: `The weather in Detroit is currently 22°C and sunny.`
 
 
-Check the Restate UI (`http://localhost:9080`) to see the journals of your invocations (remove the filters).
+Check the Restate UI (`http://localhost:9080`) to see the journals of your invocations.
 
 <img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/get-started-openai/detailed_invocation_ui.png" alt="Using Agent SDK - journal" width="1200px"/>
 
@@ -48,8 +48,5 @@ To make the agent resilient, we need to:
 - To persist the intermediate tool execution steps, we pass the Restate context along to the tools.
 
 ## Limitations
-1. You cannot do parallel tool calls or any type of parallel execution if you integrate Restate with an Agent SDK. 
-If you execute actions on the context in different tools in parallel, Restate will not be able to deterministically replay them because the order might be different during recovery and will crash. 
-We are working on a solution to this, but for now, you can only use Restate with Agent SDKs for sequential tool calls.
-
-2. Restate does not yet support streaming responses from the Vercel AI SDK.
+Restate will prevent tools from executing in parallel, to avoid non-deterministic behavior on retries/resume.
+We are working on a solution to this.
