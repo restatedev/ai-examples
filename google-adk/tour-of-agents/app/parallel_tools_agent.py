@@ -62,3 +62,13 @@ async def run(ctx: restate.ObjectContext, claim: InsuranceClaim) -> str | None:
             if event.content.parts[0].text:
                 final_response = event.content.parts[0].text
     return final_response
+
+
+if __name__ == "__main__":
+    import hypercorn
+    import asyncio
+
+    app = restate.app(services=[agent_service])
+    conf = hypercorn.Config()
+    conf.bind = ["0.0.0.0:9080"]
+    asyncio.run(hypercorn.asyncio.serve(app, conf))

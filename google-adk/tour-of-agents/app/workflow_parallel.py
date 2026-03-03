@@ -64,3 +64,26 @@ async def run(ctx: restate.ObjectContext, claim: InsuranceClaim) -> str | None:
 
 
 # <end_here>
+
+
+if __name__ == "__main__":
+    import hypercorn
+    import asyncio
+
+    from app.utils.utils import (
+        fraud_agent_service,
+        rate_comparison_agent_service,
+        eligibility_agent_service,
+    )
+
+    app = restate.app(
+        services=[
+            agent_service,
+            fraud_agent_service,
+            rate_comparison_agent_service,
+            eligibility_agent_service,
+        ]
+    )
+    conf = hypercorn.Config()
+    conf.bind = ["0.0.0.0:9080"]
+    asyncio.run(hypercorn.asyncio.serve(app, conf))

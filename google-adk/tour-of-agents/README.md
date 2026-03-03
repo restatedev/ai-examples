@@ -1,60 +1,32 @@
-# Restate + Google ADK Example
+# Tour of AI Agents with Restate - Google ADK
 
-**This integration is work-in-progress.**
-
-AI agent examples using [Restate](https://restate.dev) for durable execution and [Google Agent Development Kit](https://google.github.io/adk-docs/) for AI workflows.
-
-## Features
-
-- **Durable execution** - Weather agent with durable execution ([see weather agent](./app/durable_agent.py))
-- **Chat agents** - Multi-turn conversations with session state ([see chat agent](./app/chat.py))
-- **Multi-agent orchestration** - Claim processing workflows with durable communication ([see multi-agent claim approval](./app/multi_agent.py))
-- **Human-in-the-loop** - Resilient approval workflows (with timeouts) ([see human-in-the-loop agent](./app/human_approval_agent.py))
-- **Parallel processing** - Concurrent agent and tool execution that can be deterministically recovered ([see parallel agent](./app/parallel_agents.py) and [parallel tools](./app/parallel_tools.py))
-
-
-## Tour of AI Agents with Restate - Python OpenAI Agents SDK
 Learn how to implement resilient agents with durable execution, human-in-the-loop, multi-agent communication, and parallel execution.
 
-[Learn more](https://docs.restate.dev/tour/google-adk)
+[Learn more in the docs](https://docs.restate.dev/tour/google-adk)
 
-To run:
-```shell
-uv run .
+## Run the examples
+
+Export your OpenAI API key:
+```bash
+export OPENAI_API_KEY=your-key
 ```
 
-## Quick Start
-
-Export your Google API key:
+Or run an agent:
 ```bash
-export GOOGLE_API_KEY=your-key
-````
-
-Run the application:
-```bash
-uv run . 
+uv run app/durable_agent.py
 ```
-
-The agent runs on `http://localhost:9080`
 
 Start Restate:
 ```bash
 docker run --name restate_dev --rm \
--p 8080:8080 -p 9070:9070 -p 9071:9071 \
---add-host=host.docker.internal:host-gateway \
-docker.restate.dev/restatedev/restate:latest
+  -p 8080:8080 -p 9070:9070 -p 9071:9071 \
+  --add-host=host.docker.internal:host-gateway \
+  docker.restate.dev/restatedev/restate:latest
 ```
 
-Go to the Restate UI at `http://localhost:9070`. Click on `register deployment`. And fill in the agent url `http://host.docker.internal:9080`.
+Register the deployment:
+```bash
+curl localhost:9070/deployments --json '{"uri": "http://host.docker.internal:9080"}'
+```
 
-![Register service](./docs/images/register_deployment.png)
-
-Click on one of the handlers of the registered services and send the default request (if prompted to do so, add a session key in the key field). 
-
-For example, click on the `run` handler of the `WeatherAgent` service and send the request:
-
-![Send request](./docs/images/request.png)
-
-In the invocations tab, you see the execution journal when clicking on the invocation ID:
-![See journal](./docs/images/journal.png)
-
+Invoke the service via the UI (`http://localhost:8080/`). Click on the agent handler you want to call and use the playground to send a request.
