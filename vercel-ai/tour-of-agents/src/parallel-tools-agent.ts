@@ -2,16 +2,15 @@ import * as restate from "@restatedev/restate-sdk";
 import { RestatePromise } from "@restatedev/restate-sdk";
 import { openai } from "@ai-sdk/openai";
 import { generateText, tool, wrapLanguageModel, Output, stepCountIs } from "ai";
+import { InsuranceClaim, InsuranceClaimSchema } from "./utils/types";
 import {
   compareToStandardRates,
   checkEligibility,
   checkFraud,
-  InsuranceClaim,
-  InsuranceClaimSchema,
-} from "../utils";
+} from "./utils/utils";
 import { durableCalls } from "@restatedev/vercel-ai-middleware";
 
-export default restate.service({
+const agent = restate.service({
   name: "ParallelToolClaimAgent",
   handlers: {
     run: async (ctx: restate.Context, claim: InsuranceClaim) => {
@@ -47,3 +46,5 @@ export default restate.service({
     },
   },
 });
+
+restate.serve({ services: [agent] });

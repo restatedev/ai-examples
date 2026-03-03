@@ -1,12 +1,11 @@
 import * as restate from "@restatedev/restate-sdk";
 import { durableCalls, superJson } from "@restatedev/vercel-ai-middleware";
-
 import { openai } from "@ai-sdk/openai";
 import { generateText, ModelMessage, wrapLanguageModel } from "ai";
 import { handlers } from "@restatedev/restate-sdk";
 import shared = handlers.object.shared;
 
-export default restate.object({
+const chatAgent = restate.object({
   name: "Chat",
   handlers: {
     message: async (ctx: restate.ObjectContext, req: { message: string }) => {
@@ -33,3 +32,5 @@ export default restate.object({
     ),
   },
 });
+
+restate.serve({ services: [chatAgent] });

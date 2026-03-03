@@ -7,7 +7,7 @@ import {
 import { generateText, stepCountIs, wrapLanguageModel } from "ai";
 import { openai } from "@ai-sdk/openai";
 
-export default restate.service({
+const agent = restate.service({
   name: "McpChat",
   handlers: {
     message: async (ctx: restate.Context, req: string) => {
@@ -43,3 +43,5 @@ export default restate.service({
     },
   },
 });
+
+restate.serve({ services: [agent] });

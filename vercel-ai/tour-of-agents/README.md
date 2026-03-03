@@ -2,11 +2,33 @@
 
 Learn how to implement resilient agents with durable execution, human-in-the-loop, multi-agent communication, and parallel execution.
 
-[Learn more](https://docs.restate.dev/tour/vercel-ai-agents)
+## Run the example
 
-To run:
+[Install Restate](/installation) and launch it:
 
-```shell
+```bash
+npm install --global @restatedev/restate-server@latest @restatedev/restate@latest
+restate-server
+```
+
+Get the example:
+
+```bash
+restate example typescript-vercel-ai-tour-of-agents && cd typescript-vercel-ai-tour-of-agents
 npm install
-npm run dev
+```
+
+Export your [OpenAI API key](https://platform.openai.com/api-keys) and run the agent:
+
+```bash
+export OPENAI_API_KEY=sk-...
+npx tsx src/durable_agent.ts
+```
+
+Change the path to the agent you want to run.
+
+Register the agents with Restate:
+
+```bash
+restate deployments register http://localhost:9080 --force --yes
 ```

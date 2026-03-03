@@ -6,13 +6,9 @@
   "type": "commonjs",
   "scripts": {
     "build": "tsc --noEmitOnError",
-    "start": "node ./dist/app.js",
-    "dev": "tsx watch ./src/app.ts",
     "prebundle": "rm -rf dist",
     "bundle": "esbuild src/app.ts --bundle --minify --sourcemap --platform=node --target=es2020 --outfile=dist/app.js",
-    "postbundle": "cd dist && zip -r index.zip app.js*",
-    "app": "npm run start",
-    "app-dev": "npm run dev"
+    "postbundle": "cd dist && zip -r index.zip app.js*"
   },
   "dependencies": {
     "@ai-sdk/mcp": "^1.0.14",

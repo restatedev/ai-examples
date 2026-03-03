@@ -2,10 +2,10 @@ import * as restate from "@restatedev/restate-sdk";
 import { openai } from "@ai-sdk/openai";
 import { generateText, stepCountIs, tool, wrapLanguageModel } from "ai";
 import { z } from "zod";
-import { fetchWeather } from "../utils";
+import { fetchWeather } from "./utils/utils";
 import { durableCalls } from "@restatedev/vercel-ai-middleware";
 
-export default restate.service({
+const agent = restate.service({
   name: "WeatherAgent",
   handlers: {
     run: async (ctx: restate.Context, { prompt }: { prompt: string }) => {
@@ -34,3 +34,5 @@ export default restate.service({
     },
   },
 });
+
+restate.serve({ services: [agent] });

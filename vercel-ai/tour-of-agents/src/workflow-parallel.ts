@@ -1,16 +1,16 @@
 import * as restate from "@restatedev/restate-sdk";
 import { openai } from "@ai-sdk/openai";
 import { generateText, wrapLanguageModel } from "ai";
+import { InsuranceClaim } from "./utils/types";
 import {
-  InsuranceClaim,
   eligibilityAgent,
   fraudCheckAgent,
   rateComparisonAgent,
-} from "../utils";
+} from "./utils/utils";
 import { RestatePromise } from "@restatedev/restate-sdk";
 import { durableCalls } from "@restatedev/vercel-ai-middleware";
 
-export default restate.service({
+const agent = restate.service({
   name: "ParallelAgentClaimApproval",
   handlers: {
     run: async (ctx: restate.Context, claim: InsuranceClaim) => {
@@ -36,4 +36,8 @@ export default restate.service({
       return text;
     },
   },
+});
+
+restate.serve({
+  services: [agent, eligibilityAgent, rateComparisonAgent, fraudCheckAgent],
 });

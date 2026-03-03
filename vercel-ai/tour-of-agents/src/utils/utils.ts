@@ -1,10 +1,10 @@
 import * as restate from "@restatedev/restate-sdk";
 import { TerminalError } from "@restatedev/restate-sdk";
-import { z } from "zod";
 import * as crypto from "node:crypto";
 import { generateText, wrapLanguageModel } from "ai";
 import { durableCalls } from "@restatedev/vercel-ai-middleware";
 import { openai } from "@ai-sdk/openai";
+import { FlightBooking, HotelBooking, InsuranceClaim } from "./types";
 
 // <start_weather>
 export async function fetchWeather(city: string) {
@@ -160,12 +160,53 @@ export const fraudCheckAgent = restate.service({
   },
 });
 
-export const InsuranceClaimSchema = z.object({
-  date: z.string().nullable().optional(),
-  category: z.string().nullable().optional(),
-  reason: z.string().nullable().optional(),
-  amount: z.number().nullable().optional(),
-  placeOfService: z.string().nullable().optional(),
-});
+export function convertCurrency(
+  amount: number,
+  from: string,
+  to: string,
+): Promise<number> {
+  // Simulate currency conversion
+  return Promise.resolve(amount * 1.3);
+}
+export function processPayment(
+  claimId: string,
+  amount: number,
+): Promise<string> {
+  // Simulate payment processing
+  return Promise.resolve("Payment successful");
+}
 
-export type InsuranceClaim = z.infer<typeof InsuranceClaimSchema>;
+export async function reserveHotel(
+  id: string,
+  { name, guests, dates }: HotelBooking,
+) {
+  console.log(`🏨 Created hotel booking ${id}`);
+  return {
+    id,
+    confirmation: `🏨 Hotel ${name} booked for ${guests} guests on ${dates}`,
+  };
+}
+
+export async function reserveFlight(
+  id: string,
+  { origin, destination, date, passengers }: FlightBooking,
+) {
+  if (destination === "San Francisco" || destination === "SFO") {
+    const message = `[👻 SIMULATED] Flight booking failed: No flights to SFO available...`;
+    console.error(message);
+    throw new TerminalError(message);
+  }
+  console.log(`✈️ Created flight booking ${id}`);
+  return {
+    id,
+    confirmation: `✈️ Flight from ${origin} to ${destination} on ${date} for ${passengers} passengers`,
+  };
+}
+
+export async function cancelHotel(id: string) {
+  console.log(`🏨 Cancelled hotel booking ${id}`);
+}
+
+export async function cancelFlight(id: string) {
+  console.log(`✈️ Cancelled flight booking ${id}`);
+}

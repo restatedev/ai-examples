@@ -1,15 +1,12 @@
 import * as restate from "@restatedev/restate-sdk";
 import { openai } from "@ai-sdk/openai";
 import { generateText, tool, wrapLanguageModel, Output, stepCountIs } from "ai";
-import {
-  InsuranceClaim,
-  InsuranceClaimSchema,
-  requestHumanReview,
-} from "../utils";
+import { InsuranceClaim, InsuranceClaimSchema } from "./utils/types";
+import { requestHumanReview } from "./utils/utils";
 import { durableCalls } from "@restatedev/vercel-ai-middleware";
 import { TimeoutError } from "@restatedev/restate-sdk";
 
-export default restate.service({
+const agent = restate.service({
   name: "HumanClaimApprovalWithTimeoutsAgent",
   handlers: {
     run: async (ctx: restate.Context, { prompt }: { prompt: string }) => {
@@ -60,3 +57,5 @@ export default restate.service({
     },
   },
 });
+
+restate.serve({ services: [agent] });
