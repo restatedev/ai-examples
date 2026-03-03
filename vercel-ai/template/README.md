@@ -36,3 +36,7 @@ Use this template when deploying the agent on generic containers, FaaS (Lambda, 
 Check the Restate UI (`localhost:9080`) to see the journals of your invocations.
 
 <img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/get-started-vercel/journal_vercel.png" alt="Using Agent SDK - journal" width="1200px"/>
+
+## Limitations
+Restate does not allow executing tools in parallel, to avoid non-deterministic behavior on retries/resume.
+We are working on a solution to this.
