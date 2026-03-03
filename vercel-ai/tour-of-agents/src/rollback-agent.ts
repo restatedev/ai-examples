@@ -7,6 +7,8 @@ import {
   rethrowTerminalToolError,
 } from "@restatedev/vercel-ai-middleware";
 import {
+  BookingRequestSchema,
+    BookingRequest,
   FlightBooking,
   FlightBookingSchema,
   HotelBooking,
@@ -18,7 +20,6 @@ import {
   cancelFlight,
   cancelHotel,
 } from "./utils/utils";
-import { BookingRequest } from "./utils/types";
 const schema = restate.serde.schema;
 
 // <start_here>
@@ -71,7 +72,7 @@ const book = async (ctx: Context, { id, prompt }: BookingRequest) => {
 const agent = restate.service({
   name: "BookingWithRollbackAgent",
   handlers: {
-    book: restate.createServiceHandler({ input: schema(BookingRequest) }, book),
+    book: restate.createServiceHandler({ input: schema(BookingRequestSchema) }, book),
   },
 });
 

@@ -4,29 +4,32 @@ import { openai } from "@ai-sdk/openai";
 import { generateText, ModelMessage, wrapLanguageModel } from "ai";
 import { handlers } from "@restatedev/restate-sdk";
 import shared = handlers.object.shared;
+import {ChatMessage, ChatMessageSchema} from "./utils/types";
+const schema = restate.serde.schema;
+
+const message = async (ctx: restate.ObjectContext, req: ChatMessage) => {
+  const model = wrapLanguageModel({
+    model: openai("gpt-4o"),
+    middleware: durableCalls(ctx, { maxRetryAttempts: 3 }),
+  });
+
+  const messages = (await ctx.get<ModelMessage[]>("messages", superJson)) ?? [];
+  messages.push({ role: "user", content: req.message });
+
+  const res = await generateText({
+    model,
+    system: "You are a helpful assistant.",
+    messages,
+  });
+
+  ctx.set("messages", [...messages, ...res.response.messages], superJson);
+  return { answer: res.text };
+};
 
 const chatAgent = restate.object({
   name: "Chat",
   handlers: {
-    message: async (ctx: restate.ObjectContext, req: { message: string }) => {
-      const model = wrapLanguageModel({
-        model: openai("gpt-4o"),
-        middleware: durableCalls(ctx, { maxRetryAttempts: 3 }),
-      });
-
-      const messages =
-        (await ctx.get<ModelMessage[]>("messages", superJson)) ?? [];
-      messages.push({ role: "user", content: req.message });
-
-      const res = await generateText({
-        model,
-        system: "You are a helpful assistant.",
-        messages,
-      });
-
-      ctx.set("messages", [...messages, ...res.response.messages], superJson);
-      return { answer: res.text };
-    },
+    message: restate.createObjectHandler({ input: schema(ChatMessageSchema) }, message),
     getHistory: shared(async (ctx: restate.ObjectSharedContext) =>
       ctx.get<ModelMessage[]>("messages", superJson),
     ),
