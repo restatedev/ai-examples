@@ -44,3 +44,13 @@ agent_service = restate.Service("ParallelToolClaimAgent")
 async def run(_ctx: restate.Context, claim: InsuranceClaim) -> str:
     result = await DurableRunner.run(agent, f"Claim: {claim.model_dump_json()}")
     return result.final_output
+
+
+if __name__ == "__main__":
+    import hypercorn
+    import asyncio
+
+    app = restate.app(services=[agent_service])
+    conf = hypercorn.Config()
+    conf.bind = ["0.0.0.0:9080"]
+    asyncio.run(hypercorn.asyncio.serve(app, conf))

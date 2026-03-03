@@ -3,9 +3,9 @@ import { durableCalls, superJson } from "@restatedev/vercel-ai-middleware";
 import { openai } from "@ai-sdk/openai";
 import { generateText, ModelMessage, wrapLanguageModel } from "ai";
 import { handlers } from "@restatedev/restate-sdk";
-import shared = handlers.object.shared;
 import {ChatMessage, ChatMessageSchema} from "./utils/types";
 const schema = restate.serde.schema;
+import shared = handlers.object.shared;
 
 const message = async (ctx: restate.ObjectContext, req: ChatMessage) => {
   const model = wrapLanguageModel({

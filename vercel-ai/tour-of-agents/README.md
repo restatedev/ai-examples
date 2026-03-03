@@ -22,7 +22,7 @@ Export your [OpenAI API key](https://platform.openai.com/api-keys) and run the a
 
 ```bash
 export OPENAI_API_KEY=sk-...
-npx tsx src/durable_agent.ts
+npx tsx src/durable-agent.ts
 ```
 
 Change the path to the agent you want to run.

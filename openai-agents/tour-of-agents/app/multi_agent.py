@@ -5,7 +5,6 @@ from restate.ext.openai.runner_wrapper import RestateSession, DurableRunner
 
 from app.utils.utils import InsuranceClaim
 
-
 medical_agent = Agent(
     name="MedicalSpecialist",
     handoff_description="I handle medical insurance claims from intake to final decision.",
@@ -46,3 +45,13 @@ async def run(ctx: restate.ObjectContext, claim: InsuranceClaim) -> str:
 
     ctx.set("last_agent_name", result.last_agent.name)
     return result.final_output
+
+
+if __name__ == "__main__":
+    import hypercorn
+    import asyncio
+
+    app = restate.app(services=[agent_service])
+    conf = hypercorn.Config()
+    conf.bind = ["0.0.0.0:9080"]
+    asyncio.run(hypercorn.asyncio.serve(app, conf))

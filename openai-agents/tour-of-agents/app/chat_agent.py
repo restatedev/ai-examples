@@ -1,3 +1,4 @@
+import restate
 from agents import Agent
 from restate import VirtualObject, ObjectContext
 from restate.ext.openai import DurableRunner
@@ -17,3 +18,13 @@ async def message(_ctx: ObjectContext, req: ChatMessage) -> dict:
         use_restate_session=True,
     )
     return result.final_output
+
+
+if __name__ == "__main__":
+    import hypercorn
+    import asyncio
+
+    app = restate.app(services=[chat])
+    conf = hypercorn.Config()
+    conf.bind = ["0.0.0.0:9080"]
+    asyncio.run(hypercorn.asyncio.serve(app, conf))
