@@ -3,12 +3,6 @@ import { openai } from "@ai-sdk/openai";
 import { generateText, stepCountIs, tool, wrapLanguageModel } from "ai";
 import { z } from "zod";
 import { durableCalls } from "@restatedev/vercel-ai-middleware";
-const schema = restate.serde.schema;
-
-export const WeatherPromptSchema = z.object({
-  prompt: z.string().default("What is the weather like in San Francisco?"),
-});
-export type WeatherPrompt = z.infer<typeof WeatherPromptSchema>;
 
 // TOOL
 async function getWeather(ctx: restate.Context, city: string) {
@@ -20,7 +14,7 @@ async function getWeather(ctx: restate.Context, city: string) {
 }
 
 // AGENT
-const run = async (ctx: restate.Context, { prompt }: WeatherPrompt) => {
+const run = async (ctx: restate.Context, { prompt }: { prompt: string }) => {
   const model = wrapLanguageModel({
     model: openai("gpt-4o"),
     // Persist LLM responses
@@ -49,7 +43,11 @@ const run = async (ctx: restate.Context, { prompt }: WeatherPrompt) => {
 const agent = restate.service({
   name: "agent",
   handlers: {
-    run: restate.createServiceHandler({ input: schema(WeatherPromptSchema) }, run),
+    run: restate.createServiceHandler({
+      input: restate.serde.schema(z.object({
+        prompt: z.string().default("What is the weather like in San Francisco?"),
+      })),
+    }, run),
   },
 });
 

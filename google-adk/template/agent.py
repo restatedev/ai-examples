@@ -8,9 +8,6 @@ from google.adk.agents.llm_agent import Agent
 from pydantic import BaseModel
 from restate.ext.adk import RestatePlugin, restate_context
 
-APP_NAME = "agents"
-
-
 class WeatherPrompt(BaseModel):
     user_id: str = "user-123"
     message: str = "What is the weather like in San Francisco?"
@@ -37,6 +34,7 @@ agent = Agent(
     tools=[get_weather],
 )
 
+APP_NAME = "agents"
 app = App(name=APP_NAME, root_agent=agent, plugins=[RestatePlugin()])
 session_service = InMemorySessionService()
 
