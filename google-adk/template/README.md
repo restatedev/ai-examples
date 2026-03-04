@@ -33,7 +33,6 @@ The example is an agent that can search for the weather in certain city.
 ```shell
 curl localhost:8080/agent/run --json '{
   "message": "What is the weather like in San Francisco?",
-  "session_id": "session-123",
   "user_id": "user-123"
 }'
 ```

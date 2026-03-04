@@ -14,7 +14,8 @@
     "@restatedev/restate-sdk": "^1.10.1",
     "@restatedev/restate-sdk-zod": "^1.10.1",
     "@restatedev/vercel-ai-middleware": "^0.3.0",
-    "ai": "^6.0.41"
+    "ai": "^6.0.41",
+    "zod": "^4.3"
   },
   "devDependencies": {
     "@types/node": "^20.14.2",

@@ -31,10 +31,10 @@ The example is an agent that can search for the weather in certain city.
 5. Send requests to your agent:
 
     ```shell
-    curl localhost:8080/agent/run --json '"What is the weather in Detroit?"'
+    curl localhost:8080/agent/run --json '{"message": "What is the weather in San Francisco?"}'
     ```
     
-    Returns: `The weather in Detroit is currently 22°C and sunny.`
+    Returns: `The weather in San Francisco is currently 23°C and sunny.`
 
 
 Check the Restate UI (`http://localhost:9080`) to see the journals of your invocations.

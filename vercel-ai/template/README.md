@@ -28,10 +28,10 @@ Use this template when deploying the agent on generic containers, FaaS (Lambda, 
 5. All should be ready. Now send a request to your agent. Note that we target Restate Server's endpoint (8080) because the server proxies requests to the service, to make them durable.
 
     ```shell
-    curl localhost:8080/agent/run --json '"What is the weather in Detroit?"'
+    curl localhost:8080/agent/run --json '{"prompt": "What is the weather in San Francisco?"}'
     ```
 
-   Returns: `The weather in Detroit is currently 22°C and sunny.`
+   Returns: `The weather in San Francisco is currently 23°C and sunny.`
 
 Check the Restate UI (`localhost:9080`) to see the journals of your invocations.
 
