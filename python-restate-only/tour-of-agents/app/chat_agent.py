@@ -9,7 +9,7 @@ import restate
 from pydantic import BaseModel
 from restate import RunOptions
 
-from .util.litellm_call import llm_call
+from util.litellm_call import llm_call
 
 
 # Example input text to analyze
@@ -46,3 +46,14 @@ async def message(ctx: restate.ObjectContext, msg: ChatMessage) -> str | None:
 @chat.handler(kind="shared")
 async def get_history(ctx: restate.ObjectSharedContext):
     return await ctx.get("memory", type_hint=list[dict]) or []
+
+
+if __name__ == "__main__":
+    import asyncio
+    import hypercorn
+
+    app = restate.app(services=[chat])
+
+    conf = hypercorn.Config()
+    conf.bind = ["0.0.0.0:9080"]
+    asyncio.run(hypercorn.asyncio.serve(app, conf))

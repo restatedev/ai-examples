@@ -21,15 +21,14 @@ async def llm_call(
         tools = []
     if isinstance(messages, str):
         messages = [{"role": "user", "content": messages}]
-    resp = await litellm.acompletion(
+    response = await litellm.acompletion(
         model="gpt-4o", messages=messages, tools=tools, stream=False
     )
-    response = typing.cast(ModelResponse, resp)
 
     # Handle the response properly - litellm returns a ModelResponse object
-    if hasattr(response, "choices") and response.choices:
-        first_choice = typing.cast(Choices, response.choices[0])
-        if hasattr(first_choice, "message") and first_choice.message:
+    if len(response.choices) > 0:
+        first_choice = response.choices[0]
+        if first_choice.message is not None:
             return first_choice.message
 
     raise RuntimeError("No content in response")

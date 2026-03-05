@@ -3,7 +3,7 @@ import restate
 from pydantic import BaseModel
 
 from restate import Service, Context, RestateDurableCallFuture, RunOptions
-from app.util.litellm_call import llm_call
+from util.litellm_call import llm_call
 
 
 class Question(BaseModel):
@@ -55,3 +55,14 @@ async def respond_quickly(ctx: Context, req: Question) -> str | None:
         messages=f"Quick answer: {req}",
     )
     return output.content
+
+
+if __name__ == "__main__":
+    import asyncio
+    import hypercorn
+
+    app = restate.app(services=[racing_agent])
+
+    conf = hypercorn.Config()
+    conf.bind = ["0.0.0.0:9080"]
+    asyncio.run(hypercorn.asyncio.serve(app, conf))

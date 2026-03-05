@@ -9,7 +9,7 @@ import restate
 from pydantic import BaseModel
 from restate import RunOptions
 
-from .util.litellm_call import llm_call
+from util.litellm_call import llm_call
 
 
 class CodeRequest(BaseModel):
@@ -33,7 +33,8 @@ async def generate(ctx: restate.Context, req: CodeRequest) -> dict:
             else f"Task: {req.task}"
         )
         code = await ctx.run_typed(
-            f"Generate code (attempt {i + 1})", llm_call,
+            f"Generate code (attempt {i + 1})",
+            llm_call,
             RunOptions(max_attempts=3),
             messages=prompt,
             system="You are a code generator. Write clean, correct code.",
@@ -41,7 +42,8 @@ async def generate(ctx: restate.Context, req: CodeRequest) -> dict:
 
         # Step 2: Evaluate the code
         evaluation = await ctx.run_typed(
-            f"Evaluate code (attempt {i + 1})", llm_call,
+            f"Evaluate code (attempt {i + 1})",
+            llm_call,
             RunOptions(max_attempts=3),
             messages=f"Task: {req.task}\n\nCode:\n{code.content}",
             system="""You are a code reviewer. Evaluate the code for correctness,
@@ -55,4 +57,17 @@ async def generate(ctx: restate.Context, req: CodeRequest) -> dict:
         feedback = evaluation.content
 
     return {"code": "Max iterations reached", "iterations": max_iterations}
+
+
 # <end_here>
+
+
+if __name__ == "__main__":
+    import asyncio
+    import hypercorn
+
+    app = restate.app(services=[code_service])
+
+    conf = hypercorn.Config()
+    conf.bind = ["0.0.0.0:9080"]
+    asyncio.run(hypercorn.asyncio.serve(app, conf))

@@ -13,7 +13,7 @@ import restate
 from pydantic import BaseModel
 from restate import RunOptions
 
-from .util.litellm_call import llm_call
+from util.litellm_call import llm_call
 
 
 class Text(BaseModel):
@@ -57,3 +57,14 @@ async def analyze(ctx: restate.Context, text: Text) -> list[str | None]:
 
     # Gather and collect results
     return [(await task).content for task in tasks]
+
+
+if __name__ == "__main__":
+    import asyncio
+    import hypercorn
+
+    app = restate.app(services=[parallelization_svc])
+
+    conf = hypercorn.Config()
+    conf.bind = ["0.0.0.0:9080"]
+    asyncio.run(hypercorn.asyncio.serve(app, conf))

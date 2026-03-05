@@ -9,11 +9,11 @@ Flow: Customer Question → Classifier → Specialized Agent → Response
 
 import restate
 
-from restate import RunOptions
 from pydantic import BaseModel
+from restate import RunOptions
 
-from .util.litellm_call import llm_call
-from .util.util import tool
+from util.util import tool, billing_agent_svc, account_agent_svc, product_agent_svc
+from util.litellm_call import llm_call
 
 
 # Customer's question
@@ -21,10 +21,9 @@ class Question(BaseModel):
     message: str = "I can't log into my account. Keep getting invalid password errors."
 
 
-# Create the routing service
-router = restate.Service("AgentRouter")
+remote_agent_router = restate.Service("RemoteAgentRouter")
 
-# Our team of AI specialists
+# Classify the request
 SPECIALISTS = {
     "BillingAgent": "Expert in payments, charges, and refunds",
     "AccountAgent": "Expert in login issues and security",
@@ -32,18 +31,16 @@ SPECIALISTS = {
 }
 
 
-@router.handler()
+@remote_agent_router.handler()
 async def answer(ctx: restate.Context, question: Question) -> str | None:
     """Classify request and route to appropriate specialized agent."""
 
     # 1. First, decide if a specialist is needed
     routing_decision = await ctx.run_typed(
         "Pick specialist",
-        llm_call,  # Use your preferred LLM SDK here
+        llm_call,  # Use your preferred AI SDK here
         RunOptions(max_attempts=3),
-        messages=f"""You are a customer service routing system. 
-        Choose the appropriate specialist, or respond directly if no specialist is needed. 
-        {question.message}""",
+        messages=question.message,
         tools=[tool(name=name, description=desc) for name, desc in SPECIALISTS.items()],
     )
 
@@ -52,15 +49,32 @@ async def answer(ctx: restate.Context, question: Question) -> str | None:
         return routing_decision.content
 
     # 3. Get the specialist's name
-    specialist = routing_decision.tool_calls[0].function.name or "ProductAgent"
+    specialist = routing_decision.tool_calls[0].function.name
+    if not specialist:
+        return "Unable to determine specialist"
 
-    # 4. Ask the specialist to answer
-    response = await ctx.run_typed(
-        f"Ask {specialist}",
-        llm_call,
-        RunOptions(max_attempts=3),
-        messages=f"""You are a {SPECIALISTS.get(specialist)} specialist."
-        Answer the question: {question.message}""",
+    # 4. Call the specialist over HTTP
+    response = await ctx.generic_call(
+        specialist,
+        "run",
+        arg=question.model_dump_json().encode(),
+    )
+    return response.decode("utf-8")
+
+
+if __name__ == "__main__":
+    import asyncio
+    import hypercorn
+
+    app = restate.app(
+        services=[
+            remote_agent_router,
+            billing_agent_svc,
+            account_agent_svc,
+            product_agent_svc,
+        ]
     )
 
-    return response.content
+    conf = hypercorn.Config()
+    conf.bind = ["0.0.0.0:9080"]
+    asyncio.run(hypercorn.asyncio.serve(app, conf))

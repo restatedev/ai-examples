@@ -7,7 +7,7 @@ from litellm.types.utils import Choices, ModelResponse
 from pydantic import BaseModel
 from restate import TerminalError, RunOptions
 
-from app.util.litellm_call import llm_call
+from util.litellm_call import llm_call
 
 
 def system_message(content: str) -> dict[str, str]:
@@ -176,18 +176,18 @@ def parse_instructions(task_breakdown: str) -> dict:
     return worker_instructions
 
 
-class HumanReviewRequest(BaseModel):
-    request: str
+class InsuranceClaim(BaseModel):
+    claim_id: str
+    amount: float
+    description: str
 
 
-class Content(BaseModel):
-    message: str = "Very explicit content that might violate the policy."
-
-
-def notify_moderator(content: Content, approval_id: str):
-    """Notify human moderator about content requiring review."""
-    print("\n🔍 CONTENT MODERATION REQUIRED 🔍")
-    print(f"Content: {content.message}")
+def request_review(claim: InsuranceClaim, approval_id: str):
+    """Notify human reviewer about a claim requiring approval."""
+    print("\n📋 CLAIM REVIEW REQUIRED 📋")
+    print(f"Claim ID: {claim.claim_id}")
+    print(f"Amount: ${claim.amount}")
+    print(f"Description: {claim.description}")
     print("Awaiting human decision...")
     print("\nTo approve:")
     print(
@@ -235,11 +235,10 @@ class TaskList(BaseModel):
     tasks: list[Task]
 
 
-def parse_task_list(resp) -> TaskList:
-    response = typing.cast(ModelResponse, resp)
+def parse_task_list(response: ModelResponse) -> TaskList:
     if not response.choices:
         return TaskList(tasks=[])
-    first_choice = typing.cast(Choices, response.choices[0])
+    first_choice = response.choices[0]
     if (
         not hasattr(first_choice, "message")
         or not first_choice.message

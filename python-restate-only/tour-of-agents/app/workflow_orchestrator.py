@@ -11,7 +11,7 @@ import restate
 from pydantic import BaseModel
 from restate import RunOptions
 
-from .util.litellm_call import llm_call
+from util.litellm_call import llm_call
 
 
 class ResearchTask(BaseModel):
@@ -29,7 +29,8 @@ researcher_service = restate.Service("ResearchWorker")
 @researcher_service.handler()
 async def research(ctx: restate.Context, req: ResearchTask) -> dict:
     answer = await ctx.run_typed(
-        "Research", llm_call,
+        "Research",
+        llm_call,
         RunOptions(max_attempts=3),
         messages=req.question,
         system="You are a research assistant. Provide a concise, factual answer.",
@@ -44,7 +45,8 @@ report_service = restate.Service("ResearchReport")
 async def generate(ctx: restate.Context, req: ReportRequest) -> dict:
     # Step 1: Orchestrator creates a research plan
     plan_result = await ctx.run_typed(
-        "Create research plan", llm_call,
+        "Create research plan",
+        llm_call,
         RunOptions(max_attempts=3),
         messages=req.topic,
         system="""You are a research planner. Break the topic into 2-4 research
@@ -64,11 +66,25 @@ async def generate(ctx: restate.Context, req: ReportRequest) -> dict:
 
     # Step 3: Combine results into a report
     report = await ctx.run_typed(
-        "Write report", llm_call,
+        "Write report",
+        llm_call,
         RunOptions(max_attempts=3),
         messages=f"Topic: {req.topic}\n\nResearch findings:\n{json.dumps(findings, indent=2)}",
         system="You are a report writer. Combine the research findings into a cohesive report.",
     )
 
     return {"report": report.content, "task_count": len(tasks)}
+
+
 # <end_here>
+
+
+if __name__ == "__main__":
+    import asyncio
+    import hypercorn
+
+    app = restate.app(services=[report_service, researcher_service])
+
+    conf = hypercorn.Config()
+    conf.bind = ["0.0.0.0:9080"]
+    asyncio.run(hypercorn.asyncio.serve(app, conf))

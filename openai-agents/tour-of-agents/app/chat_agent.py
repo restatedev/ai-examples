@@ -20,6 +20,11 @@ async def message(_ctx: ObjectContext, req: ChatMessage) -> dict:
     return result.final_output
 
 
+@chat.handler(kind="shared")
+async def get_history(ctx: restate.ObjectSharedContext):
+    return await ctx.get("messages", type_hint=list[dict]) or []
+
+
 if __name__ == "__main__":
     import hypercorn
     import asyncio

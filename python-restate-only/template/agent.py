@@ -37,7 +37,7 @@ agent_service = restate.Service("agent")
 
 
 @agent_service.handler()
-async def chat(ctx: restate.Context, message: WeatherPrompt) -> str:
+async def run(ctx: restate.Context, message: WeatherPrompt) -> str:
     """Handle a user message, calling tools until a final answer is ready."""
     messages = [
         {"role": "system", "content": "You are a helpful weather assistant."},
@@ -45,7 +45,7 @@ async def chat(ctx: restate.Context, message: WeatherPrompt) -> str:
     ]
 
     while True:
-        # Call the LLM (uses OPENAI_API_KEY env var by default)
+        # Call the LLM
         async def call_llm() -> Message:
             resp = await acompletion(
                 model="gpt-4o-mini", messages=messages, tools=TOOLS

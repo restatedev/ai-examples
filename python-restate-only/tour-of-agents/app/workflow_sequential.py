@@ -11,8 +11,7 @@ import restate
 from pydantic import BaseModel
 from restate import RunOptions
 
-from .util.litellm_call import llm_call
-
+from util.litellm_call import llm_call
 
 example_prompt = """Q3 Performance Summary:
 Our customer satisfaction score rose to 92 points this quarter.
@@ -58,3 +57,14 @@ async def process(ctx: restate.Context, report: Report) -> str | None:
     )
 
     return table.content
+
+
+if __name__ == "__main__":
+    import asyncio
+    import hypercorn
+
+    app = restate.app(services=[call_chaining_svc])
+
+    conf = hypercorn.Config()
+    conf.bind = ["0.0.0.0:9080"]
+    asyncio.run(hypercorn.asyncio.serve(app, conf))
