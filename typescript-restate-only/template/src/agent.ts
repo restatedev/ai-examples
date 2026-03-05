@@ -1,15 +1,9 @@
-/**
- * Durable Weather Agent
- *
- * A weather agent with a durable agent loop powered by Restate.
- * Each LLM call and tool execution is journaled for automatic recovery.
- */
 import * as restate from "@restatedev/restate-sdk";
 import { tool } from "ai";
 import { ModelMessage } from "ai";
+import { callLLM, InputMessage, toolResult } from "./utils/utils";
 import { z } from "zod";
-import llmCall from "./utils/llm";
-import { toolResult, zodPrompt } from "./utils/utils";
+const schema = restate.serde.schema;
 
 // TOOL DEFINITIONS
 const tools = {
@@ -43,7 +37,7 @@ const run = async (ctx: restate.Context, { message }: { message: string }) => {
     // Use your preferred LLM SDK here
     const result = await ctx.run(
       "LLM call",
-      async () => await llmCall(messages, tools),
+      async () => await callLLM(messages, tools),
       { maxRetryAttempts: 3 },
     );
     messages.push(...result.messages);
@@ -71,10 +65,7 @@ const run = async (ctx: restate.Context, { message }: { message: string }) => {
 const agentService = restate.service({
   name: "agent",
   handlers: {
-    run: restate.createServiceHandler(
-      { input: zodPrompt("What's the weather in San Francisco?") },
-      run,
-    ),
+    run: restate.createServiceHandler({ input: schema(InputMessage) }, run),
   },
 });
 
