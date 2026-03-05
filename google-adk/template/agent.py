@@ -1,12 +1,11 @@
 import restate
-
+from restate.ext.adk import RestatePlugin, restate_context
 from google.adk import Runner
 from google.adk.apps import App
 from google.adk.sessions import InMemorySessionService
 from google.genai.types import Content, Part
 from google.adk.agents.llm_agent import Agent
 from pydantic import BaseModel
-from restate.ext.adk import RestatePlugin, restate_context
 
 class WeatherPrompt(BaseModel):
     user_id: str = "user-123"

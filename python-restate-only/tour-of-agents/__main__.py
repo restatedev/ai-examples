@@ -7,8 +7,8 @@ from app.parallel_tools import parallel_tools_agent
 from app.parallel_agents import parallelization_svc
 from app.routing_to_agent import router
 from app.routing_to_tool import tool_router
-from app.orchestrator_workers import orchestrator_svc
-from app.evaluator_optimizer import evaluator_optimizer
+from app.orchestrator_workers import report_service, researcher_service
+from app.evaluator_optimizer import code_service
 from app.human_in_the_loop import content_moderator
 from app.chat import chat
 from app.routing_to_remote_agent import remote_agent_router
@@ -27,8 +27,9 @@ app = restate.app(
         parallel_tools_agent,
         router,
         tool_router,
-        orchestrator_svc,
-        evaluator_optimizer,
+        report_service,
+        researcher_service,
+        code_service,
         content_moderator,
         chat,
         remote_agent_router,

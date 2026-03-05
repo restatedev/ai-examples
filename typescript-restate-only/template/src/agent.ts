@@ -20,7 +20,7 @@ const tools = {
 async function getWeather(ctx: restate.Context, city: string) {
   return ctx.run(`get weather ${city}`, () => {
     // Simulate calling a remote API
-    return { temperature: 23, description: "Sunny, warm" };
+    return { temperature: 23, description: "Sunny" };
   });
 }
 

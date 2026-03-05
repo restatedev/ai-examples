@@ -1,5 +1,4 @@
 import restate
-
 from agents import Agent
 from pydantic import BaseModel
 from restate.ext.openai import restate_context, DurableRunner, durable_function_tool

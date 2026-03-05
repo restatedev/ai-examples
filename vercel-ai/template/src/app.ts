@@ -1,8 +1,8 @@
 import * as restate from "@restatedev/restate-sdk";
+import { durableCalls } from "@restatedev/vercel-ai-middleware";
 import { openai } from "@ai-sdk/openai";
 import { generateText, stepCountIs, tool, wrapLanguageModel } from "ai";
 import { z } from "zod";
-import { durableCalls } from "@restatedev/vercel-ai-middleware";
 
 // TOOL
 async function getWeather(ctx: restate.Context, city: string) {
@@ -45,7 +45,7 @@ const agent = restate.service({
   handlers: {
     run: restate.createServiceHandler({
       input: restate.serde.schema(z.object({
-        prompt: z.string().default("What is the weather like in San Francisco?"),
+        prompt: z.string().default("What's the weather in San Francisco?"),
       })),
     }, run),
   },
