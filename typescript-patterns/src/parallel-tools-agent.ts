@@ -57,9 +57,11 @@ async function run(ctx: Context, { message }: { message: string }) {
 }
 // <end_here>
 
-export default restate.service({
+const parallelToolsAgent = restate.service({
   name: "ParallelToolAgent",
   handlers: {
     run: restate.createServiceHandler({ input: zodPrompt(examplePrompt) }, run),
   },
 });
+
+restate.serve({ services: [parallelToolsAgent], port: 9080 });

@@ -75,4 +75,4 @@ const racingAgent = restate.service({
   },
 });
 
-export default racingAgent;
+restate.serve({ services: [racingAgent], port: 9080 });

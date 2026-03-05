@@ -47,7 +47,7 @@ async function analyze(ctx: Context, { message }: { message: string }) {
 }
 // <end_here>
 
-export default restate.service({
+const workflowParallel = restate.service({
   name: "ParallelAgentsService",
   handlers: {
     analyze: restate.createServiceHandler(
@@ -56,3 +56,5 @@ export default restate.service({
     ),
   },
 });
+
+restate.serve({ services: [workflowParallel], port: 9080 });

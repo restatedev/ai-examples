@@ -1,12 +1,12 @@
 import { z } from "zod";
-import { serde } from "@restatedev/restate-sdk-zod";
+import { serde } from "@restatedev/restate-sdk";
 import * as restate from "@restatedev/restate-sdk";
 import llmCall from "./llm";
 import { Context, TerminalError } from "@restatedev/restate-sdk";
 import { ModelMessage, tool } from "ai";
 
 export function zodQuestion(examplePrompt: string) {
-  return serde.zod(
+  return serde.schema(
     z.object({
       userId: z.string().default("user_12345"),
       message: z.string().default(examplePrompt),
@@ -15,7 +15,7 @@ export function zodQuestion(examplePrompt: string) {
 }
 
 export function zodPrompt(examplePrompt: string) {
-  return serde.zod(
+  return serde.schema(
     z.object({
       message: z.string().default(examplePrompt),
     }),

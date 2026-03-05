@@ -7,7 +7,6 @@
  * Flow: Customer Question → Classifier → Specialized Agent → Response
  */
 import * as restate from "@restatedev/restate-sdk";
-import { ModelMessage } from "ai";
 import { Context } from "@restatedev/restate-sdk";
 import { createTools, zodPrompt } from "./utils/utils";
 import llmCall from "./utils/llm";
@@ -16,28 +15,32 @@ const examplePrompt =
   "I can't log into my account. Keep getting invalid password errors.";
 
 // <start_here>
-// Define your agents as tools as your AI SDK requires (here Vercel AI SDK)
 const SPECIALISTS = {
-  BillingAgent: { description: "Expert in payments, charges, and refunds" },
-  AccountAgent: { description: "Expert in login issues and security" },
-  ProductAgent: { description: "Expert in features and how-to guides" },
+  billingAgent: {
+    description: "Expert in payments, charges, and refunds",
+    prompt:
+      "You are a billing support agent specializing in payments, charges, and refunds.",
+  },
+  accountAgent: {
+    description: "Expert in login issues and security",
+    prompt:
+      "You are an account support agent specializing in login issues and security.",
+  },
+  productAgent: {
+    description: "Expert in features and how-to guides",
+    prompt:
+      "You are a product support agent specializing in features and how-to guides.",
+  },
 } as const;
+
 type Specialist = keyof typeof SPECIALISTS;
 
 async function answer(ctx: Context, { message }: { message: string }) {
   // 1. First, decide if a specialist is needed
-  const messages: ModelMessage[] = [
-    {
-      role: "system",
-      content:
-        "You are a routing agent. Route the question to a specialist or respond directly if no specialist is needed.",
-    },
-    { role: "user", content: message },
-  ];
   const routingDecision = await ctx.run(
     "Pick specialist",
     // Use your preferred LLM SDK here - specify agents as tools
-    async () => llmCall(messages, createTools(SPECIALISTS)),
+    async () => llmCall(message, createTools(SPECIALISTS)),
     { maxRetryAttempts: 3 },
   );
 
@@ -49,19 +52,23 @@ async function answer(ctx: Context, { message }: { message: string }) {
   // 3. Get the specialist's name
   const specialist = routingDecision.toolCalls[0].toolName as Specialist;
 
-  // 4. Call the specialist over HTTP
-  return ctx.genericCall<string, string>({
-    service: specialist,
-    method: "run",
-    parameter: message,
-    inputSerde: restate.serde.json,
-    outputSerde: restate.serde.json,
-  });
+  // 4. Ask the specialist to answer
+  const { text } = await ctx.run(
+    `Ask ${specialist}`,
+    async () =>
+      llmCall([
+        { role: "user", content: message },
+        { role: "system", content: SPECIALISTS[specialist].prompt },
+      ]),
+    { maxRetryAttempts: 3 },
+  );
+
+  return text;
 }
 // <end_here>
 
-export default restate.service({
-  name: "RemoteAgentRouter",
+const multiAgent = restate.service({
+  name: "AgentRouter",
   handlers: {
     answer: restate.createServiceHandler(
       { input: zodPrompt(examplePrompt) },
@@ -69,3 +76,5 @@ export default restate.service({
     ),
   },
 });
+
+restate.serve({ services: [multiAgent], port: 9080 });

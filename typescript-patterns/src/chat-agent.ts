@@ -10,14 +10,11 @@ import llmCall from "./utils/llm";
 import { zodPrompt } from "./utils/utils";
 import { ModelMessage } from "@ai-sdk/provider-utils";
 
-const examplePrompt = "Write a poem about Durable Execution";
-
-// <start_here>
-export default restate.object({
+const chatAgent = restate.object({
   name: "Chat",
   handlers: {
     message: restate.createObjectHandler(
-      { input: zodPrompt(examplePrompt) },
+      { input: zodPrompt("Write a poem about Durable Execution") },
       async (ctx: ObjectContext, { message }: { message: string }) => {
         const messages = (await ctx.get<Array<ModelMessage>>("memory")) ?? [];
         messages.push({ role: "user", content: message });
@@ -37,4 +34,5 @@ export default restate.object({
     ),
   },
 });
-// <end_here>
+
+restate.serve({ services: [chatAgent], port: 9080 });

@@ -20,3 +20,4 @@ next-env.d.ts
 # Restate
 .restate
 restate-data
+.claude/settings.local.json

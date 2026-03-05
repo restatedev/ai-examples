@@ -50,7 +50,7 @@ async function process(ctx: Context, report: { message: string }) {
 }
 // <end_here>
 
-export default restate.service({
+const chainingService = restate.service({
   name: "CallChainingService",
   handlers: {
     process: restate.createServiceHandler(
@@ -59,3 +59,5 @@ export default restate.service({
     ),
   },
 });
+
+restate.serve({ services: [chainingService], port: 9080 });

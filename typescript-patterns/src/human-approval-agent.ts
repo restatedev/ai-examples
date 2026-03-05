@@ -12,9 +12,6 @@ import { openai } from "@ai-sdk/openai";
 import z from "zod";
 import llmCall from "./utils/llm";
 
-const examplePrompt = "Write a poem about Durable Execution";
-
-// <start_here>
 const tools = {
   getHumanReview: tool({
     description: "Request human review if policy violation is uncertain.",
@@ -44,14 +41,15 @@ async function moderate(ctx: Context, { message }: { message: string }) {
 
   return text;
 }
-// <end_here>
 
-export default restate.service({
-  name: "HumanInTheLoopService",
+const agentService = restate.service({
+  name: "agent",
   handlers: {
     moderate: restate.createServiceHandler(
-      { input: zodPrompt(examplePrompt) },
+      { input: zodPrompt("Write a poem about Durable Execution") },
       moderate,
     ),
   },
 });
+
+restate.serve({ services: [agentService], port: 9080 });

@@ -8,14 +8,14 @@ The patterns included here:
 
 - [Chaining LLM calls](src/chaining.ts): Build fault-tolerant processing pipelines where each step transforms the previous step's output.
 - [Tool routing](src/routing-to-tools.ts): Automatically route requests to tools based on LLM outputs.
-- [Parallel tool execution](src/parallel-tools.ts): Execute multiple tools in parallel with durable results that persist across failures.
-- [Multi-agent routing](src/routing-to-agent.ts): Route requests to specialized agents based on LLM outputs.
-- [Remote agent routing](src/routing-to-remote-agent.ts): Deploy/scale agents separately and route requests with resilient communication.
-- [Parallel agent processing](src/parallel-agents.ts): Run multiple, specialized agents in parallel and aggregate their results.
+- [Parallel tool execution](src/parallel-tools-agent.ts): Execute multiple tools in parallel with durable results that persist across failures.
+- [Multi-agent routing](src/multi-agent.ts): Route requests to specialized agents based on LLM outputs.
+- [Remote agent routing](src/remote-agents.ts): Deploy/scale agents separately and route requests with resilient communication.
+- [Parallel agent processing](src/workflow-parallel.ts): Run multiple, specialized agents in parallel and aggregate their results.
 - [Racing agents](src/racing-agents.ts): Race multiple agents and return the result from whichever completes first successfully.
-- [Evaluator-optimizer pattern](src/evaluator-optimizer.ts): Generate → Evaluate → Improve loop until quality criteria are met.
-- [Human-in-the-loop pattern](src/human-in-the-loop.ts): Implement resilient human approval steps that suspend execution until feedback is received.
-- [Chat sessions](src/chat.ts): Long-lived, stateful chat sessions that maintain conversation state across multiple requests.
+- [Evaluator-optimizer pattern](src/workflow-evaluator-optimizer.ts): Generate → Evaluate → Improve loop until quality criteria are met.
+- [Human-in-the-loop pattern](src/human-approval-agent.ts): Implement resilient human approval steps that suspend execution until feedback is received.
+- [Chat sessions](src/chatAgent.ts): Long-lived, stateful chatAgent sessions that maintain conversation state across multiple requests.
 
 ## Why Restate?
 
@@ -80,7 +80,7 @@ In the UI, you can see how the LLM decides to forward the request to the technic
 
 ### Parallel tool execution
 
-[<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](src/parallel-tools.ts)
+[<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](src/parallel-tools-agent.ts)
 [<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/read-guide.svg">](https://docs.restate.dev/ai/patterns/parallelization)
 
 Execute multiple tools in parallel with durable results that persist across failures.
@@ -97,7 +97,7 @@ Once all tools are done, the results are aggregated and returned to the client.
 
 ### Multi-agent routing
 
-[<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](src/routing-to-agent.ts)
+[<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](src/multi-agent.ts)
 [<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/read-guide.svg">](https://docs.restate.dev/ai/patterns/multi-agent)
 
 Route requests to specialized agents based on LLM outputs. Routing decisions are persisted and can be retried.
@@ -112,7 +112,7 @@ In the UI, you can see how the LLM decides to forward the request to the special
 
 ### Remote agent routing
 
-[<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](src/routing-to-remote-agent.ts)
+[<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](src/remote-agents.ts)
 [<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/read-guide.svg">](https://docs.restate.dev/ai/patterns/multi-agent)
 
 Route requests to remote agents with resilient communication.
@@ -129,7 +129,7 @@ In the UI, you can see how the LLM decides to forward the request to the special
 
 ### Parallel agent processing
 
-[<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](src/parallel-agents.ts)
+[<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](src/workflow-parallel.ts)
 [<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/read-guide.svg">](https://docs.restate.dev/ai/patterns/parallelization)
 
 Run multiple, specialized agents in parallel and aggregate their results. If any agent fails, Restate retries only the failed agents while preserving completed results.
@@ -163,7 +163,7 @@ You see in the UI how the different agents are executed in parallel and the firs
 
 ### Human-in-the-loop pattern
 
-[<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](src/human-in-the-loop.ts)
+[<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](src/human-approval-agent.ts)
 [<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/read-guide.svg">](https://docs.restate.dev/ai/patterns/human-in-the-loop)
 
 Implement resilient human approval steps that suspend execution until feedback is received. Durable promises survive crashes and can be recovered across process restarts.
@@ -182,30 +182,30 @@ You can see how the feedback gets incorporated in the Invocations tab in the Res
 
 ### Chat sessions
 
-[<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](src/chat.ts)
+[<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](src/chatAgent.ts)
 [<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/read-guide.svg">](https://docs.restate.dev/ai/patterns/sessions)
 
-Long-lived, stateful chat sessions that maintain conversation state across multiple requests. Sessions survive failures and can be resumed at any time.
+Long-lived, stateful chatAgent sessions that maintain conversation state across multiple requests. Sessions survive failures and can be resumed at any time.
 
 In the UI (`http://localhost:9070`), click on the `message` handler of the `Chat` service to open the playground and send a default request:
 
-<img width="1200px" src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/chat-1.png" alt="Chat" width="900px"/>
+<img width="1200px" src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/chatAgent-1.png" alt="Chat" width="900px"/>
 
 You can then provide feedback on the response by sending new messages to the same session:
 
-<img width="1200px" src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/chat-2.png" alt="Chat" width="900px"/>
+<img width="1200px" src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/chatAgent-2.png" alt="Chat" width="900px"/>
 
 In the invocations tab, you can see how the memory was loaded and stored in Restate:
 
-<img width="1200px" src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/chat.png" alt="Chat - UI"/>
+<img width="1200px" src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/chatAgent.png" alt="Chat - UI"/>
 
-Go to the state tab of the UI to see the state of the chat session:
+Go to the state tab of the UI to see the state of the chatAgent session:
 
-<img width="1200px" src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/chat-state.png" alt="Chat" width="900px"/>
+<img width="1200px" src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/patterns/chatAgent-state.png" alt="Chat" width="900px"/>
 
 ### Evaluator-optimizer pattern
 
-[<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](src/evaluator-optimizer.ts)
+[<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/show-code.svg">](src/workflow-evaluator-optimizer.ts)
 
 Generate → Evaluate → Improve loop until quality criteria are met. Restate persists each iteration, resuming from the last completed step on failure.
 
