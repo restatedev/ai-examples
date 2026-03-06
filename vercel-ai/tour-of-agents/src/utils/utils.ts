@@ -10,7 +10,7 @@ import { FlightBooking, HotelBooking, InsuranceClaim } from "./types";
 export async function fetchWeather(city: string) {
   failOnDenver(city);
   // Simulate API call response
-  return `The weather in ${city} is sunny and warm.`
+  return `The weather in ${city} is sunny and warm.`;
 }
 // <end_weather>
 

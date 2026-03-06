@@ -10,6 +10,7 @@ from app.utils.models import InsuranceClaim
 
 APP_NAME = "agents"
 
+# <start_here>
 # AGENTS
 # Determine which specialist to use based on claim type
 medical_agent = Agent(
@@ -57,6 +58,7 @@ async def run(ctx: restate.ObjectContext, claim: InsuranceClaim) -> str | None:
             if event.content.parts[0].text:
                 final_response = event.content.parts[0].text
     return final_response
+# <end_here>
 
 
 if __name__ == "__main__":

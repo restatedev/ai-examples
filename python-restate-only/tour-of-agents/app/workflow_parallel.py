@@ -23,6 +23,7 @@ class Text(BaseModel):
     Our market share increased to 23%, and we're well-positioned for continued growth in Q4."""
 
 
+# <start_here>
 parallelization_svc = restate.Service("ParallelAgentsService")
 
 
@@ -58,6 +59,7 @@ async def analyze(ctx: restate.Context, text: Text) -> list[str | None]:
     # Gather and collect results
     return [(await task).content for task in tasks]
 
+# <end_here>
 
 if __name__ == "__main__":
     import asyncio

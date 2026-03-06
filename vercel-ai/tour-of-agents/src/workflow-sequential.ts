@@ -3,14 +3,14 @@ import { openai } from "@ai-sdk/openai";
 import { generateText, wrapLanguageModel } from "ai";
 import { durableCalls } from "@restatedev/vercel-ai-middleware";
 import { convertCurrency, processPayment } from "./utils/utils";
-import {SequentialClaimRequestSchema, SequentialClaimRequest} from "./utils/types";
+import {
+  SequentialClaimRequestSchema,
+  SequentialClaimRequest,
+} from "./utils/types";
 const schema = restate.serde.schema;
 
 // <start_here>
-const process = async (
-  ctx: restate.Context,
-  req: SequentialClaimRequest,
-) => {
+const process = async (ctx: restate.Context, req: SequentialClaimRequest) => {
   const model = wrapLanguageModel({
     model: openai("gpt-4o"),
     middleware: durableCalls(ctx, { maxRetryAttempts: 3 }),
@@ -45,6 +45,7 @@ const process = async (
 
   return { analysis, amountUsd, confirmation };
 };
+// <end_here>
 
 const agent = restate.service({
   name: "ClaimReimbursement",
@@ -55,6 +56,5 @@ const agent = restate.service({
     ),
   },
 });
-// <end_here>
 
 restate.serve({ services: [agent] });

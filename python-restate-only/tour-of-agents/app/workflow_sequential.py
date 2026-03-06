@@ -24,6 +24,7 @@ class Report(BaseModel):
     message: str = example_prompt
 
 
+# <start_here>
 call_chaining_svc = restate.Service("CallChainingService")
 
 
@@ -58,6 +59,7 @@ async def process(ctx: restate.Context, report: Report) -> str | None:
 
     return table.content
 
+# <end_here>
 
 if __name__ == "__main__":
     import asyncio

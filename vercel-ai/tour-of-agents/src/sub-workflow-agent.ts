@@ -2,7 +2,8 @@ import * as restate from "@restatedev/restate-sdk";
 import { openai } from "@ai-sdk/openai";
 import { generateText, tool, wrapLanguageModel, Output, stepCountIs } from "ai";
 import {
-  ClaimPrompt, ClaimPromptSchema,
+  ClaimPrompt,
+  ClaimPromptSchema,
   InsuranceClaim,
   InsuranceClaimSchema,
 } from "./utils/types";
@@ -42,7 +43,10 @@ const run = async (ctx: restate.Context, { prompt }: ClaimPrompt) => {
 export const agent = restate.service({
   name: "SubWorkflowClaimApprovalAgent",
   handlers: {
-    run: restate.createServiceHandler({ input: schema(ClaimPromptSchema) }, run),
+    run: restate.createServiceHandler(
+      { input: schema(ClaimPromptSchema) },
+      run,
+    ),
   },
 });
 

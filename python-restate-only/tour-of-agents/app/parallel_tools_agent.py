@@ -16,6 +16,7 @@ class WeatherPrompt(BaseModel):
     message: str = "What is the weather in New York,  San Francisco, and Boston?"
 
 
+# <start_here>
 parallel_tools_agent = restate.Service("ParallelToolAgent")
 
 
@@ -61,6 +62,7 @@ async def run(ctx: Context, prompt: WeatherPrompt) -> str | None:
             output = await promise
             messages.append(tool_result(tool_id, "get_weather", str(output)))
 
+# <end_here>
 
 if __name__ == "__main__":
     import asyncio

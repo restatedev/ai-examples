@@ -3,7 +3,7 @@ import { RestatePromise } from "@restatedev/restate-sdk";
 import { openai } from "@ai-sdk/openai";
 import { generateText, wrapLanguageModel } from "ai";
 import { durableCalls } from "@restatedev/vercel-ai-middleware";
-import {ResearchRequestSchema, ResearchRequest} from "./utils/types";
+import { ResearchRequestSchema, ResearchRequest } from "./utils/types";
 const schema = restate.serde.schema;
 
 // <start_here>
@@ -48,6 +48,7 @@ const generate = async (ctx: restate.Context, req: ResearchRequest) => {
 
   return { report, taskCount: tasks.length };
 };
+// <end_here>
 
 const agent = restate.service({
   name: "ResearchReport",
@@ -58,6 +59,5 @@ const agent = restate.service({
     ),
   },
 });
-// <end_here>
 
 restate.serve({ services: [agent] });

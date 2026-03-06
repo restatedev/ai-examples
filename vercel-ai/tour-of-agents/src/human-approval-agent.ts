@@ -1,7 +1,12 @@
 import * as restate from "@restatedev/restate-sdk";
 import { openai } from "@ai-sdk/openai";
 import { generateText, tool, wrapLanguageModel, stepCountIs } from "ai";
-import {ClaimPrompt, ClaimPromptSchema, InsuranceClaim, InsuranceClaimSchema} from "./utils/types";
+import {
+  ClaimPrompt,
+  ClaimPromptSchema,
+  InsuranceClaim,
+  InsuranceClaimSchema,
+} from "./utils/types";
 import { requestHumanReview } from "./utils/utils";
 import { durableCalls } from "@restatedev/vercel-ai-middleware";
 const schema = restate.serde.schema;
@@ -36,14 +41,17 @@ const run = async (ctx: restate.Context, { prompt }: ClaimPrompt) => {
     stopWhen: [stepCountIs(5)],
     providerOptions: { openai: { parallelToolCalls: false } },
   });
-  // <end_here>
   return text;
 };
+// <end_here>
 
 const agent = restate.service({
   name: "HumanClaimApprovalAgent",
   handlers: {
-    run: restate.createServiceHandler({ input: schema(ClaimPromptSchema) }, run),
+    run: restate.createServiceHandler(
+      { input: schema(ClaimPromptSchema) },
+      run,
+    ),
   },
 });
 

@@ -2,7 +2,8 @@ import * as restate from "@restatedev/restate-sdk";
 import { openai } from "@ai-sdk/openai";
 import { generateText, stepCountIs, tool, wrapLanguageModel } from "ai";
 import {
-  ClaimInput, ClaimInputSchema,
+  ClaimInput,
+  ClaimInputSchema,
   InsuranceClaim,
   InsuranceClaimSchema,
 } from "./utils/types";
@@ -55,10 +56,10 @@ const run = async (ctx: restate.Context, claim: ClaimInput) => {
     stopWhen: [stepCountIs(10)],
     providerOptions: { openai: { parallelToolCalls: false } },
   });
-  // <end_here>
 
   return text;
 };
+// <end_here>
 
 const agent = restate.service({
   name: "MultiAgentClaimApproval",

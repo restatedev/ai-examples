@@ -18,6 +18,7 @@ class ClaimPrompt(BaseModel):
         "Process my hospital bill of 2024-10-01 for 3000USD for a broken leg at General Hospital."
     )
 
+# <start_here>
 # TOOL IMPLEMENTATION
 async def request_human_approval(ctx: restate.Context, claim: InsuranceClaim) -> str:
     # Create a recoverable approval promise

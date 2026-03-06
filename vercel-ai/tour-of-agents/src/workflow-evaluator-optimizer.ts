@@ -2,7 +2,7 @@ import * as restate from "@restatedev/restate-sdk";
 import { openai } from "@ai-sdk/openai";
 import { generateText, wrapLanguageModel } from "ai";
 import { durableCalls } from "@restatedev/vercel-ai-middleware";
-import {CodeGenRequestSchema, CodeGenRequest} from "./utils/types";
+import { CodeGenRequestSchema, CodeGenRequest } from "./utils/types";
 const schema = restate.serde.schema;
 
 // <start_here>

@@ -10,6 +10,7 @@ from app.utils.models import ChatMessage
 
 APP_NAME = "agents"
 
+# <start_here>
 agent = Agent(
     model="gemini-2.5-flash",
     name="assistant",
@@ -42,6 +43,7 @@ async def message(ctx: restate.ObjectContext, req: ChatMessage) -> str | None:
 async def get_history(ctx: restate.ObjectSharedContext, session_id: str):
     return await ctx.get(f"session_store::{session_id}", type_hint=list[dict]) or []
 
+# <end_here>
 
 if __name__ == "__main__":
     import hypercorn

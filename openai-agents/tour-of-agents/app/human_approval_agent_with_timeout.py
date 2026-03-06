@@ -11,6 +11,7 @@ from app.utils.utils import (
 )
 
 
+    # <start_here>
 @durable_function_tool
 async def human_approval(claim: InsuranceClaim) -> str:
     """Ask for human approval for high-value claims."""
@@ -22,7 +23,6 @@ async def human_approval(claim: InsuranceClaim) -> str:
         "Request review", request_human_review, claim=claim, awakeable_id=approval_id
     )
 
-    # <start_here>
     # Wait for human approval for at most 3 hours to reach our SLA
     match await restate.select(
         approval=approval_promise,
@@ -32,7 +32,7 @@ async def human_approval(claim: InsuranceClaim) -> str:
             return "Approved" if approved else "Rejected"
         case _:
             return "Approval timed out - Evaluate with AI"
-    # <end_here>
+# <end_here>
 
 
 agent = Agent(

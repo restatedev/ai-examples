@@ -8,7 +8,7 @@ import {
 } from "@restatedev/vercel-ai-middleware";
 import {
   BookingRequestSchema,
-    BookingRequest,
+  BookingRequest,
   FlightBooking,
   FlightBookingSchema,
   HotelBooking,
@@ -68,13 +68,16 @@ const book = async (ctx: Context, { id, prompt }: BookingRequest) => {
     throw error;
   }
 };
+// <end_here>
 
 const agent = restate.service({
   name: "BookingWithRollbackAgent",
   handlers: {
-    book: restate.createServiceHandler({ input: schema(BookingRequestSchema) }, book),
+    book: restate.createServiceHandler(
+      { input: schema(BookingRequestSchema) },
+      book,
+    ),
   },
 });
 
 restate.serve({ services: [agent] });
-// <end_here>

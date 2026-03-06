@@ -21,6 +21,7 @@ class Question(BaseModel):
     message: str = "I can't log into my account. Keep getting invalid password errors."
 
 
+# <start_here>
 # Create the routing service
 router = restate.Service("AgentRouter")
 
@@ -65,6 +66,7 @@ async def answer(ctx: restate.Context, question: Question) -> str | None:
 
     return response.content
 
+# <end_here>
 
 if __name__ == "__main__":
     import asyncio

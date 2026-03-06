@@ -1,7 +1,12 @@
 import * as restate from "@restatedev/restate-sdk";
 import { openai } from "@ai-sdk/openai";
 import { generateText, tool, wrapLanguageModel, stepCountIs } from "ai";
-import {ClaimPrompt, ClaimPromptSchema, InsuranceClaim, InsuranceClaimSchema} from "./utils/types";
+import {
+  ClaimPrompt,
+  ClaimPromptSchema,
+  InsuranceClaim,
+  InsuranceClaimSchema,
+} from "./utils/types";
 import { requestHumanReview } from "./utils/utils";
 import { durableCalls } from "@restatedev/vercel-ai-middleware";
 import { TimeoutError } from "@restatedev/restate-sdk";
@@ -26,11 +31,11 @@ const run = async (ctx: restate.Context, { prompt }: ClaimPrompt) => {
         description: "Ask for human approval for high-value claims.",
         inputSchema: InsuranceClaimSchema,
         execute: async (claim: InsuranceClaim) => {
+          // <start_here>
           const approval = ctx.awakeable<boolean>();
           await ctx.run("request-review", () =>
             requestHumanReview(claim, approval.id),
           );
-          // <start_here>
           try {
             // At most 3 hours, to reach our SLA
             const approved = await approval.promise.orTimeout({ hours: 3 });
@@ -57,7 +62,10 @@ const run = async (ctx: restate.Context, { prompt }: ClaimPrompt) => {
 const agent = restate.service({
   name: "HumanClaimApprovalWithTimeoutsAgent",
   handlers: {
-    run: restate.createServiceHandler({ input: schema(ClaimPromptSchema) }, run),
+    run: restate.createServiceHandler(
+      { input: schema(ClaimPromptSchema) },
+      run,
+    ),
   },
 });
 

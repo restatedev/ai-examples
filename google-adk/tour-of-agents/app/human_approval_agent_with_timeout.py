@@ -15,6 +15,7 @@ APP_NAME = "agents"
 
 
 # TOOLS
+# <start_here>
 async def human_approval(claim: InsuranceClaim) -> str:
     """Ask for human approval for high-value claims."""
     # Create an awakeable for human approval
@@ -28,7 +29,6 @@ async def human_approval(claim: InsuranceClaim) -> str:
         awakeable_id=approval_id,
     )
 
-    # <start_here>
     # Wait for human approval for at most 3 hours to reach our SLA
     match await restate.select(
         approval=approval_promise,
@@ -38,7 +38,7 @@ async def human_approval(claim: InsuranceClaim) -> str:
             return "Approved" if approved else "Rejected"
         case _:
             return "Approval timed out - Evaluate with AI"
-    # <end_here>
+# <end_here>
 
 
 agent = Agent(

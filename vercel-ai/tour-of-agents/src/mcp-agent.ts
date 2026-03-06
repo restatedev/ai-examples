@@ -6,7 +6,7 @@ import {
 } from "@restatedev/vercel-ai-middleware";
 import { generateText, stepCountIs, wrapLanguageModel } from "ai";
 import { openai } from "@ai-sdk/openai";
-import {McpPrompt, McpPromptSchema} from "./utils/types";
+import { McpPrompt, McpPromptSchema } from "./utils/types";
 const schema = restate.serde.schema;
 
 const message = async (ctx: restate.Context, { prompt }: McpPrompt) => {
@@ -44,7 +44,10 @@ const message = async (ctx: restate.Context, { prompt }: McpPrompt) => {
 const agent = restate.service({
   name: "McpChat",
   handlers: {
-    message: restate.createServiceHandler({ input: schema(McpPromptSchema) }, message),
+    message: restate.createServiceHandler(
+      { input: schema(McpPromptSchema) },
+      message,
+    ),
   },
 });
 

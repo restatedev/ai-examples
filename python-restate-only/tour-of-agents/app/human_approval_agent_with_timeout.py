@@ -22,6 +22,7 @@ class ClaimPrompt(BaseModel):
 
 
 # TOOL IMPLEMENTATION
+# <start_here>
 async def request_human_approval(ctx: restate.Context, claim: InsuranceClaim) -> str:
     # Create a recoverable approval promise
     approval_id, approval_promise = ctx.awakeable(type_hint=str)
@@ -41,6 +42,7 @@ async def request_human_approval(ctx: restate.Context, claim: InsuranceClaim) ->
             return approved
         case _:
             return "Approval timed out - Evaluate with AI"
+# <end_here>
 
 
 claim_approval_agent = restate.Service("HumanClaimApprovalAgent")

@@ -5,6 +5,7 @@ from restate.ext.openai import DurableRunner
 
 from app.utils.models import ChatMessage
 
+# <start_here>
 chat = VirtualObject("Chat")
 
 
@@ -23,6 +24,7 @@ async def message(_ctx: ObjectContext, req: ChatMessage) -> dict:
 @chat.handler(kind="shared")
 async def get_history(ctx: restate.ObjectSharedContext):
     return await ctx.get("messages", type_hint=list[dict]) or []
+# <end_here>
 
 
 if __name__ == "__main__":

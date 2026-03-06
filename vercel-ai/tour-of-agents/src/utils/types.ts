@@ -8,7 +8,6 @@ export type WeatherPrompt = z.infer<typeof WeatherPromptSchema>;
 export const ChatMessageSchema = z.object({
   message: z.string().default("Make a poem about durable execution."),
 });
-export type ChatMessage = z.infer<typeof ChatMessageSchema>;
 
 export const McpPromptSchema = z.object({
   prompt: z
@@ -53,7 +52,9 @@ export const SequentialClaimRequestSchema = z.object({
       "Hospital bill for a broken leg. Amount: 3000 EUR. Date: 2024-10-01. Hospital: General Hospital.",
     ),
 });
-export type SequentialClaimRequest = z.infer<typeof SequentialClaimRequestSchema>;
+export type SequentialClaimRequest = z.infer<
+  typeof SequentialClaimRequestSchema
+>;
 
 export const ResearchRequestSchema = z.object({
   topic: z

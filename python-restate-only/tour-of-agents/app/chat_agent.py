@@ -18,6 +18,7 @@ class ChatMessage(BaseModel):
     message: str = "Write a poem about Durable Execution"
 
 
+# <start_here>
 chat = restate.VirtualObject("Chat")
 
 
@@ -47,6 +48,7 @@ async def message(ctx: restate.ObjectContext, msg: ChatMessage) -> str | None:
 async def get_history(ctx: restate.ObjectSharedContext):
     return await ctx.get("memory", type_hint=list[dict]) or []
 
+# <end_here>
 
 if __name__ == "__main__":
     import asyncio

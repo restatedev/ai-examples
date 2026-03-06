@@ -19,6 +19,7 @@ const tools = {
   }),
 };
 
+// <start_here>
 async function moderate(ctx: Context, { message }: { message: string }) {
   const prompt = `You are a content moderation agent. Decide if the content violates policy: ${message}`;
   const { text, toolCalls } = await ctx.run(
@@ -41,6 +42,7 @@ async function moderate(ctx: Context, { message }: { message: string }) {
 
   return text;
 }
+// <end_here>
 
 const agentService = restate.service({
   name: "agent",
