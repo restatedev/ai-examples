@@ -1,12 +1,11 @@
 import restate
-
 from google.adk import Runner
 from google.adk.apps import App
 from google.genai.types import Content, Part
 from google.adk.agents.llm_agent import Agent
 from restate.ext.adk import RestateSessionService, RestatePlugin
-
-from app.utils.models import ChatMessage
+from utils.models import ChatMessage
+from utils.utils import parse_agent_response
 
 APP_NAME = "agents"
 
@@ -16,8 +15,6 @@ agent = Agent(
     name="assistant",
     instruction="You are a helpful assistant. Be concise and helpful.",
 )
-
-# Enables retries and recovery for model calls and tool executions
 app = App(name=APP_NAME, root_agent=agent, plugins=[RestatePlugin()])
 runner = Runner(app=app, session_service=RestateSessionService())
 
@@ -31,12 +28,7 @@ async def message(ctx: restate.ObjectContext, req: ChatMessage) -> str | None:
         session_id=req.session_id,
         new_message=Content(role="user", parts=[Part.from_text(text=req.message)]),
     )
-    final_response = None
-    async for event in events:
-        if event.is_final_response() and event.content and event.content.parts:
-            if event.content.parts[0].text:
-                final_response = event.content.parts[0].text
-    return final_response
+    return await parse_agent_response(events)
 
 
 @chat.handler(kind="shared")
@@ -49,7 +41,7 @@ if __name__ == "__main__":
     import hypercorn
     import asyncio
 
-    app = restate.app(services=[chat])
+    restate_app = restate.app(services=[chat])
     conf = hypercorn.Config()
     conf.bind = ["0.0.0.0:9080"]
-    asyncio.run(hypercorn.asyncio.serve(app, conf))
+    asyncio.run(hypercorn.asyncio.serve(restate_app, conf))

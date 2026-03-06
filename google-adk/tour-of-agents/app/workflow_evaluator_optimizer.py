@@ -2,10 +2,11 @@ import restate
 from google.adk import Runner
 from google.adk.agents.llm_agent import Agent
 from google.adk.apps import App
-from google.adk.sessions import InMemorySessionService
 from google.genai.types import Content, Part
 from pydantic import BaseModel
-from restate.ext.adk import RestatePlugin
+from restate.ext.adk import RestatePlugin, RestateSessionService
+
+from utils.utils import parse_agent_response
 
 
 class CodeRequest(BaseModel):
@@ -19,12 +20,7 @@ async def run_agent(runner: Runner, user_id: str, session_id: str, message: str)
         session_id=session_id,
         new_message=Content(role="user", parts=[Part.from_text(text=message)]),
     )
-    final_response = ""
-    async for event in events:
-        if event.is_final_response() and event.content and event.content.parts:
-            if event.content.parts[0].text:
-                final_response = event.content.parts[0].text
-    return final_response
+    return await parse_agent_response(events)
 
 
 # <start_here>
@@ -44,11 +40,11 @@ evaluator = Agent(
     or FAIL: <feedback> with specific issues to fix.""",
 )
 
-code_service = restate.Service("CodeGenerator")
+code_service = restate.VirtualObject("CodeGenerator")
 
 
 @code_service.handler()
-async def generate(ctx: restate.Context, req: CodeRequest) -> dict:
+async def generate(ctx: restate.ObjectContext, req: CodeRequest) -> dict:
     feedback = ""
     max_iterations = 3
 
@@ -60,12 +56,12 @@ async def generate(ctx: restate.Context, req: CodeRequest) -> dict:
             else f"Task: {req.task}"
         )
         gen_app = App(name=APP_NAME, root_agent=generator, plugins=[RestatePlugin()])
-        gen_runner = Runner(app=gen_app, session_service=InMemorySessionService())
+        gen_runner = Runner(app=gen_app, session_service=RestateSessionService())
         code = await run_agent(gen_runner, "user", f"gen-{i}", prompt)
 
         # Step 2: Evaluate the code
         eval_app = App(name=APP_NAME, root_agent=evaluator, plugins=[RestatePlugin()])
-        eval_runner = Runner(app=eval_app, session_service=InMemorySessionService())
+        eval_runner = Runner(app=eval_app, session_service=RestateSessionService())
         evaluation = await run_agent(eval_runner, "user", f"eval-{i}", f"Task: {req.task}\n\nCode:\n{code}")
 
         if evaluation.startswith("PASS"):
@@ -81,7 +77,7 @@ if __name__ == "__main__":
     import hypercorn
     import asyncio
 
-    app = restate.app(services=[code_service])
+    restate_app = restate.app(services=[code_service])
     conf = hypercorn.Config()
     conf.bind = ["0.0.0.0:9080"]
-    asyncio.run(hypercorn.asyncio.serve(app, conf))
+    asyncio.run(hypercorn.asyncio.serve(restate_app, conf))

@@ -4,10 +4,11 @@ import restate
 from google.adk import Runner
 from google.adk.agents.llm_agent import Agent
 from google.adk.apps import App
-from google.adk.sessions import InMemorySessionService
 from google.genai.types import Content, Part
 from pydantic import BaseModel
-from restate.ext.adk import RestatePlugin
+from restate.ext.adk import RestatePlugin, RestateSessionService
+
+from utils.utils import parse_agent_response
 
 
 class ResearchTask(BaseModel):
@@ -19,24 +20,9 @@ class ReportRequest(BaseModel):
     topic: str = "The impact of renewable energy on global economies"
 
 
-async def run_agent(runner: Runner, user_id: str, session_id: str, message: str) -> str:
-    """Run an ADK agent and return the final text response."""
-    events = runner.run_async(
-        user_id=user_id,
-        session_id=session_id,
-        new_message=Content(role="user", parts=[Part.from_text(text=message)]),
-    )
-    final_response = ""
-    async for event in events:
-        if event.is_final_response() and event.content and event.content.parts:
-            if event.content.parts[0].text:
-                final_response = event.content.parts[0].text
-    return final_response
-
+APP_NAME = "agents"
 
 # <start_here>
-APP_NAME = "research"
-
 planner = Agent(
     model="gemini-2.5-flash",
     name="research_planner",
@@ -44,28 +30,37 @@ planner = Agent(
     sub-tasks. Respond with a JSON array of strings, each a specific
     research question. Example: ["question 1", "question 2"]""",
 )
+plan_app = App(name=APP_NAME, root_agent=planner, plugins=[RestatePlugin()])
+plan_runner = Runner(app=plan_app, session_service=RestateSessionService())
 
 researcher = Agent(
     model="gemini-2.5-flash",
     name="researcher",
     instruction="You are a research assistant. Provide a concise, factual answer.",
 )
+research_app = App(name=APP_NAME, root_agent=researcher, plugins=[RestatePlugin()])
+research_runner = Runner(app=research_app, session_service=RestateSessionService())
 
 writer = Agent(
     model="gemini-2.5-flash",
     name="report_writer",
     instruction="You are a report writer. Combine the research findings into a cohesive report.",
 )
+writer_app = App(name=APP_NAME, root_agent=writer, plugins=[RestatePlugin()])
+writer_runner = Runner(app=writer_app, session_service=RestateSessionService())
 
-report_service = restate.Service("ResearchReport")
+report_service = restate.VirtualObject("ResearchReport")
 
 
 @report_service.handler()
-async def generate(ctx: restate.Context, req: ReportRequest) -> dict:
+async def generate(ctx: restate.ObjectContext, req: ReportRequest) -> dict:
     # Step 1: Orchestrator creates a research plan
-    plan_app = App(name=APP_NAME, root_agent=planner, plugins=[RestatePlugin()])
-    plan_runner = Runner(app=plan_app, session_service=InMemorySessionService())
-    plan_output = await run_agent(plan_runner, "user", "plan", req.topic)
+    plan_events = plan_runner.run_async(
+        user_id=req.user_id,
+        session_id=req.session_id,
+        new_message=Content(role="user", parts=[Part.from_text(text=req.topic)]),
+    )
+    plan_output =  await parse_agent_response(plan_events)
     tasks = json.loads(plan_output)
 
     # Step 2: Dispatch workers in parallel
@@ -78,24 +73,28 @@ async def generate(ctx: restate.Context, req: ReportRequest) -> dict:
     findings = [await p for p in worker_promises]
 
     # Step 3: Combine results into a report
-    writer_app = App(name=APP_NAME, root_agent=writer, plugins=[RestatePlugin()])
-    writer_runner = Runner(app=writer_app, session_service=InMemorySessionService())
-    report = await run_agent(
-        writer_runner, "user", "report",
-        f"Topic: {req.topic}\n\nResearch findings:\n{json.dumps(findings, indent=2)}",
+    results = f"Topic: {req.topic}\n\nResearch findings:\n{json.dumps(findings, indent=2)}"
+    events = writer_runner.run_async(
+        user_id=req.user_id,
+        session_id=req.session_id,
+        new_message=Content(role="user", parts=[Part.from_text(text=results)]),
     )
+    report = await parse_agent_response(events)
 
     return {"report": report, "task_count": len(tasks)}
 
 
-researcher_service = restate.Service("Researcher")
+researcher_service = restate.VirtualObject("Researcher")
 
 
 @researcher_service.handler()
-async def run_researcher(ctx: restate.Context, task: ResearchTask) -> str:
-    res_app = App(name=APP_NAME, root_agent=researcher, plugins=[RestatePlugin()])
-    res_runner = Runner(app=res_app, session_service=InMemorySessionService())
-    return await run_agent(res_runner, "user", task.session_id, task.question)
+async def run_researcher(ctx: restate.ObjectContext, task: ResearchTask) -> str:
+    events = research_runner.run_async(
+        user_id=task.user_id,
+        session_id=task.session_id,
+        new_message=Content(role="user", parts=[Part.from_text(text=task.question)]),
+    )
+    return await parse_agent_response(events)
 # <end_here>
 
 
@@ -103,7 +102,7 @@ if __name__ == "__main__":
     import hypercorn
     import asyncio
 
-    app = restate.app(services=[report_service, researcher_service])
+    restate_app = restate.app(services=[report_service, researcher_service])
     conf = hypercorn.Config()
     conf.bind = ["0.0.0.0:9080"]
-    asyncio.run(hypercorn.asyncio.serve(app, conf))
+    asyncio.run(hypercorn.asyncio.serve(restate_app, conf))

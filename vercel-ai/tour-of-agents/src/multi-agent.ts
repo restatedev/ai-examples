@@ -1,6 +1,6 @@
 import * as restate from "@restatedev/restate-sdk";
 import { openai } from "@ai-sdk/openai";
-import { generateText, stepCountIs, tool, wrapLanguageModel } from "ai";
+import {generateText, LanguageModel, stepCountIs, tool, wrapLanguageModel} from "ai";
 import {
   ClaimInput,
   ClaimInputSchema,
@@ -12,6 +12,28 @@ import { durableCalls } from "@restatedev/vercel-ai-middleware";
 const schema = restate.serde.schema;
 
 // <start_here>
+async function runEligibilityAgent(model: LanguageModel, claim: InsuranceClaim){
+  const { text } = await generateText({
+    model,
+    system:
+        "Decide whether the following claim is eligible for reimbursement." +
+        "Respond with eligible if it's a medical claim, and not eligible otherwise.",
+    prompt: JSON.stringify(claim),
+  });
+  return text;
+}
+
+async function runFraudAgent(model: LanguageModel, claim: InsuranceClaim){
+  const { text } = await generateText({
+    model,
+    system:
+        "Decide whether the claim is fraudulent." +
+        "Always respond with low risk, medium risk, or high risk.",
+    prompt: JSON.stringify(claim),
+  });
+  return text;
+}
+
 const run = async (ctx: restate.Context, claim: ClaimInput) => {
   const model = wrapLanguageModel({
     model: openai("gpt-4o"),
@@ -22,35 +44,17 @@ const run = async (ctx: restate.Context, claim: ClaimInput) => {
     model,
     prompt: `Claim: ${JSON.stringify(claim)}`,
     system:
-      "You are a claim approval engine. Analyze the claim and use your tools to decide whether to approve.",
+      "Analyze the insurance claim and use your tools to decide whether to approve.",
     tools: {
       analyzeEligibility: tool({
         description: "Analyze claim eligibility.",
         inputSchema: InsuranceClaimSchema,
-        execute: async (claim: InsuranceClaim) => {
-          const { text } = await generateText({
-            model,
-            system:
-              "Decide whether the following claim is eligible for reimbursement." +
-              "Respond with eligible if it's a medical claim, and not eligible otherwise.",
-            prompt: JSON.stringify(claim),
-          });
-          return text;
-        },
+        execute: async (claim: InsuranceClaim) => runEligibilityAgent(model, claim),
       }),
       analyzeFraud: tool({
         description: "Analyze probability of fraud.",
         inputSchema: InsuranceClaimSchema,
-        execute: async (claim: InsuranceClaim) => {
-          const { text } = await generateText({
-            model,
-            system:
-              "Decide whether the claim is fraudulent." +
-              "Always respond with low risk, medium risk, or high risk.",
-            prompt: JSON.stringify(claim),
-          });
-          return text;
-        },
+        execute: async (claim: InsuranceClaim) => runFraudAgent(model, claim),
       }),
     },
     stopWhen: [stepCountIs(10)],

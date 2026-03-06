@@ -24,6 +24,13 @@ class ChatMessage(BaseModel):
     message: str = "Make a poem about durable execution."
 
 
+class ClaimData(BaseModel):
+    """Insurance claim data structure."""
+    date: str = "2024-10-01"
+    amount: float = 3000
+    currency: str = "EUR"
+    reason: str = "hospital bill for a broken leg"
+
 class InsuranceClaim(BaseModel):
     """Insurance claim data structure."""
 

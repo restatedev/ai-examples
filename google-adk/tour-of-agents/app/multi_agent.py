@@ -6,7 +6,8 @@ from google.adk.apps import App
 from google.genai.types import Content, Part
 from restate.ext.adk import RestatePlugin, RestateSessionService
 
-from app.utils.models import InsuranceClaim
+from utils.models import InsuranceClaim
+from utils.utils import parse_agent_response
 
 APP_NAME = "agents"
 
@@ -51,13 +52,7 @@ async def run(ctx: restate.ObjectContext, claim: InsuranceClaim) -> str | None:
             parts=[Part.from_text(text=f"Claim: {claim.model_dump_json()}")],
         ),
     )
-
-    final_response = None
-    async for event in events:
-        if event.is_final_response() and event.content and event.content.parts:
-            if event.content.parts[0].text:
-                final_response = event.content.parts[0].text
-    return final_response
+    return await parse_agent_response(events)
 # <end_here>
 
 
@@ -65,7 +60,7 @@ if __name__ == "__main__":
     import hypercorn
     import asyncio
 
-    app = restate.app(services=[agent_service])
+    restate_app = restate.app(services=[agent_service])
     conf = hypercorn.Config()
     conf.bind = ["0.0.0.0:9080"]
-    asyncio.run(hypercorn.asyncio.serve(app, conf))
+    asyncio.run(hypercorn.asyncio.serve(restate_app, conf))

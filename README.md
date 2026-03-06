@@ -1,7 +1,7 @@
 <!-- markdown-link-check-disable -->
 [![Documentation](https://img.shields.io/badge/doc-reference-blue)](https://docs.restate.dev)
-[![Discord](https://img.shields.io/discord/1128210118216007792?logo=discord)](https://discord.gg/skW3AZ6uGd)
-[![Slack](https://img.shields.io/badge/Slack-4A154B?logo=slack&logoColor=fff)](https://join.slack.com/t/restatecommunity/shared_invite/zt-2v9gl005c-WBpr167o5XJZI1l7HWKImA)
+[![Discord](https://img.shields.io/discord/1128210118216007792?logo=discord)](https://discord.restate.dev)
+[![Slack](https://img.shields.io/badge/Slack-4A154B?logo=slack&logoColor=fff)](https://slack.restate.dev)
 [![Twitter](https://img.shields.io/twitter/follow/restatedev.svg?style=social&label=Follow)](https://x.com/intent/follow?screen_name=restatedev)
 <!-- markdown-link-check-enable -->
 
@@ -11,12 +11,10 @@ This repo contains a set of runnable examples of AI workflows and agents, using 
 
 The goal is to show how you can easily add production-grade _resilience_, _state persistence_, _retries_, _suspend/resume_, _human-in-the-loop_, and _observability_ to agentic workflows. So you can ship agents that stay alive and consistent without sprinkling retry-code everywhere and without building heavyweight infra yourself.
 
-The Restate approach works **independent of specific SDKs** but **integrates easily with popular SDKs**, like the [Vercel AI SDK](https://ai-sdk.dev/) or the [OpenAI Agent SDK](https://openai.github.io/openai-agents-python/). You can also use without and Agent SDK _(roll your own loop)_ or for more traditional workflows.
+The Restate approach works **independent of specific SDKs** but **integrates easily with popular SDKs**, like the [Vercel AI SDK](https://ai-sdk.dev/), the [OpenAI Agent SDK](https://openai.github.io/openai-agents-python/), and [Google ADK](https://google.github.io/adk-docs/). You can also use without any Agent SDK _(roll your own loop)_ or for more traditional workflows.
 
 
 ## Why Restate?
-📄 For a gentle intro, read [the blog post "Durable Agents - Fault Tolerance across Frameworks and without Handcuffs"](https://restate.dev/blog/durable-ai-loops-fault-tolerance-across-frameworks-and-without-handcuffs/)
-
 
 | Use Case                           | What it solves                                                                              |
 |------------------------------------|---------------------------------------------------------------------------------------------|
@@ -32,41 +30,68 @@ The Restate approach works **independent of specific SDKs** but **integrates eas
 <caption><em>Restate UI showing an agent execution with parallel tool calls</em></caption>
 
 
-## Full Example Catalog
+## Getting Started
 
-### Agent SDK Integrations  
-| Integration               | Example             | Description                                                               | Code                                                                                                                 | Docs                                                 |
-|---------------------------|---------------------|---------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------|------------------------------------------------------|
-| **Vercel AI SDK**         | **Template**        | A minimal example of how to use Restate with the Vercel AI SDK            | [<img src="https://skillicons.dev/icons?i=ts&theme=light" width="20" height="20">](vercel-ai/template)               | [📖](https://docs.restate.dev/ai-quickstart)         |
-|                           | **Tour of Agents**  | A step-by-step tutorial showing how to build resilient agents             | [<img src="https://skillicons.dev/icons?i=ts&theme=light" width="20" height="20">](vercel-ai/tour-of-agents)         | [📖](https://docs.restate.dev/tour/vercel-ai-agents) |
-|                           | **Examples**        | A variety of examples with Restate + AI SDK: rollback, MCP,...            | [<img src="https://skillicons.dev/icons?i=ts&theme=light" width="20" height="20">](vercel-ai/examples)               | -                                                    |
-|                           | **NextJS Template** | A minimal example of Restate + AI SDK + NextJS                            | [<img src="https://skillicons.dev/icons?i=ts&theme=light" width="20" height="20">](vercel-ai/nextjs-template)        | -                                                    |
-|                           | **NextJS Example**  | An example app of Restate + AI SDK + NextJS with tools, chat, pubsub,...  | [<img src="https://skillicons.dev/icons?i=ts&theme=light" width="20" height="20">](vercel-ai/nextjs-example-app)     | -                                                    |
-| **OpenAI Agents SDK**     | **Template**        | A minimal example of how to use Restate with the OpenAI Agents SDK        | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="20" height="20">](openai-agents/template)       | [📖](https://docs.restate.dev/ai-quickstart)         |
-|                           | **Tour of Agents**  | A step-by-step tutorial showing how to build resilient agents             | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="20" height="20">](openai-agents/tour-of-agents) | [📖](https://docs.restate.dev/tour/openai-agents)    |
-|                           | **Examples**        | A variety of examples with Restate + OpenAI Agents SDK: rollback, MCP,... | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="20" height="20">](openai-agents/examples)       | -                                                    |
-| **Google ADK** | **Tour of Agents**  | A step-by-step tutorial showing how to build resilient agents             | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="20" height="20">](google-adk/tour-of-agents)    | [📖](https://docs.restate.dev/tour/google-adk)       |
+| Integration                        | Quickstart                                           | Template                                                                                                                     |
+|------------------------------------|------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------|
+| **Vercel AI SDK**                  | [📖](https://docs.restate.dev/ai-quickstart)         | [<img src="https://skillicons.dev/icons?i=ts&theme=light" width="20" height="20">](vercel-ai/template)                       |
+| **OpenAI Agents SDK**              | [📖](https://docs.restate.dev/ai-quickstart)         | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="20" height="20">](openai-agents/template)               |
+| **Google ADK**                     | [📖](https://docs.restate.dev/ai-quickstart)         | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="20" height="20">](google-adk/template)                  |
+| **Restate - Python - no agent SDK** | [📖](https://docs.restate.dev/ai-quickstart)         | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="20" height="20">](python-restate-only/template)         |
+| **Restate - TS - no agent SDK**    | [📖](https://docs.restate.dev/ai-quickstart)         | [<img src="https://skillicons.dev/icons?i=ts&theme=light" width="20" height="20">](typescript-restate-only/template)         |
 
-### Composable AI Patterns
-| Pattern                | Description | Code | Docs                                                          |
-|------------------------|-------------|------|---------------------------------------------------------------|
-| **Chaining LLM calls** | Build fault-tolerant processing pipelines where each step transforms the previous step's output | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="20" height="20">](python-patterns/app/chaining.py) [<img src="https://skillicons.dev/icons?i=ts&theme=light" width="20" height="20">](typescript-patterns/src/chaining.ts) | [📖](https://docs.restate.dev/ai/patterns/prompt-chaining)    |
-| **Tool routing** | Automatically route requests to tools based on LLM outputs | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="20" height="20">](python-patterns/app/routing_to_tool.py) [<img src="https://skillicons.dev/icons?i=ts&theme=light" width="20" height="20">](typescript-patterns/src/routing-to-tools.ts) | [📖](https://docs.restate.dev/ai/patterns/tools)              |
-| **Parallel tool execution** | Execute multiple tools in parallel with durable results that persist across failures | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="20" height="20">](python-patterns/app/parallel_tools.py) [<img src="https://skillicons.dev/icons?i=ts&theme=light" width="20" height="20">](typescript-patterns/src/parallel-tools.ts) | [📖](https://docs.restate.dev/ai/patterns/parallelization)    |
-| **Multi-agent routing** | Route requests to specialized agents based on LLM outputs | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="20" height="20">](python-patterns/app/routing_to_agent.py) [<img src="https://skillicons.dev/icons?i=ts&theme=light" width="20" height="20">](typescript-patterns/src/routing-to-agent.ts) | [📖](https://docs.restate.dev/ai/patterns/multi-agent)        |
-| **Remote agent routing** | Deploy/scale agents separately and route requests with resilient communication | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="20" height="20">](python-patterns/app/routing_to_remote_agent.py) [<img src="https://skillicons.dev/icons?i=ts&theme=light" width="20" height="20">](typescript-patterns/src/routing-to-remote-agent.ts) | [📖](https://docs.restate.dev/ai/patterns/multi-agent)        |
-| **Parallel agent processing** | Run multiple, specialized agents in parallel and aggregate their results | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="20" height="20">](python-patterns/app/parallel_agents.py) [<img src="https://skillicons.dev/icons?i=ts&theme=light" width="20" height="20">](typescript-patterns/src/parallel-agents.ts) | [📖](https://docs.restate.dev/ai/patterns/parallelization)    |
-| **Racing agents** | Race multiple agents against each other and use the fastest response | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="20" height="20">](python-patterns/app/racing_agents.py) [<img src="https://skillicons.dev/icons?i=ts&theme=light" width="20" height="20">](typescript-patterns/src/racing-agents.ts) | [📖](https://docs.restate.dev/ai/patterns/competitive-racing) |
-| **Human-in-the-loop pattern** | Implement resilient human approval steps that suspend execution until feedback is received | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="20" height="20">](python-patterns/app/human_in_the_loop.py) [<img src="https://skillicons.dev/icons?i=ts&theme=light" width="20" height="20">](typescript-patterns/src/human-in-the-loop.ts) | [📖](https://docs.restate.dev/ai/patterns/human-in-the-loop)  |
-| **Chat sessions** | Long-lived, stateful chat sessions that maintain conversation state across multiple requests | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="20" height="20">](python-patterns/app/chat.py) [<img src="https://skillicons.dev/icons?i=ts&theme=light" width="20" height="20">](typescript-patterns/src/chat.ts) | [📖](https://docs.restate.dev/ai/patterns/sessions)           |
-| **Orchestrator-worker pattern** | Break down complex tasks into specialized subtasks and execute them in parallel | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="20" height="20">](python-patterns/app/orchestrator_workers.py) | -                                                             |
-| **Evaluator-optimizer pattern** | Generate → Evaluate → Improve loop until quality criteria are met | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="20" height="20">](python-patterns/app/evaluator_optimizer.py) [<img src="https://skillicons.dev/icons?i=ts&theme=light" width="20" height="20">](typescript-patterns/src/evaluator-optimizer.ts) | -                                                             |
 
-### Other Examples
-| Example                | Description | Code |
-|------------------------|-------------|------|
-| **MCP**                |  Using Restate for exposing tools and resilient orchestration of tool calls | [<img src="https://skillicons.dev/icons?i=ts&theme=light" width="20" height="20">](mcp) | 
-| **A2A**                | Implement Google's Agent-to-Agent protocol with Restate as resilient, scalable task orchestrator | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="20" height="20">](a2a) | 
+## Concepts & Guides
+
+#### Getting Started
+
+| Pattern | Description | Docs | Restate | Vercel AI | OpenAI | ADK |
+|---------|-------------|------|---------|-----------|--------|-----|
+| **Durable agents** | Making agents resilient with durable execution | [📖](https://docs.restate.dev/ai/patterns/durable-agents) | - | - | - | - |
+| **Sessions** | Stateful chat sessions with context across requests | [📖](https://docs.restate.dev/ai/patterns/sessions) | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="20" height="20">](python-restate-only/tour-of-agents/app/chat_agent.py) [<img src="https://skillicons.dev/icons?i=ts&theme=light" width="20" height="20">](typescript-restate-only/tour-of-agents/src/chat-agent.ts) | [<img src="https://skillicons.dev/icons?i=ts&theme=light" width="20" height="20">](vercel-ai/tour-of-agents/src/chat-agent.ts) | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="20" height="20">](openai-agents/tour-of-agents/app/chat_agent.py) | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="20" height="20">](google-adk/tour-of-agents/app/chat_agent.py) |
+| **Human-in-the-loop** | Human approval steps that suspend execution | [📖](https://docs.restate.dev/ai/patterns/human-in-the-loop) | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="20" height="20">](python-restate-only/tour-of-agents/app/human_approval_agent.py) [<img src="https://skillicons.dev/icons?i=ts&theme=light" width="20" height="20">](typescript-restate-only/tour-of-agents/src/human-approval-agent.ts) | [<img src="https://skillicons.dev/icons?i=ts&theme=light" width="20" height="20">](vercel-ai/tour-of-agents/src/human-approval-agent.ts) | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="20" height="20">](openai-agents/tour-of-agents/app/human_approval_agent.py) | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="20" height="20">](google-adk/tour-of-agents/app/human_approval_agent.py) |
+| **Multi-agent** | Route requests to specialized agents | [📖](https://docs.restate.dev/ai/patterns/multi-agent) | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="20" height="20">](python-restate-only/tour-of-agents/app/multi_agent.py) [<img src="https://skillicons.dev/icons?i=ts&theme=light" width="20" height="20">](typescript-restate-only/tour-of-agents/src/multi-agent.ts) | [<img src="https://skillicons.dev/icons?i=ts&theme=light" width="20" height="20">](vercel-ai/tour-of-agents/src/multi-agent.ts) | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="20" height="20">](openai-agents/tour-of-agents/app/multi_agent.py) | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="20" height="20">](google-adk/tour-of-agents/app/multi_agent.py) |
+| **Prompt chaining** | Sequential processing pipeline | [📖](https://docs.restate.dev/ai/patterns/workflows) | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="20" height="20">](python-restate-only/tour-of-agents/app/workflow_sequential.py) [<img src="https://skillicons.dev/icons?i=ts&theme=light" width="20" height="20">](typescript-restate-only/tour-of-agents/src/workflow-sequential.ts) | [<img src="https://skillicons.dev/icons?i=ts&theme=light" width="20" height="20">](vercel-ai/tour-of-agents/src/workflow-sequential.ts) | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="20" height="20">](openai-agents/tour-of-agents/app/workflow_sequential.py) | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="20" height="20">](google-adk/tour-of-agents/app/workflow_sequential.py) |
+| **Orchestrator-worker** | Break tasks into specialized subtasks | [📖](https://docs.restate.dev/ai/patterns/workflows) | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="20" height="20">](python-restate-only/tour-of-agents/app/workflow_orchestrator.py) [<img src="https://skillicons.dev/icons?i=ts&theme=light" width="20" height="20">](typescript-restate-only/tour-of-agents/src/workflow-orchestrator.ts) | [<img src="https://skillicons.dev/icons?i=ts&theme=light" width="20" height="20">](vercel-ai/tour-of-agents/src/workflow-orchestrator.ts) | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="20" height="20">](openai-agents/tour-of-agents/app/workflow_orchestrator.py) | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="20" height="20">](google-adk/tour-of-agents/app/workflow_orchestrator.py) |
+| **Evaluator-optimizer** | Generate, evaluate, improve loop | [📖](https://docs.restate.dev/ai/patterns/workflows) | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="20" height="20">](python-restate-only/tour-of-agents/app/workflow_evaluator_optimizer.py) [<img src="https://skillicons.dev/icons?i=ts&theme=light" width="20" height="20">](typescript-restate-only/tour-of-agents/src/workflow-evaluator-optimizer.ts) | [<img src="https://skillicons.dev/icons?i=ts&theme=light" width="20" height="20">](vercel-ai/tour-of-agents/src/workflow-evaluator-optimizer.ts) | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="20" height="20">](openai-agents/tour-of-agents/app/workflow_evaluator_optimizer.py) | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="20" height="20">](google-adk/tour-of-agents/app/workflow_evaluator_optimizer.py) |
+| **Observability & control** | Monitor and control agent execution | [📖](https://docs.restate.dev/ai/patterns/observability-control) | - | - | - | - |
+
+#### Reliability Guides
+
+| Pattern | Description | Docs | Restate | Vercel AI | OpenAI | ADK |
+|---------|-------------|------|---------|-----------|--------|-----|
+| **Error handling** | Retries and error handling for agents | [📖](https://docs.restate.dev/ai/patterns/error-handling) | - | [<img src="https://skillicons.dev/icons?i=ts&theme=light" width="20" height="20">](vercel-ai/tour-of-agents/src/errorhandling) | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="20" height="20">](openai-agents/tour-of-agents/app/error_handling.py) | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="20" height="20">](google-adk/tour-of-agents/app/error_handling.py) |
+| **Rollback** | Saga pattern for compensating failed operations | [📖](https://docs.restate.dev/ai/patterns/rollback) | - | [<img src="https://skillicons.dev/icons?i=ts&theme=light" width="20" height="20">](vercel-ai/tour-of-agents/src/rollback-agent.ts) | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="20" height="20">](openai-agents/examples/rollback) | - |
+
+#### Orchestration Guides
+
+| Pattern | Description | Docs | Restate | Vercel AI | OpenAI | ADK |
+|---------|-------------|------|---------|-----------|--------|-----|
+| **Remote agents** | Deploy/scale agents separately with resilient communication | [📖](https://docs.restate.dev/ai/patterns/remote-agents) | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="20" height="20">](python-restate-only/tour-of-agents/app/remote_agents.py) [<img src="https://skillicons.dev/icons?i=ts&theme=light" width="20" height="20">](typescript-restate-only/tour-of-agents/src/remote-agents.ts) | [<img src="https://skillicons.dev/icons?i=ts&theme=light" width="20" height="20">](vercel-ai/tour-of-agents/src/remote-agents.ts) | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="20" height="20">](openai-agents/tour-of-agents/app/remote_agents.py) | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="20" height="20">](google-adk/tour-of-agents/app/remote_agents.py) |
+| **Tools** | Durable tool execution with parallel calls | [📖](https://docs.restate.dev/ai/patterns/tools) | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="20" height="20">](python-restate-only/tour-of-agents/app/parallel_tools_agent.py) [<img src="https://skillicons.dev/icons?i=ts&theme=light" width="20" height="20">](typescript-restate-only/tour-of-agents/src/parallel-tools-agent.ts) | [<img src="https://skillicons.dev/icons?i=ts&theme=light" width="20" height="20">](vercel-ai/tour-of-agents/src/parallel-tools-agent.ts) | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="20" height="20">](openai-agents/tour-of-agents/app/parallel_tools_agent.py) | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="20" height="20">](google-adk/tour-of-agents/app/parallel_tools_agent.py) |
+| **Parallelization** | Run multiple agents/tasks in parallel | [📖](https://docs.restate.dev/ai/patterns/parallelization) | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="20" height="20">](python-restate-only/tour-of-agents/app/workflow_parallel.py) [<img src="https://skillicons.dev/icons?i=ts&theme=light" width="20" height="20">](typescript-restate-only/tour-of-agents/src/workflow-parallel.ts) | [<img src="https://skillicons.dev/icons?i=ts&theme=light" width="20" height="20">](vercel-ai/tour-of-agents/src/workflow-parallel.ts) | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="20" height="20">](openai-agents/tour-of-agents/app/workflow_parallel.py) | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="20" height="20">](google-adk/tour-of-agents/app/workflow_parallel.py) |
+| **Competitive racing** | Race agents and use the fastest response | [📖](https://docs.restate.dev/ai/patterns/competitive-racing) | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="20" height="20">](python-restate-only/tour-of-agents/app/racing_agents.py) [<img src="https://skillicons.dev/icons?i=ts&theme=light" width="20" height="20">](typescript-restate-only/tour-of-agents/src/racing-agents.ts) | - | - | - |
+
+#### Frontend Integration
+
+| Pattern | Description | Docs | Restate | Vercel AI | OpenAI                                                                                                                                    | ADK |
+|---------|-------------|------|---------|-----------|-------------------------------------------------------------------------------------------------------------------------------------------|-----|
+| **Chat UI integration** | Integrate agents with chat UIs | [📖](https://docs.restate.dev/ai/patterns/chat-ui-integration) | - | [<img src="https://skillicons.dev/icons?i=ts&theme=light" width="20" height="20">](vercel-ai/nextjs-example-app/README.md) | -                                                                                                                                         | - |
+| **Streaming responses** | Stream agent responses to clients | [📖](https://docs.restate.dev/ai/patterns/streaming-responses) | - | [<img src="https://skillicons.dev/icons?i=ts&theme=light" width="20" height="20">](vercel-ai/nextjs-example-app/README.md) | -                                                                                                                                         | - |
+| **Notify when ready** | Callback when agent completes | [📖](https://docs.restate.dev/ai/patterns/notify-when-ready) | - | - | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="20" height="20">](openai-agents/examples/notify_when_ready/agent.py) | - |
+
+
+## More Examples
+
+| Example                | Description                                                                                     | Code                                                                                                                    |
+|------------------------|-------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------|
+| **NextJS Template**    | Minimal example of Restate + AI SDK + NextJS                                                    | [<img src="https://skillicons.dev/icons?i=ts&theme=light" width="20" height="20">](vercel-ai/nextjs-template/README.md) |
+| **NextJS Example App** | Example app of Restate + AI SDK + NextJS with tools, chat, pubsub,...                           | [<img src="https://skillicons.dev/icons?i=ts&theme=light" width="20" height="20">](vercel-ai/nextjs-example-app/README.md)        |
+| **MCP**                | Using Restate for exposing tools and resilient orchestration of tool calls                       | [<img src="https://skillicons.dev/icons?i=ts&theme=light" width="20" height="20">](mcp/README.md)                                 |
+| **A2A**                | Implement Google's Agent-to-Agent protocol with Restate as resilient, scalable task orchestrator | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="20" height="20">](a2a/README.md)                             |
+
+
+## Supported Languages
 
 Restate currently supports 6 languages:
 
@@ -77,16 +102,11 @@ Restate currently supports 6 languages:
 [![Go](https://skillicons.dev/icons?i=go)](https://docs.restate.dev/develop/go/overview)
 [![Rust](https://skillicons.dev/icons?i=rust&theme=light)](https://docs.rs/restate-sdk/latest/restate_sdk/)
 
-The examples can be translated to any of the supported languages. 
-Join our [Discord](https://discord.gg/skW3AZ6uGd)/[Slack](https://join.slack.com/t/restatecommunity/shared_invite/zt-2v9gl005c-WBpr167o5XJZI1l7HWKImA) to get help with translating an examples to your language of choice.
+The examples can be translated to any of the supported languages.
+Join our [Discord](https://discord.restate.dev)/[Slack](https://slack.restate.dev) to get help with translating an examples to your language of choice.
 
 ## Learn more
 - [Documentation](https://docs.restate.dev/ai)
 - [Examples on workflows, microservice orchestration, async tasks, event processing](https://github.com/restatedev/examples)
 - [Restate Cloud](https://restate.dev/cloud/)
-- [Discord](https://discord.gg/skW3AZ6uGd) / [Slack](https://join.slack.com/t/restatecommunity/shared_invite/zt-2v9gl005c-WBpr167o5XJZI1l7HWKImA)
-
-## Acknowledgements
-
-- The DIY patterns are largely based on Anthropic's [agents cookbook](https://github.com/anthropics/anthropic-cookbook/tree/main/patterns/agents).
-- Some of the A2A examples in this repo are based on the examples included in the [Google A2A repo](https://github.com/google/A2A/tree/main).
+- [Discord](https://discord.restate.dev) / [Slack](https://slack.restate.dev)

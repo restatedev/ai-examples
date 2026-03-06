@@ -6,11 +6,12 @@ from google.adk.apps import App
 from google.genai.types import Content, Part
 from restate.ext.adk import RestateSessionService, RestatePlugin
 
-from app.utils.models import InsuranceClaim
-from app.utils.utils import (
+from utils.models import InsuranceClaim
+from utils.utils import (
     run_eligibility_agent,
     run_rate_comparison_agent,
     run_fraud_agent,
+    parse_agent_response,
 )
 
 APP_NAME = "agents"
@@ -54,13 +55,7 @@ async def run(ctx: restate.ObjectContext, claim: InsuranceClaim) -> str | None:
         session_id=claim.session_id,
         new_message=Content(role="user", parts=[Part.from_text(text=prompt)]),
     )
-
-    final_response = None
-    async for event in events:
-        if event.is_final_response() and event.content and event.content.parts:
-            if event.content.parts[0].text:
-                final_response = event.content.parts[0].text
-    return final_response
+    return await parse_agent_response(events)
 
 
 # <end_here>
@@ -70,13 +65,13 @@ if __name__ == "__main__":
     import hypercorn
     import asyncio
 
-    from app.utils.utils import (
+    from utils.utils import (
         fraud_agent_service,
         rate_comparison_agent_service,
         eligibility_agent_service,
     )
 
-    app = restate.app(
+    restate_app = restate.app(
         services=[
             agent_service,
             fraud_agent_service,
@@ -86,4 +81,4 @@ if __name__ == "__main__":
     )
     conf = hypercorn.Config()
     conf.bind = ["0.0.0.0:9080"]
-    asyncio.run(hypercorn.asyncio.serve(app, conf))
+    asyncio.run(hypercorn.asyncio.serve(restate_app, conf))

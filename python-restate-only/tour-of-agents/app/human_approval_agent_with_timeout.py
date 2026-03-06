@@ -45,7 +45,7 @@ async def request_human_approval(ctx: restate.Context, claim: InsuranceClaim) ->
 # <end_here>
 
 
-claim_approval_agent = restate.Service("HumanClaimApprovalAgent")
+claim_approval_agent = restate.Service("HumanClaimApprovalWithTimeoutsAgent")
 
 
 @claim_approval_agent.handler()

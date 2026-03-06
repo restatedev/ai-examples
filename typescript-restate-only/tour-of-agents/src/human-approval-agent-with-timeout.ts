@@ -1,18 +1,19 @@
 /**
- * Human-in-the-Loop Pattern
+ * Human-in-the-Loop Pattern with Timeout
  *
  * Implement resilient human approval steps that suspend execution until feedback is received.
  * Durable promises survive crashes and can be recovered across process restarts.
+ * Adds a timeout to the approval step to meet SLAs.
  */
 import * as restate from "@restatedev/restate-sdk";
-import { Context } from "@restatedev/restate-sdk";
+import { Context, TimeoutError } from "@restatedev/restate-sdk";
 import { requestClaimReview, zodPrompt } from "./utils/utils";
 import { tool } from "ai";
 import z from "zod";
 import llmCall from "./utils/llm";
 
 const examplePrompt =
-  "Process my hospital bill of 2024-10-01 for 3000USD for a broken leg at General Hospital.";
+    "Process my hospital bill of 2024-10-01 for 3000USD for a broken leg at General Hospital.";
 
 const tools = {
   humanApproval: tool({
@@ -42,10 +43,18 @@ async function run(ctx: Context, { message }: { message: string }) {
       requestClaimReview(message, approval.id),
     );
 
-    // Suspend until reviewer resolves the approval
-    // Check the service logs to see how to resolve it over HTTP, e.g.:
-    // curl http://localhost:8080/restate/awakeables/sign_.../resolve --json 'true'
-    return approval.promise;
+    try {
+      // At most 3 hours, to reach our SLA
+      return await approval.promise.orTimeout({ hours: 3 });
+    } catch (e) {
+      if (e instanceof TimeoutError) {
+        return {
+          approved: false,
+          reason: "Approval timed out - Evaluate with AI",
+        };
+      }
+      throw e;
+    }
   }
 
   return text;
@@ -53,10 +62,10 @@ async function run(ctx: Context, { message }: { message: string }) {
 // <end_here>
 
 const agentService = restate.service({
-  name: "HumanClaimApprovalAgent",
-  handlers: {
-    run: restate.createServiceHandler({ input: zodPrompt(examplePrompt) }, run),
-  },
+  name: "HumanClaimApprovalWithTimeoutsAgent",
+    handlers: {
+        run: restate.createServiceHandler({ input: zodPrompt(examplePrompt) }, run),
+    },
 });
 
 restate.serve({ services: [agentService], port: 9080 });

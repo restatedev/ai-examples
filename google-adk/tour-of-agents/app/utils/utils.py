@@ -1,32 +1,28 @@
+from typing import AsyncGenerator
+
 import restate
 import httpx
 
 from google.adk import Agent, Runner
 from google.adk.apps import App
-from google.adk.sessions import InMemorySessionService
+from google.adk.events import Event
 from google.genai.types import Content, Part
 from restate.ext.adk import RestateSessionService, RestatePlugin
 
-from app.utils.models import (
+from utils.models import (
     WeatherResponse,
     InsuranceClaim,
 )
 
 
-async def get_or_create_session(
-    session_service: InMemorySessionService,
-    APP_NAME: str,
-    user_id: str,
-    session_id: str,
-) -> None:
-    session = await session_service.get_session(
-        app_name=APP_NAME, user_id=user_id, session_id=session_id
-    )
-    if not session:
-        print(f"Creating new session for user {user_id} with session ID {session_id}")
-        await session_service.create_session(
-            app_name=APP_NAME, user_id=user_id, session_id=session_id
-        )
+async def parse_agent_response(events: AsyncGenerator[Event, None]) -> str:
+    """Run an ADK agent and return the final text response."""
+    final_response = ""
+    async for event in events:
+        if event.is_final_response() and event.content and event.content.parts:
+            if event.content.parts[0].text:
+                final_response = event.content.parts[0].text
+    return final_response
 
 
 # <start_weather>
@@ -42,7 +38,7 @@ def fail_on_denver(city):
         raise Exception("[👻 SIMULATED] Fetching weather failed: Weather API down...")
 
 
-async def request_human_review(claim: InsuranceClaim, awakeable_id: str) -> None:
+async def request_review(claim: InsuranceClaim, awakeable_id: str) -> None:
     """Simulate requesting human review."""
     print(f"🔔 Human review requested for claim {claim.model_dump_json()}")
     print(f"  Submit your claim review via: \n ")
@@ -98,12 +94,7 @@ async def run_eligibility_agent(
         new_message=Content(role="user", parts=[Part.from_text(text=prompt)]),
     )
 
-    final_response = ""
-    async for event in events:
-        if event.is_final_response() and event.content and event.content.parts:
-            if event.content.parts[0].text:
-                final_response = event.content.parts[0].text
-    return final_response
+    return await parse_agent_response(events)
 
 
 rate_comparison_agent = Agent(
@@ -134,12 +125,7 @@ async def run_rate_comparison_agent(
         new_message=Content(role="user", parts=[Part.from_text(text=prompt)]),
     )
 
-    final_response = ""
-    async for event in events:
-        if event.is_final_response() and event.content and event.content.parts:
-            if event.content.parts[0].text:
-                final_response = event.content.parts[0].text
-    return final_response
+    return await parse_agent_response(events)
 
 
 fraud_agent = Agent(
@@ -164,9 +150,14 @@ async def run_fraud_agent(ctx: restate.ObjectContext, claim: InsuranceClaim) -> 
         new_message=Content(role="user", parts=[Part.from_text(text=prompt)]),
     )
 
-    final_response = ""
-    async for event in events:
-        if event.is_final_response() and event.content and event.content.parts:
-            if event.content.parts[0].text:
-                final_response = event.content.parts[0].text
-    return final_response
+    return await parse_agent_response(events)
+
+
+async def convert_currency(amount: float, source: str, target: str) -> float:
+    """Convert currency (placeholder)."""
+    return amount*1.3
+
+
+async def process_payment(claim_id: str, amount: float) -> str:
+    """Process payment (placeholder)."""
+    return f"Payment processed for claim {claim_id}: ${amount}"

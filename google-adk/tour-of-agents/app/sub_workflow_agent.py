@@ -2,23 +2,22 @@ import restate
 from google.adk import Runner
 from google.adk.agents.llm_agent import Agent
 from google.adk.apps import App
-from google.adk.sessions import InMemorySessionService
 from google.genai.types import Content, Part
-from restate.ext.adk import RestatePlugin, restate_context
+from restate.ext.adk import RestatePlugin, restate_context, RestateSessionService
 
-from app.utils.models import ClaimPrompt, InsuranceClaim
-from app.utils.utils import request_human_review, get_or_create_session
+from utils.models import ClaimPrompt, InsuranceClaim
+from utils.utils import request_human_review, parse_agent_response
 
 APP_NAME = "agents"
 
 
 # <start_wf>
 # Sub-workflow service for human approval
-human_approval_workflow = restate.Service("HumanApprovalWorkflow")
+human_approval_workflow = restate.VirtualObject("HumanApprovalWorkflow")
 
 
 @human_approval_workflow.handler()
-async def review(ctx: restate.Context, claim: InsuranceClaim) -> str:
+async def review(ctx: restate.ObjectContext, claim: InsuranceClaim) -> str:
     """Request human approval for a claim and wait for response."""
     # Create an awakeable that can be resolved via HTTP
     approval_id, approval_promise = ctx.awakeable(type_hint=str)
@@ -55,35 +54,27 @@ agent = Agent(
 
 
 app = App(name=APP_NAME, root_agent=agent, plugins=[RestatePlugin()])
-session_service = InMemorySessionService()
+runner = Runner(app=app, session_service=RestateSessionService())
 
-agent_service = restate.Service("SubWorkflowClaimApprovalAgent")
+agent_service = restate.VirtualObject("SubWorkflowClaimApprovalAgent")
 
 
 # HANDLER
 @agent_service.handler()
-async def run(_ctx: restate.Context, req: ClaimPrompt) -> str | None:
-    await get_or_create_session(session_service, APP_NAME, req.user_id, req.session_id)
-    runner = Runner(app=app, session_service=session_service)
+async def run(ctx: restate.ObjectContext, req: ClaimPrompt) -> str | None:
     events = runner.run_async(
         user_id=req.user_id,
         session_id=req.session_id,
         new_message=Content(role="user", parts=[Part.from_text(text=req.message)]),
     )
-
-    final_response = None
-    async for event in events:
-        if event.is_final_response() and event.content and event.content.parts:
-            if event.content.parts[0].text:
-                final_response = event.content.parts[0].text
-    return final_response
+    return await parse_agent_response(events)
 
 
 if __name__ == "__main__":
     import hypercorn
     import asyncio
 
-    app = restate.app(services=[agent_service, human_approval_workflow])
+    restate_app = restate.app(services=[agent_service, human_approval_workflow])
     conf = hypercorn.Config()
     conf.bind = ["0.0.0.0:9080"]
-    asyncio.run(hypercorn.asyncio.serve(app, conf))
+    asyncio.run(hypercorn.asyncio.serve(restate_app, conf))

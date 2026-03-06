@@ -8,8 +8,8 @@ from typing import List
 
 from restate.ext.adk import RestatePlugin, RestateSessionService, restate_object_context
 
-from app.utils.models import InsuranceClaim
-from app.utils.utils import check_eligibility, compare_to_standard_rates, check_fraud
+from utils.models import InsuranceClaim
+from utils.utils import check_eligibility, compare_to_standard_rates, check_fraud, parse_agent_response
 
 APP_NAME = "agents"
 
@@ -55,20 +55,14 @@ async def run(ctx: restate.ObjectContext, claim: InsuranceClaim) -> str | None:
         session_id=claim.session_id,
         new_message=Content(role="user", parts=[Part.from_text(text=prompt)]),
     )
-
-    final_response = None
-    async for event in events:
-        if event.is_final_response() and event.content and event.content.parts:
-            if event.content.parts[0].text:
-                final_response = event.content.parts[0].text
-    return final_response
+    return await parse_agent_response(events)
 
 
 if __name__ == "__main__":
     import hypercorn
     import asyncio
 
-    app = restate.app(services=[agent_service])
+    restate_app = restate.app(services=[agent_service])
     conf = hypercorn.Config()
     conf.bind = ["0.0.0.0:9080"]
-    asyncio.run(hypercorn.asyncio.serve(app, conf))
+    asyncio.run(hypercorn.asyncio.serve(restate_app, conf))

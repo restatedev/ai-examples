@@ -2,14 +2,13 @@ import restate
 
 from google.adk import Runner
 from google.adk.apps import App
-from google.adk.sessions import InMemorySessionService
 from google.genai.types import Content, Part
 from google.adk.agents.llm_agent import Agent
 from restate import TerminalError
-from restate.ext.adk import RestatePlugin, restate_context
+from restate.ext.adk import RestatePlugin, restate_context, RestateSessionService
 
-from app.utils.models import WeatherResponse, WeatherPrompt
-from app.utils.utils import fetch_weather, get_or_create_session
+from utils.models import WeatherResponse, WeatherPrompt
+from utils.utils import fetch_weather, parse_agent_response
 
 APP_NAME = "agents"
 
@@ -35,31 +34,21 @@ app = App(
     name=APP_NAME, root_agent=agent, plugins=[RestatePlugin(max_model_call_retries=3)]
 )
 # <end_retries>
-session_service = InMemorySessionService()
+runner = Runner(app=app, session_service=RestateSessionService())
 
-agent_service = restate.Service("ErrorHandlingAgent")
+agent_service = restate.VirtualObject("ErrorHandlingAgent")
 
 
 # <start_handle>
 @agent_service.handler()
-async def run(_ctx: restate.Context, req: WeatherPrompt) -> str | None:
+async def run(ctx: restate.ObjectContext, req: WeatherPrompt) -> str | None:
     try:
-        await get_or_create_session(
-            session_service, APP_NAME, req.user_id, req.session_id
-        )
-        runner = Runner(app=app, session_service=session_service)
         events = runner.run_async(
             user_id=req.user_id,
             session_id=req.session_id,
             new_message=Content(role="user", parts=[Part.from_text(text=req.message)]),
         )
-
-        final_response = None
-        async for event in events:
-            if event.is_final_response() and event.content and event.content.parts:
-                if event.content.parts[0].text:
-                    final_response = event.content.parts[0].text
-        return final_response
+        return await parse_agent_response(events)
     except TerminalError as e:
         # Handle the error appropriately, e.g., log it or return a default response
         print(f"An error occurred: {e}")
@@ -73,7 +62,7 @@ if __name__ == "__main__":
     import hypercorn
     import asyncio
 
-    app = restate.app(services=[agent_service])
+    restate_app = restate.app(services=[agent_service])
     conf = hypercorn.Config()
     conf.bind = ["0.0.0.0:9080"]
-    asyncio.run(hypercorn.asyncio.serve(app, conf))
+    asyncio.run(hypercorn.asyncio.serve(restate_app, conf))

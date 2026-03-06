@@ -99,17 +99,17 @@ async function parseWeatherResponse(output: string) {
   }
 }
 
-export function notifyModerator(content: string, approvalId: string): void {
-  console.log("\n🔍 CONTENT MODERATION REQUIRED 🔍");
-  console.log(`Content: ${content}`);
+export function requestClaimReview(claim: string, approvalId: string): void {
+  console.log("\n📋 CLAIM REVIEW REQUIRED 📋");
+  console.log(`Claim: ${claim}`);
   console.log("Awaiting human decision...");
   console.log("\nTo approve:");
   console.log(
-    `curl http://localhost:8080/restate/awakeables/${approvalId}/resolve --json '"approved"'`,
+    `curl http://localhost:8080/restate/awakeables/${approvalId}/resolve --json 'true'`,
   );
   console.log("\nTo reject:");
   console.log(
-    `curl http://localhost:8080/restate/awakeables/${approvalId}/resolve --json '"rejected"'`,
+    `curl http://localhost:8080/restate/awakeables/${approvalId}/resolve --json 'false'`,
   );
 }
 
