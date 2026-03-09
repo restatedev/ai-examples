@@ -33,7 +33,7 @@ claim_service = restate.VirtualObject("ClaimReimbursement")
 async def process(ctx: restate.ObjectContext, req: ClaimPrompt) -> dict:
     # Step 1: Parse the claim document (LLM step)
     parsing_events = parse_runner.run_async(
-        user_id=req.user_id,
+        user_id=ctx.key(),
         session_id=req.session_id,
         new_message=Content(role="user", parts=[Part.from_text(text=req.message)]),
     )
@@ -42,7 +42,7 @@ async def process(ctx: restate.ObjectContext, req: ClaimPrompt) -> dict:
 
     # Step 2: Analyze the claim (LLM step)
     analysis_events = analysis_runner.run_async(
-        user_id=req.user_id,
+        user_id=ctx.key(),
         session_id=req.session_id,
         new_message=Content(role="user", parts=[Part.from_text(text=parsed)]),
     )

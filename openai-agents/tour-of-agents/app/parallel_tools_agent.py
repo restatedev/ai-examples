@@ -3,7 +3,7 @@ import restate
 from agents import Agent
 from restate.ext.openai import restate_context, DurableRunner, durable_function_tool
 
-from app.utils.utils import (
+from utils.utils import (
     InsuranceClaim,
     check_eligibility,
     compare_to_standard_rates,

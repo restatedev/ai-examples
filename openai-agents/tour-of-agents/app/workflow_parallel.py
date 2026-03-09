@@ -2,7 +2,7 @@ import restate
 from agents import Agent
 from restate.ext.openai import DurableRunner
 
-from app.utils.utils import (
+from utils.utils import (
     InsuranceClaim,
     run_eligibility_agent,
     run_fraud_agent,
@@ -42,7 +42,7 @@ if __name__ == "__main__":
     import hypercorn
     import asyncio
 
-    from app.utils.utils import (
+    from utils.utils import (
         fraud_agent_service,
         rate_comparison_agent_service,
         eligibility_agent_service,

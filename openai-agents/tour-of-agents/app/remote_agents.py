@@ -3,7 +3,7 @@ import restate
 from agents import Agent
 from restate.ext.openai import restate_context, DurableRunner, durable_function_tool
 
-from app.utils.utils import InsuranceClaim, run_eligibility_agent, run_fraud_agent
+from utils.utils import InsuranceClaim, run_eligibility_agent, run_fraud_agent
 
 
 # Durable service call to the eligibility agent; persisted and retried by Restate
@@ -43,7 +43,7 @@ if __name__ == "__main__":
     import hypercorn
     import asyncio
 
-    from app.utils.utils import fraud_agent_service, eligibility_agent_service
+    from utils.utils import fraud_agent_service, eligibility_agent_service
 
     app = restate.app(
         services=[agent_service, fraud_agent_service, eligibility_agent_service]

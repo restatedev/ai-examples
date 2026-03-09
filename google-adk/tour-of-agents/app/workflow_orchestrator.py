@@ -13,7 +13,6 @@ from utils.utils import parse_agent_response
 
 class ResearchTask(BaseModel):
     question: str
-    session_id: str = "research"
 
 
 class ReportRequest(BaseModel):
@@ -22,7 +21,7 @@ class ReportRequest(BaseModel):
 
 APP_NAME = "agents"
 
-# <start_here>
+# AGENTS
 planner = Agent(
     model="gemini-2.5-flash",
     name="research_planner",
@@ -49,15 +48,18 @@ writer = Agent(
 writer_app = App(name=APP_NAME, root_agent=writer, plugins=[RestatePlugin()])
 writer_runner = Runner(app=writer_app, session_service=RestateSessionService())
 
+# AGENT SERVICE
+# <start_here>
 report_service = restate.VirtualObject("ResearchReport")
 
 
 @report_service.handler()
 async def generate(ctx: restate.ObjectContext, req: ReportRequest) -> dict:
+    session_id = str(ctx.uuid())
     # Step 1: Orchestrator creates a research plan
     plan_events = plan_runner.run_async(
-        user_id=req.user_id,
-        session_id=req.session_id,
+        user_id=ctx.key(),
+        session_id=session_id,
         new_message=Content(role="user", parts=[Part.from_text(text=req.topic)]),
     )
     plan_output =  await parse_agent_response(plan_events)
@@ -75,8 +77,8 @@ async def generate(ctx: restate.ObjectContext, req: ReportRequest) -> dict:
     # Step 3: Combine results into a report
     results = f"Topic: {req.topic}\n\nResearch findings:\n{json.dumps(findings, indent=2)}"
     events = writer_runner.run_async(
-        user_id=req.user_id,
-        session_id=req.session_id,
+        user_id=ctx.key(),
+        session_id=session_id,
         new_message=Content(role="user", parts=[Part.from_text(text=results)]),
     )
     report = await parse_agent_response(events)
@@ -90,8 +92,8 @@ researcher_service = restate.VirtualObject("Researcher")
 @researcher_service.handler()
 async def run_researcher(ctx: restate.ObjectContext, task: ResearchTask) -> str:
     events = research_runner.run_async(
-        user_id=task.user_id,
-        session_id=task.session_id,
+        user_id=ctx.key(),
+        session_id=str(ctx.uuid()),
         new_message=Content(role="user", parts=[Part.from_text(text=task.question)]),
     )
     return await parse_agent_response(events)

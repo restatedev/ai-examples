@@ -66,6 +66,7 @@ async def answer(ctx: restate.Context, question: Question) -> str | None:
 
     return response.content
 
+
 # <end_here>
 
 if __name__ == "__main__":

@@ -2,8 +2,8 @@ import restate
 from agents import Agent
 from restate.ext.openai import restate_context, DurableRunner, durable_function_tool
 
-from app.utils.models import ClaimPrompt
-from app.utils.utils import (
+from utils.models import ClaimPrompt
+from utils.utils import (
     InsuranceClaim,
     request_human_review,
 )

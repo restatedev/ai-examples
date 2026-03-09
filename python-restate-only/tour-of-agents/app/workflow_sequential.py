@@ -1,63 +1,68 @@
 """
 LLM Prompt Chaining
 
-Build fault-tolerant processing pipelines where each step transforms the previous output.
+Build fault-tolerant processing pipelines that mix LLM steps with regular function calls.
 If any step fails, Restate resumes from that point.
 
-Input → Analysis → Extraction → Summary → Result
+Input -> Parse Document -> Analyze Claim -> Convert Currency -> Process Payment -> Result
 """
 
 import restate
-from pydantic import BaseModel
 from restate import RunOptions
-
+from util.util import ClaimData, convert_currency, process_payment, ClaimPrompt
 from util.litellm_call import llm_call
 
-example_prompt = """Q3 Performance Summary:
-Our customer satisfaction score rose to 92 points this quarter.
-Revenue grew by 45% compared to last year.
-Market share is now at 23% in our primary market.
-Customer churn decreased to 5% from 8%."""
-
-
-class Report(BaseModel):
-    message: str = example_prompt
-
-
 # <start_here>
-call_chaining_svc = restate.Service("CallChainingService")
+claim_service = restate.Service("ClaimReimbursement")
 
 
-@call_chaining_svc.handler()
-async def process(ctx: restate.Context, report: Report) -> str | None:
-    """Sequentially chains multiple LLM calls, each transforming the prior output."""
+@claim_service.handler()
+async def process(ctx: restate.Context, req: ClaimPrompt) -> dict:
+    """Sequentially chains LLM calls with regular function calls to process a claim."""
 
-    # Step 1: Extract metrics
-    extract = await ctx.run_typed(
-        "Extract metrics",
-        llm_call,  # Use your preferred LLM SDK here
-        RunOptions(max_attempts=3),  # Avoid infinite retries
-        messages=f"""Extract numerical values and their metrics from the text. 
-        Format as 'Metric Name: Value' per line. Input: {report.message}""",
-    )
-
-    # Step 2: Sort by value
-    sorted_metrics = await ctx.run_typed(
-        "Sort metrics",
+    # Step 1: Parse the claim document (LLM step)
+    parsed = await ctx.run_typed(
+        "Parse claim document",
         llm_call,
         RunOptions(max_attempts=3),
-        messages=f"Sort lines in descending order by value: {extract}",
+        messages=f"""Extract the claim amount, currency, category, and description.
+        Document: {req.message}""",
+        response_format=ClaimData,
     )
+    claim = ClaimData.model_validate_json(parsed.content)
 
-    # Step 3: Format as table
-    table = await ctx.run_typed(
-        "Format as table",
+    # Step 2: Analyze the claim (LLM step)
+    analysis = await ctx.run_typed(
+        "Analyze claim",
         llm_call,
         RunOptions(max_attempts=3),
-        messages=f"Format the data as a markdown table:{sorted_metrics}",
+        messages=f"""Assess whether this claim is valid and determine the approved amount.
+        Claim: {parsed.content}""",
     )
 
-    return table.content
+    # Step 3: Convert currency (regular step)
+    amount_usd = await ctx.run_typed(
+        "Convert currency",
+        convert_currency,
+        amount=claim.amount,
+        source=claim.currency,
+        target="USD",
+    )
+
+    # Step 4: Process reimbursement (regular step)
+    confirmation = await ctx.run_typed(
+        "Process payment",
+        process_payment,
+        claim_id=str(ctx.uuid()),
+        amount=amount_usd,
+    )
+
+    return {
+        "analysis": analysis.content,
+        "amount_usd": amount_usd,
+        "confirmation": confirmation,
+    }
+
 
 # <end_here>
 
@@ -65,7 +70,7 @@ if __name__ == "__main__":
     import asyncio
     import hypercorn
 
-    app = restate.app(services=[call_chaining_svc])
+    app = restate.app(services=[claim_service])
 
     conf = hypercorn.Config()
     conf.bind = ["0.0.0.0:9080"]

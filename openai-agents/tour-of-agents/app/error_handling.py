@@ -10,8 +10,8 @@ from restate.ext.openai import (
     durable_function_tool,
 )
 
-from app.utils.models import WeatherPrompt, WeatherRequest, WeatherResponse
-from app.utils.utils import fetch_weather
+from utils.models import WeatherPrompt, WeatherRequest, WeatherResponse
+from utils.utils import fetch_weather
 
 
 # <start_here>

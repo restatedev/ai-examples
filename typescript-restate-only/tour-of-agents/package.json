@@ -13,7 +13,7 @@
     "@ai-sdk/openai": "^2.0.23",
     "@restatedev/restate-sdk": "^1.10.4",
     "@restatedev/restate-sdk-zod": "^1.10.4",
-    "ai": "^5.0.89",
+    "ai": "^6.0.52",
     "zod": "^4.3.6"
   },
   "devDependencies": {

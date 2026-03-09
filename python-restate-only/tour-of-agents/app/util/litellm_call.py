@@ -1,11 +1,12 @@
-import typing
 import litellm
-
 from litellm.types.utils import Message, ModelResponse, Choices
+from pydantic import BaseModel
 
 
 async def llm_call(
-    messages: str | list[dict[str, str]], tools: list | None = None
+    messages: str | list[dict[str, str]],
+    tools: list | None = None,
+    response_format: BaseModel | None = None,
 ) -> Message:
     """
     Calls the model with the given prompt and returns the response.
@@ -22,7 +23,11 @@ async def llm_call(
     if isinstance(messages, str):
         messages = [{"role": "user", "content": messages}]
     response = await litellm.acompletion(
-        model="gpt-4o", messages=messages, tools=tools, stream=False
+        model="gpt-4o",
+        messages=messages,
+        tools=tools,
+        stream=False,
+        response_format=response_format,
     )
 
     # Handle the response properly - litellm returns a ModelResponse object

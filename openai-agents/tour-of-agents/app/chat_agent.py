@@ -3,7 +3,7 @@ from agents import Agent
 from restate import VirtualObject, ObjectContext
 from restate.ext.openai import DurableRunner
 
-from app.utils.models import ChatMessage
+from utils.models import ChatMessage
 
 # <start_here>
 chat = VirtualObject("Chat")

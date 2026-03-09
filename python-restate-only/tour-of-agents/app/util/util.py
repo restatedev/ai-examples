@@ -10,8 +10,19 @@ from restate import TerminalError, RunOptions
 from util.litellm_call import llm_call
 
 
-def system_message(content: str) -> dict[str, str]:
-    return {"role": "system", "content": content}
+class ClaimPrompt(BaseModel):
+    message: str = (
+        "Process my hospital bill of 2024-10-01 for 3000USD for a broken leg at General Hospital."
+    )
+
+
+class ClaimData(BaseModel):
+    """Insurance claim data structure."""
+
+    date: str = "2024-10-01"
+    amount: float = 3000
+    currency: str = "EUR"
+    reason: str = "hospital bill for a broken leg"
 
 
 def tool(name: str, description: str, parameters: dict[str, Any] | None = None):
@@ -322,3 +333,13 @@ async def create_support_ticket(ctx: restate.Context, ticket: SupportTicket) -> 
 
 
 # <end_remote_tool>
+
+
+async def convert_currency(amount: float, source: str, target: str) -> float:
+    """Convert between currencies using mock exchange rates."""
+    return amount * 1.3
+
+
+async def process_payment(claim_id: str, amount: float) -> str:
+    """Process a reimbursement payment (mock)."""
+    return f"Payment of ${amount:.2f} USD. Reference: PAY-123"

@@ -12,13 +12,7 @@ from pydantic import BaseModel
 from restate import RunOptions
 
 from util.litellm_call import llm_call
-from util.util import InsuranceClaim, request_review, tool
-
-
-class ClaimPrompt(BaseModel):
-    message: str = (
-        "Process my hospital bill of 2024-10-01 for 3000USD for a broken leg at General Hospital."
-    )
+from util.util import InsuranceClaim, request_review, tool, ClaimPrompt
 
 
 # TOOL IMPLEMENTATION
@@ -42,6 +36,8 @@ async def request_human_approval(ctx: restate.Context, claim: InsuranceClaim) ->
             return approved
         case _:
             return "Approval timed out - Evaluate with AI"
+
+
 # <end_here>
 
 

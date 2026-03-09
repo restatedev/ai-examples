@@ -8,29 +8,21 @@ from restate.ext.adk import RestatePlugin, RestateSessionService
 
 from utils.utils import parse_agent_response
 
+APP_NAME = "codegen"
 
 class CodeRequest(BaseModel):
     task: str = "Write a function that checks if a string is a palindrome"
 
 
-async def run_agent(runner: Runner, user_id: str, session_id: str, message: str) -> str:
-    """Run an ADK agent and return the final text response."""
-    events = runner.run_async(
-        user_id=user_id,
-        session_id=session_id,
-        new_message=Content(role="user", parts=[Part.from_text(text=message)]),
-    )
-    return await parse_agent_response(events)
-
-
 # <start_here>
-APP_NAME = "codegen"
-
+# AGENTS
 generator = Agent(
     model="gemini-2.5-flash",
     name="code_generator",
     instruction="You are a code generator. Write clean, correct code.",
 )
+gen_app = App(name=APP_NAME, root_agent=generator, plugins=[RestatePlugin()])
+gen_runner = Runner(app=gen_app, session_service=RestateSessionService())
 
 evaluator = Agent(
     model="gemini-2.5-flash",
@@ -39,7 +31,10 @@ evaluator = Agent(
     readability, and edge cases. Respond with PASS if acceptable,
     or FAIL: <feedback> with specific issues to fix.""",
 )
+eval_app = App(name=APP_NAME, root_agent=evaluator, plugins=[RestatePlugin()])
+eval_runner = Runner(app=eval_app, session_service=RestateSessionService())
 
+# AGENT SERVICE
 code_service = restate.VirtualObject("CodeGenerator")
 
 
@@ -55,18 +50,22 @@ async def generate(ctx: restate.ObjectContext, req: CodeRequest) -> dict:
             if feedback
             else f"Task: {req.task}"
         )
-        gen_app = App(name=APP_NAME, root_agent=generator, plugins=[RestatePlugin()])
-        gen_runner = Runner(app=gen_app, session_service=RestateSessionService())
-        code = await run_agent(gen_runner, "user", f"gen-{i}", prompt)
+        events = gen_runner.run_async(
+            user_id=ctx.key(),
+            session_id=str(ctx.uuid()),
+            new_message=Content(role="user", parts=[Part.from_text(text=prompt)]),
+        )
+        code = await parse_agent_response(events)
 
         # Step 2: Evaluate the code
-        eval_app = App(name=APP_NAME, root_agent=evaluator, plugins=[RestatePlugin()])
-        eval_runner = Runner(app=eval_app, session_service=RestateSessionService())
-        evaluation = await run_agent(eval_runner, "user", f"eval-{i}", f"Task: {req.task}\n\nCode:\n{code}")
-
+        events = eval_runner.run_async(
+            user_id=ctx.key(),
+            session_id=str(ctx.uuid()),
+            new_message=Content(role="user", parts=[Part.from_text(text=f"Task: {req.task}\n\nCode:\n{code}")]),
+        )
+        evaluation = await parse_agent_response(events)
         if evaluation.startswith("PASS"):
             return {"code": code, "iterations": i + 1}
-
         feedback = evaluation
 
     return {"code": "Max iterations reached", "iterations": max_iterations}

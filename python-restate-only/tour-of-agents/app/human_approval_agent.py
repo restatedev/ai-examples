@@ -10,13 +10,8 @@ from pydantic import BaseModel
 from restate import RunOptions
 
 from util.litellm_call import llm_call
-from util.util import InsuranceClaim, request_review, tool
+from util.util import InsuranceClaim, request_review, tool, ClaimPrompt
 
-
-class ClaimPrompt(BaseModel):
-    message: str = (
-        "Process my hospital bill of 2024-10-01 for 3000USD for a broken leg at General Hospital."
-    )
 
 # <start_here>
 # TOOL IMPLEMENTATION

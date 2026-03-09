@@ -11,32 +11,39 @@
 import * as restate from "@restatedev/restate-sdk";
 import { Context, RestatePromise } from "@restatedev/restate-sdk";
 import llmCall from "./utils/llm";
-import { zodPrompt } from "./utils/utils";
-
-const examplePrompt =
-  "Our Q3 results exceeded all expectations! Customer satisfaction reached 95%, revenue grew " +
-  "by 40% year-over-year, and we successfully launched three new product features. " +
-  "The team worked incredibly hard to deliver these outcomes despite supply chain challenges. " +
-  "Our market share increased to 23%, and we're well-positioned for continued growth in Q4.";
+import {ClaimInputSchema, ClaimInput} from "./utils/utils";
+const schema = restate.serde.schema;
 
 // <start_here>
-async function analyze(ctx: Context, { message }: { message: string }) {
+async function analyze(ctx: Context, claim: ClaimInput) {
   // Create parallel tasks - each runs independently
+  const claimJson = JSON.stringify(claim);
   const tasks = [
     ctx.run(
-      "Analyze sentiment",
-      // Use your preferred LLM SDK here
-      async () => llmCall(`Analyze sentiment: ${message}`),
+      "Eligibility agent",
+      async () => llmCall(
+          "Decide whether the following claim is eligible for reimbursement." +
+          "Respond with eligible if it's a medical claim, and not eligible otherwise." +
+          "\n\nClaim: " + claimJson,
+      ),
       { maxRetryAttempts: 3 },
     ),
     ctx.run(
-      "Extract key points",
-      async () => llmCall(`Extract 3 key points as bullets: ${message}`),
+      "Fraud agent",
+      async () => llmCall(
+          "Decide whether the cost of the claim is reasonable given the treatment." +
+          "Respond with reasonable or not reasonable." +
+          "\n\nClaim: " + claimJson,
+      ),
       { maxRetryAttempts: 3 },
     ),
     ctx.run(
-      "Summarize",
-      async () => llmCall(`Summarize in one sentence: ${message}`),
+      "Rate comparison agent",
+      async () => llmCall(
+          "Decide whether the claim is fraudulent." +
+          "Always respond with low risk, medium risk, or high risk." +
+          "\n\nClaim: " + claimJson,
+      ),
       { maxRetryAttempts: 3 },
     ),
   ];
@@ -51,7 +58,7 @@ const workflowParallel = restate.service({
   name: "ParallelAgentsService",
   handlers: {
     analyze: restate.createServiceHandler(
-      { input: zodPrompt(examplePrompt) },
+      { input: schema(ClaimInputSchema) },
       analyze,
     ),
   },

@@ -25,6 +25,13 @@ export const ClaimPromptSchema = z.object({
 });
 export type ClaimPrompt = z.infer<typeof ClaimPromptSchema>;
 
+export const ClaimData = z.object({
+  amount: z.number(),
+  currency: z.string(),
+  reason: z.string(),
+  date: z.string(),
+})
+
 export const ClaimInputSchema = z.object({
   date: z.string().default("2024-10-01"),
   category: z.string().default("orthopedic"),
@@ -43,18 +50,6 @@ export const InsuranceClaimSchema = z.object({
 });
 
 export type InsuranceClaim = z.infer<typeof InsuranceClaimSchema>;
-
-export const SequentialClaimRequestSchema = z.object({
-  claimId: z.string().default("claim_123"),
-  document: z
-    .string()
-    .default(
-      "Hospital bill for a broken leg. Amount: 3000 EUR. Date: 2024-10-01. Hospital: General Hospital.",
-    ),
-});
-export type SequentialClaimRequest = z.infer<
-  typeof SequentialClaimRequestSchema
->;
 
 export const ResearchRequestSchema = z.object({
   topic: z

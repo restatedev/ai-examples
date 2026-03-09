@@ -5,7 +5,7 @@ from openai.types.chat import ChatCompletionMessage, ChatCompletionAssistantMess
 from restate import TerminalError
 from restate.ext.openai import DurableRunner
 
-from app.utils.models import (
+from utils.models import (
     WeatherResponse,
     InsuranceClaim,
     BookingResult,
@@ -144,3 +144,13 @@ async def run_fraud_agent(_ctx: restate.Context, claim: InsuranceClaim) -> str:
         input=claim.model_dump_json(),
     )
     return result.final_output
+
+
+async def convert_currency(amount: float, source: str, target: str) -> float:
+    """Convert currency (placeholder)."""
+    return amount
+
+
+async def process_payment(claim_id: str, amount: float) -> str:
+    """Process payment (placeholder)."""
+    return f"Payment processed for claim {claim_id}: ${amount}"

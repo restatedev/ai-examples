@@ -57,7 +57,7 @@ agent_service = restate.VirtualObject("HumanClaimApprovalWithTimeoutsAgent")
 @agent_service.handler()
 async def run(ctx: restate.ObjectContext, req: ClaimPrompt) -> str | None:
     events = runner.run_async(
-        user_id=req.user_id,
+        user_id=ctx.key(),
         session_id=req.session_id,
         new_message=Content(role="user", parts=[Part.from_text(text=req.message)]),
     )

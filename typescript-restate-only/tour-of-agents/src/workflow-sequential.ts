@@ -8,45 +8,58 @@
  */
 import * as restate from "@restatedev/restate-sdk";
 import { Context } from "@restatedev/restate-sdk";
-import llmCall from "./utils/llm";
-import { zodPrompt } from "./utils/utils";
+import {
+  ClaimData,
+  convertCurrency,
+  processPayment,
+  zodPrompt,
+} from "./utils/utils";
 import { openai } from "@ai-sdk/openai";
+import { generateText, Output } from "ai";
 
-const examplePrompt = `Q3 Performance Summary:
-    Our customer satisfaction score rose to 92 points this quarter.
-    Revenue grew by 45% compared to last year.
-    Market share is now at 23% in our primary market.
-    Customer churn decreased to 5% from 8%.`;
+const examplePrompt =
+  "Process my hospital bill of 2024-10-01 for 3000USD for a broken leg at General Hospital.";
 
 // <start_here>
-async function process(ctx: Context, report: { message: string }) {
-  // Step 1: Extract metrics
-  const extract = await ctx.run(
+async function process(ctx: Context, { message }: { message: string }) {
+  // Step 1: Parse the claim document (LLM step)
+  const { output } = await ctx.run(
     "Extract metrics",
-    // Use your preferred LLM SDK here
-    async () =>
-      llmCall(`Extract numerical values and their metrics from the text. 
-            Format as 'Metric Name: Value' per line. Input: ${report.message}`),
+    async () => {
+      const { output } = await generateText({
+        model: openai("gpt-4"),
+        prompt: `Extract the claim amount, currency, category, and description. Input: ${message}`,
+        output: Output.object({ schema: ClaimData }),
+      });
+      return { output };
+    },
     { maxRetryAttempts: 3 },
   );
 
-  // Step 2: Process the result from Step 1
-  const sortedMetrics = await ctx.run(
+  // Step 2: Analyze the claim (LLM step)
+  const { text: analysis } = await ctx.run(
     "Sort metrics",
-    async () =>
-      llmCall(`Sort lines in descending order by value: ${extract.text}`),
+    async () => {
+      const { text } = await generateText({
+        model: openai("gpt-4"),
+        prompt: `Assess whether this claim is valid and determine the approved amount: ${output}`,
+      });
+      return { text };
+    },
     { maxRetryAttempts: 3 },
   );
 
-  // Step 3: Format as table
-  const table = await ctx.run(
-    "Format as table",
-    async () =>
-      llmCall(`Format the data as a markdown table: ${sortedMetrics.text}`),
-    { maxRetryAttempts: 3 },
+  // Step 3: Convert currency (regular step)
+  const amountUsd = await ctx.run("Convert currency", async () =>
+    convertCurrency(output.amount, output.currency, "USD"),
   );
 
-  return table.text;
+  // Step 4: Process reimbursement (regular step)
+  const confirmation = await ctx.run("Process payment", async () =>
+    processPayment(ctx.rand.uuidv4(), amountUsd),
+  );
+
+  return { analysis, amountUsd, confirmation };
 }
 // <end_here>
 

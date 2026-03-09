@@ -3,7 +3,7 @@ import restate
 from agents import Agent
 from restate.ext.openai.runner_wrapper import RestateSession, DurableRunner
 
-from app.utils.utils import InsuranceClaim
+from utils.utils import InsuranceClaim
 
 # <start_here>
 medical_agent = Agent(

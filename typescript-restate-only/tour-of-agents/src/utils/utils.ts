@@ -5,6 +5,15 @@ import llmCall from "./llm";
 import { Context, TerminalError } from "@restatedev/restate-sdk";
 import { ModelMessage, tool } from "ai";
 
+export const ClaimInputSchema = z.object({
+  date: z.string().default("2024-10-01"),
+  category: z.string().default("orthopedic"),
+  reason: z.string().default("hospital bill for a broken leg"),
+  amount: z.number().default(3000),
+  placeOfService: z.string().default("General Hospital"),
+});
+export type ClaimInput = z.infer<typeof ClaimInputSchema>;
+
 export function zodQuestion(examplePrompt: string) {
   return serde.schema(
     z.object({
@@ -21,6 +30,13 @@ export function zodPrompt(examplePrompt: string) {
     }),
   );
 }
+
+export const ClaimData = z.object({
+  amount: z.number(),
+  currency: z.string(),
+  reason: z.string(),
+  date: z.string(),
+});
 
 export function toolResult(toolCallId: string, toolName: string, output: any) {
   return {
@@ -291,3 +307,19 @@ export const crmService = restate.service({
   },
 });
 // <end_remote_tool>
+
+export function convertCurrency(
+  amount: number,
+  from: string,
+  to: string,
+): Promise<number> {
+  // Simulate currency conversion
+  return Promise.resolve(amount * 1.3);
+}
+export function processPayment(
+  claimId: string,
+  amount: number,
+): Promise<string> {
+  // Simulate payment processing
+  return Promise.resolve("Payment successful");
+}

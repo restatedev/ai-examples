@@ -5,6 +5,7 @@
 These examples use [Restate](https://ai.restate.dev/) to implement the [Agent2Agent (A2A) protocol](https://github.com/a2aproject/A2A).
 
 Restate acts as a scalable, resilient task orchestrator that speaks the A2A protocol and gives you:
+
 - 🔁 **Automatic retries** - Handles LLM API downtime, timeouts, and infrastructure failures
 - 🔄 **Smart recovery** - Preserves progress across failures without duplicating work
 - ⏱️ **Persistent task handles** - Tracks progress across failures, time, and processes
@@ -18,56 +19,57 @@ Restate acts as a scalable, resilient task orchestrator that speaks the A2A prot
 <img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/a2a/a2a.png" width="600px"/>
 
 ## Prerequisites
+
 - Python 3.12 or higher
 - [UV](https://docs.astral.sh/uv/)
 - A [Google API Key](https://platform.openai.com/docs/api-reference/authentication)
-    ```shell
-    echo "GOOGLE_API_KEY=your_api_key_here" >> .env
-    ```
+  ```shell
+  echo "GOOGLE_API_KEY=your_api_key_here" >> .env
+  ```
 
 ## Quickstart: running the weather agent
 
 This example shows how to run a weather agent (Restate+Google ADK) and use the A2A protocol to communicate with it:
 
 1. Run the application:
-    ```bash
-    uv run app/weather
-    ```
-    
-    The agent prints the address where it is running: `http://localhost:9080/restate/v1`
+
+   ```bash
+   uv run app/weather
+   ```
+
+   The agent prints the address where it is running: `http://localhost:9080/restate/v1`
 
 2. [Install and launch Restate](https://docs.restate.dev/installation#install-restate-server-%26-cli)
-    ```shell
-    restate-server
-    ```
-   
+   ```shell
+   restate-server
+   ```
 3. Go to the Restate UI at `http://localhost:9070`. Click on `register deployment`. And fill in the agent url `http://localhost:9080/restate/v1` (for the reimbursement agent).
 
-    ![Register service](./docs/images/register_deployment.png)
+   ![Register service](./docs/images/register_deployment.png)
 
 4. Click on the `WeatherAgentA2AServer/process_request` handler of the registered service and send a request using the A2A protocol:
-    
-    ```shell
-    curl localhost:8080/WeatherAgentA2AServer/process_request \
-        --json '{
-      "jsonrpc": "2.0",
-      "id": 142,
-      "method": "message/send",
-      "params": {
-        "message": {
-          "role": "user",
-          "parts": [
-            {
-              "kind": "text",
-              "text": "What is the weather in Detroit?"
-            }
-          ],
-          "messageId": "92249e7702-767c-417b-a0b0-f0741243c589"
-        },
-        "metadata": {}
-      }
-    }' | jq . 
-    ```
+
+   ```shell
+   curl localhost:8080/WeatherAgentA2AServer/process_request \
+       --json '{
+     "jsonrpc": "2.0",
+     "id": 142,
+     "method": "message/send",
+     "params": {
+       "message": {
+         "role": "user",
+         "parts": [
+           {
+             "kind": "text",
+             "text": "What is the weather in Detroit?"
+           }
+         ],
+         "messageId": "92249e7702-767c-417b-a0b0-f0741243c589"
+       },
+       "metadata": {}
+     }
+   }' | jq .
+   ```
 
 ## Reimbursement example: Experimenting with A2A messages
 
@@ -78,19 +80,18 @@ The example implements a reimbursement workflow where the agent gathers the requ
 ### Run the reimbursement agent
 
 1. Run the application:
-    ```bash
-    uv run app/reimbursement
-    ```
-    
-    The agent prints the address where it is running: `http://localhost:9081/restate/v1`
+
+   ```bash
+   uv run app/reimbursement
+   ```
+
+   The agent prints the address where it is running: `http://localhost:9081/restate/v1`
 
 2. [Launch Restate](https://docs.restate.dev/installation#install-restate-server-%26-cli)
-    ```shell
-    restate-server
-    ```
-   
+   ```shell
+   restate-server
+   ```
 3. Go to the Restate UI at `http://localhost:9070`. Click on `register deployment`. And fill in the agent url `http://localhost:9081/restate/v1` (for the reimbursement agent).
-
 
 ### Multi-turn conversations
 
@@ -120,10 +121,10 @@ curl localhost:8080/ReimbursementAgentA2AServer/process_request \
     },
     "metadata": {}
   }
-}' | jq . 
+}' | jq .
 ```
 
-It will then return a response mentioning you need to provide a date. 
+It will then return a response mentioning you need to provide a date.
 
 <details><summary>View output</summary>
 
@@ -206,10 +207,11 @@ curl localhost:8080/ReimbursementAgentA2AServer/process_request \
     },
     "metadata": {}
   }
-}' | jq . 
+}' | jq .
 ```
 
-Possibly, the agent will ask for a final approval before it can proceed with the reimbursement. 
+Possibly, the agent will ask for a final approval before it can proceed with the reimbursement.
+
 ```shell
 curl localhost:8080/ReimbursementAgentA2AServer/process_request \
     --json '{
@@ -229,7 +231,7 @@ curl localhost:8080/ReimbursementAgentA2AServer/process_request \
         },
         "metadata": {}
       }
-    }' | jq . 
+    }' | jq .
 ```
 
 Once the agent has all the information, it will ask start the reimbursement process and will block until a human approves the request.
@@ -243,21 +245,21 @@ Or you can leave the task blocked if you want to try out the get and cancel task
 [2025-05-16 13:42:50,410] [310993] [INFO] - Agent session lwp13w5e3sdf258t3wesf13234 -  Calling LLM
 [2025-05-16 13:42:52,293] [310993] [INFO] - HTTP Request: POST https://api.openai.com/v1/responses "HTTP/1.1 200 OK"
 [2025-05-16 13:42:52,303] [310993] [INFO] - Agent session lwp13w5e3sdf258t3wesf13234 -  Executing tool reimburse
-================================================== 
- Requesting approval for request_id_1633297 
- Resolve via: 
-curl localhost:8080/restate/awakeables/sign_1oqmHpDF_RJQBltjnf48zszmfmRr4w9izAAAAEQ/resolve --json '{"approved": true}' 
+==================================================
+ Requesting approval for request_id_1633297
+ Resolve via:
+curl localhost:8080/restate/awakeables/sign_1oqmHpDF_RJQBltjnf48zszmfmRr4w9izAAAAEQ/resolve --json '{"approved": true}'
 ==================================================
 ```
 
-Approve the reimbursement. 
+Approve the reimbursement.
 
 You can have a look at the Restate UI at `http://localhost:9070/ui/invocations` to see the end-to-end flow:
 
 <img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/a2a/long-running-task.png" alt="Restate UI" width="1200"/>
 
 We see how the A2A server called the task object. The task object then called the `invoke` method of the reimbursement agent, which then called the LLM to process the request.
-We see how it waited for the human approval and then continued with the reimbursement process. 
+We see how it waited for the human approval and then continued with the reimbursement process.
 
 Finally, it scheduled the payment task to execute at the end of the month.
 
@@ -276,7 +278,7 @@ curl localhost:8080/ReimbursementAgentA2AServer/process_request \
         "history_length": 10,
         "metadata": {}
       }
-    }' | jq . 
+    }' | jq .
 ```
 
 <details>
@@ -400,7 +402,7 @@ curl localhost:8080/ReimbursementAgentA2AServer/process_request \
     },
     "metadata": {}
   }
-}' | jq . 
+}' | jq .
 ```
 
 ```shell
@@ -412,7 +414,7 @@ curl localhost:8080/ReimbursementAgentA2AServer/process_request \
       "params": {
         "id": "33349e733702-7674c-417b-a0b0-f0741243c333"
       }
-    }' | jq . 
+    }' | jq .
 ```
 
 <details>
@@ -480,4 +482,3 @@ The UI also shows the task as canceled in the state tab and in the journal overv
 <img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/a2a/cancel_journal.png" alt="Restate UI" width="1200"/>
 
 This is implemented via Restate's [cancel task API](https://docs.restate.dev/develop/python/service-communication#cancel-an-invocation).
-

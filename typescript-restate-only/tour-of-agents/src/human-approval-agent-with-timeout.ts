@@ -13,7 +13,7 @@ import z from "zod";
 import llmCall from "./utils/llm";
 
 const examplePrompt =
-    "Process my hospital bill of 2024-10-01 for 3000USD for a broken leg at General Hospital.";
+  "Process my hospital bill of 2024-10-01 for 3000USD for a broken leg at General Hospital.";
 
 const tools = {
   humanApproval: tool({
@@ -63,9 +63,9 @@ async function run(ctx: Context, { message }: { message: string }) {
 
 const agentService = restate.service({
   name: "HumanClaimApprovalWithTimeoutsAgent",
-    handlers: {
-        run: restate.createServiceHandler({ input: zodPrompt(examplePrompt) }, run),
-    },
+  handlers: {
+    run: restate.createServiceHandler({ input: zodPrompt(examplePrompt) }, run),
+  },
 });
 
 restate.serve({ services: [agentService], port: 9080 });

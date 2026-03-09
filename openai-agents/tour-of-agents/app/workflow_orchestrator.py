@@ -24,7 +24,7 @@ planner = Agent(
 
 researcher = Agent(
     name="Researcher",
-    instructions="You are a research assistant. Provide a concise, factual answer.",
+    instructions="You are a research assistant. Provide a concise, factual answer."
 )
 
 writer = Agent(

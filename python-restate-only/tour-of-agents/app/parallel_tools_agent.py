@@ -62,6 +62,7 @@ async def run(ctx: Context, prompt: WeatherPrompt) -> str | None:
             output = await promise
             messages.append(tool_result(tool_id, "get_weather", str(output)))
 
+
 # <end_here>
 
 if __name__ == "__main__":
