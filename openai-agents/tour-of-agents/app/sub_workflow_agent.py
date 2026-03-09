@@ -50,7 +50,7 @@ agent = Agent(
 )
 
 
-agent_service = restate.Service("SubWorkflowClaimApprovalAgent")
+agent_service = restate.Service("SubWorkflowClaimAgent")
 
 
 @agent_service.handler()

@@ -41,7 +41,7 @@ const run = async (ctx: restate.Context, { prompt }: ClaimPrompt) => {
 };
 
 export const agent = restate.service({
-  name: "SubWorkflowClaimApprovalAgent",
+  name: "SubWorkflowClaimAgent",
   handlers: {
     run: restate.createServiceHandler(
       { input: schema(ClaimPromptSchema) },

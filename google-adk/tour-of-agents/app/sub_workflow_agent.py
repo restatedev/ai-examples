@@ -6,7 +6,7 @@ from google.genai.types import Content, Part
 from restate.ext.adk import RestatePlugin, restate_context, RestateSessionService
 
 from utils.models import ClaimPrompt, InsuranceClaim
-from utils.utils import request_human_review, parse_agent_response
+from utils.utils import request_review, parse_agent_response
 
 APP_NAME = "agents"
 
@@ -24,7 +24,7 @@ async def review(ctx: restate.ObjectContext, claim: InsuranceClaim) -> str:
 
     # Request human review
     await ctx.run_typed(
-        "Request review", request_human_review, claim=claim, awakeable_id=approval_id
+        "Request review", request_review, claim=claim, awakeable_id=approval_id
     )
 
     # Wait for human approval
@@ -56,7 +56,7 @@ agent = Agent(
 app = App(name=APP_NAME, root_agent=agent, plugins=[RestatePlugin()])
 runner = Runner(app=app, session_service=RestateSessionService())
 
-agent_service = restate.VirtualObject("SubWorkflowClaimApprovalAgent")
+agent_service = restate.VirtualObject("SubWorkflowClaimAgent")
 
 
 # HANDLER

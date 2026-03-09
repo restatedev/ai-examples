@@ -51,7 +51,7 @@ async function run(ctx: Context, { message }: { message: string }) {
 
     // Append all results to messages
     for (const { toolCallId, toolName, promise } of toolPromises) {
-      messages.push(toolResult(toolCallId, toolName, await promise));
+      history.push(toolResult(toolCallId, toolName, await promise));
     }
   }
 }

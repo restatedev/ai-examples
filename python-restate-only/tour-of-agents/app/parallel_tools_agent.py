@@ -40,7 +40,7 @@ async def run(ctx: Context, prompt: WeatherPrompt) -> str | None:
                 )
             ],
         )
-        messages.append(response.dict())
+        messages.append(response)
 
         if not response.tool_calls:
             return response.content

@@ -2,7 +2,7 @@ import { z } from "zod";
 import { serde } from "@restatedev/restate-sdk";
 import * as restate from "@restatedev/restate-sdk";
 import llmCall from "./llm";
-import { Context, TerminalError } from "@restatedev/restate-sdk";
+import { Context } from "@restatedev/restate-sdk";
 import { ModelMessage, tool } from "ai";
 
 export const ClaimInputSchema = z.object({
@@ -81,43 +81,8 @@ export function printEvaluation(
 }
 
 export async function fetchWeather(city: string) {
-  const output = await fetchWeatherFromAPI(city);
-  return parseWeatherResponse(output);
-}
-
-async function fetchWeatherFromAPI(city: string) {
-  const url = `https://wttr.in/${encodeURIComponent(city)}?format=j1`;
-  const res = await fetch(url);
-  const output = await res.text();
-  if (!res.ok) {
-    if (res.status === 404 && output) {
-      throw new TerminalError(
-        `Unknown location: ${city}. Please provide a valid city name.`,
-      );
-    }
-    throw new Error(`Weather API returned status ${res.status}`);
-  }
-  return output;
-}
-
-async function parseWeatherResponse(output: string) {
-  try {
-    const data = JSON.parse(output);
-    const current = data.current_condition?.[0];
-
-    if (!current) {
-      throw new Error("Missing current weather data");
-    }
-
-    return {
-      temperature: current.temp_C,
-      description: current.weatherDesc?.[0]?.value,
-    };
-  } catch (e) {
-    throw new TerminalError("Could not parse weather API response", {
-      cause: e,
-    });
-  }
+  // Simulate API call response
+  return `The weather in ${city} is sunny and warm.`;
 }
 
 export function requestClaimReview(claim: string, approvalId: string): void {

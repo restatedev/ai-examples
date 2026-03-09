@@ -215,26 +215,7 @@ class WeatherRequest(BaseModel):
 
 
 async def get_weather(req: WeatherRequest) -> dict:
-    # This is a simulated failure to demo Durable Execution retries.
-    try:
-        resp = httpx.get(
-            f"https://wttr.in/{httpx.URL(req.city)}?format=j1", timeout=10.0
-        )
-        resp.raise_for_status()
-
-        if resp.text.startswith("Unknown location"):
-            raise TerminalError(
-                f"Unknown location: {req.city}. Please provide a valid city name."
-            )
-
-        return resp.json()
-    except httpx.HTTPStatusError as e:
-        if e.response.status_code == 404:
-            raise TerminalError(
-                f"City not found: {req.city}. Please provide a valid city name."
-            ) from e
-        else:
-            raise Exception(f"HTTP error occurred: {e}") from e
+    return {"temperature": 23, "description": "Sunny and warm."}
 
 
 class Task(BaseModel):
