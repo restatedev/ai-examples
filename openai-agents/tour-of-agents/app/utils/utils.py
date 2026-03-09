@@ -96,6 +96,7 @@ async def cancel_flight(booking_id: str) -> None:
     print(f"❌ Cancelling flight booking {booking_id}")
 
 
+# <start_eligibility>
 eligibility_agent_service = restate.Service("EligibilityAgent")
 
 
@@ -110,6 +111,7 @@ async def run_eligibility_agent(_ctx: restate.Context, claim: InsuranceClaim) ->
         input=claim.model_dump_json(),
     )
     return result.final_output
+# <end_eligibility>
 
 
 rate_comparison_agent_service = restate.Service("RateComparisonAgent")

@@ -65,6 +65,7 @@ export function checkFraud(claim: InsuranceClaim) {
   return "low risk";
 }
 
+// <start_eligibility>
 export const eligibilityAgent = restate.service({
   name: "EligibilityAgent",
   handlers: {
@@ -84,6 +85,7 @@ export const eligibilityAgent = restate.service({
     },
   },
 });
+// <end_eligibility>
 
 export const rateComparisonAgent = restate.service({
   name: "RateComparisonAgent",

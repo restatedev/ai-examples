@@ -80,6 +80,7 @@ eligibility_runner = Runner(
     app=eligibility_app, session_service=RestateSessionService()
 )
 
+# <start_eligibility>
 eligibility_agent_service = restate.VirtualObject("EligibilityAgent")
 
 
@@ -95,6 +96,7 @@ async def run_eligibility_agent(
     )
 
     return await parse_agent_response(events)
+# <end_eligibility>
 
 
 rate_comparison_agent = Agent(

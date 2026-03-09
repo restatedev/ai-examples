@@ -3,7 +3,7 @@ import { RestatePromise } from "@restatedev/restate-sdk";
 import { openai } from "@ai-sdk/openai";
 import {generateText, Output, wrapLanguageModel} from "ai";
 import { durableCalls } from "@restatedev/vercel-ai-middleware";
-import { ResearchRequestSchema, ResearchRequest } from "./utils/types";
+import { ResearchRequestSchema } from "./utils/types";
 import { z } from "zod";
 const schema = restate.serde.schema;
 

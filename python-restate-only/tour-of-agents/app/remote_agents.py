@@ -20,7 +20,7 @@ from util.litellm_call import llm_call
 class Question(BaseModel):
     message: str = "I can't log into my account. Keep getting invalid password errors."
 
-
+# <start_here>
 remote_agent_router = restate.Service("RemoteAgentRouter")
 
 # Classify the request
@@ -60,7 +60,7 @@ async def answer(ctx: restate.Context, question: Question) -> str | None:
         arg=question.model_dump_json().encode(),
     )
     return response.decode("utf-8")
-
+# <end_here>
 
 if __name__ == "__main__":
     import asyncio
