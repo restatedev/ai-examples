@@ -14,14 +14,19 @@ export const ClaimInputSchema = z.object({
 });
 export type ClaimInput = z.infer<typeof ClaimInputSchema>;
 
-export function zodQuestion(examplePrompt: string) {
-  return serde.schema(
-    z.object({
-      userId: z.string().default("user_12345"),
-      message: z.string().default(examplePrompt),
-    }),
-  );
-}
+export const CodeGenRequestSchema = z.object({
+  task: z
+      .string()
+      .default(
+          "Write a TypeScript function that implements a retry mechanism with exponential backoff",
+      ),
+});
+
+export const ResearchRequestSchema = z.object({
+  topic: z
+      .string()
+      .default("Benefits of durable execution in distributed systems"),
+});
 
 export function zodPrompt(examplePrompt: string) {
   return serde.schema(

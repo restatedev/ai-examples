@@ -21,6 +21,9 @@ class ResearchTask(BaseModel):
 class ReportRequest(BaseModel):
     topic: str = "The impact of renewable energy on global economies"
 
+class TaskList(BaseModel):
+    tasks: list[str]
+
 
 # <start_here>
 researcher_service = restate.Service("ResearchWorker")
@@ -32,8 +35,7 @@ async def research(ctx: restate.Context, req: ResearchTask) -> dict:
         "Research",
         llm_call,
         RunOptions(max_attempts=3),
-        messages=req.question,
-        system="You are a research assistant. Provide a concise, factual answer.",
+        messages="You are a research assistant. Provide a concise, factual answer. {req.question}",
     )
     return {"question": req.question, "answer": answer.content}
 
@@ -48,12 +50,10 @@ async def generate(ctx: restate.Context, req: ReportRequest) -> dict:
         "Create research plan",
         llm_call,
         RunOptions(max_attempts=3),
-        messages=req.topic,
-        system="""You are a research planner. Break the topic into 2-4 research
-        sub-tasks. Respond with a JSON array of strings, each a specific
-        research question. Example: ["question 1", "question 2"]""",
+        messages=f"You are a research planner. Break the topic into 2-4 research sub-tasks. {req.topic}",
+        response_format=TaskList,
     )
-    tasks = json.loads(plan_result.content)
+    tasks = TaskList.model_validate_json(plan_result.content).tasks
 
     # Step 2: Dispatch workers in parallel
     worker_promises = []
@@ -69,8 +69,8 @@ async def generate(ctx: restate.Context, req: ReportRequest) -> dict:
         "Write report",
         llm_call,
         RunOptions(max_attempts=3),
-        messages=f"Topic: {req.topic}\n\nResearch findings:\n{json.dumps(findings, indent=2)}",
-        system="You are a report writer. Combine the research findings into a cohesive report.",
+        messages=f"You are a report writer. Combine the research findings into a cohesive report."
+               f"Topic: {req.topic}\n\nResearch findings:\n{json.dumps(findings)}",
     )
 
     return {"report": report.content, "task_count": len(tasks)}

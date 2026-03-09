@@ -53,17 +53,20 @@ async def analyze(ctx: restate.Context, claim: ClaimData) -> list[str | None]:
     )
 
     # Wait for all tasks to complete
-    await restate.gather([eligibility, fraud, rate])
+    await restate.gather(eligibility, fraud, rate)
 
     # Make final decision
-    return ctx.run_typed(
-        "Rate comparison agent",
+    decision = await ctx.run_typed(
+        "Decision agent",
         llm_call,
         RunOptions(max_attempts=3),
         messages=f"Decide about claim: {claim.model_dump_json()}. "
         "Base your decision on the following analyses:"
-        f"Eligibility: {await eligibility} Cost {await rate} Fraud: {await fraud}",
+        f"Eligibility: {(await eligibility).content} "
+        f"Cost: {(await rate).content} "
+        f"Fraud: {(await fraud).content}",
     )
+    return decision.content
 
 
 # <end_here>

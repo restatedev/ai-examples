@@ -7,6 +7,8 @@
 import * as restate from "@restatedev/restate-sdk";
 import { RestatePromise } from "@restatedev/restate-sdk";
 import llmCall from "./utils/llm";
+import { ResearchRequestSchema } from "./utils/utils";
+const schema = restate.serde.schema;
 
 // <start_here>
 export const researchWorker = restate.service({
@@ -29,7 +31,9 @@ export const researchWorker = restate.service({
 const orchestrator = restate.service({
   name: "ResearchReport",
   handlers: {
-    generate: async (ctx: restate.Context, req: { topic: string }) => {
+    generate: restate.createServiceHandler(
+        { input: schema(ResearchRequestSchema) },
+        async (ctx: restate.Context, {topic}: { topic: string }) => {
       // Step 1: Orchestrator creates a research plan
       const planJson = await ctx.run(
         "Create research plan",
@@ -37,7 +41,7 @@ const orchestrator = restate.service({
           llmCall(
             `You are a research planner. Break the topic into 2-4 research
           sub-tasks. Respond with a JSON array of strings, each a specific
-          research question. Example: ["question 1", "question 2"]\n\nTopic: ${req.topic}`,
+          research question. Example: ["question 1", "question 2"]\n\nTopic: ${topic}`,
           ),
         { maxRetryAttempts: 3 },
       );
@@ -55,13 +59,15 @@ const orchestrator = restate.service({
         "Write report",
         async () =>
           llmCall(
-            `You are a report writer. Combine the research findings into a cohesive report.\n\nTopic: ${req.topic}\n\nResearch findings:\n${JSON.stringify(workerResults, null, 2)}`,
+            `You are a report writer. Combine the research findings into a cohesive report.\n\n
+            Topic: ${topic}\n\nResearch findings:\n${JSON.stringify(workerResults)}`,
           ),
         { maxRetryAttempts: 3 },
       );
 
       return { report: report.text, taskCount: tasks.length };
-    },
+        },
+    ),
   },
 });
 // <end_here>

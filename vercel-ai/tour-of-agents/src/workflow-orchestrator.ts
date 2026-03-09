@@ -32,7 +32,7 @@ const orchestrator = restate.service({
   handlers: {
     generate: restate.createServiceHandler(
       { input: schema(ResearchRequestSchema) },
-      async (ctx: restate.Context, req: ResearchRequest) => {
+      async (ctx: restate.Context, {topic}: { topic: string }) => {
         const model = wrapLanguageModel({
           model: openai("gpt-4o"),
           middleware: durableCalls(ctx, { maxRetryAttempts: 3 }),
@@ -44,7 +44,7 @@ const orchestrator = restate.service({
           system: `You are a research planner. Break the topic into 2-4 research
           sub-tasks. Respond with a JSON array of strings, each a specific
           research question. Example: ["question 1", "question 2"]`,
-          prompt: req.topic,
+          prompt: topic,
           output: Output.array({element: z.string()})
         });
 
@@ -60,7 +60,7 @@ const orchestrator = restate.service({
           model,
           system:
             "You are a report writer. Combine the research findings into a cohesive report.",
-          prompt: `Topic: ${req.topic}\n\nResearch findings:\n${JSON.stringify(workerResults)}`,
+          prompt: `Topic: ${topic}\n\nResearch findings:\n${JSON.stringify(workerResults)}`,
         });
 
         return { report, taskCount: tasks.length };

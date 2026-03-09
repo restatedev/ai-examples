@@ -2,11 +2,11 @@ import * as restate from "@restatedev/restate-sdk";
 import { openai } from "@ai-sdk/openai";
 import { generateText, wrapLanguageModel } from "ai";
 import { durableCalls } from "@restatedev/vercel-ai-middleware";
-import { CodeGenRequestSchema, CodeGenRequest } from "./utils/types";
+import { CodeGenRequestSchema } from "./utils/types";
 const schema = restate.serde.schema;
 
 // <start_here>
-const generate = async (ctx: restate.Context, req: CodeGenRequest) => {
+const generate = async (ctx: restate.Context, {task}: { task: string }) => {
   const model = wrapLanguageModel({
     model: openai("gpt-4o"),
     middleware: durableCalls(ctx, { maxRetryAttempts: 3 }),
@@ -21,8 +21,8 @@ const generate = async (ctx: restate.Context, req: CodeGenRequest) => {
       model,
       system: "You are a code generator. Write clean, correct code.",
       prompt: feedback
-        ? `Task: ${req.task}\n\nPrevious attempt was rejected:\n${feedback}\n\nPlease fix the issues.`
-        : `Task: ${req.task}`,
+        ? `Task: ${task}\n\nPrevious attempt was rejected:\n${feedback}\n\nPlease fix the issues.`
+        : `Task: ${task}`,
     });
 
     // Step 2: Evaluate the code
@@ -31,7 +31,7 @@ const generate = async (ctx: restate.Context, req: CodeGenRequest) => {
       system: `You are a code reviewer. Evaluate the code for correctness,
             readability, and edge cases. Respond with PASS if acceptable,
             or FAIL: <feedback> with specific issues to fix.`,
-      prompt: `Task: ${req.task}\n\nCode:\n${code}`,
+      prompt: `Task: ${task}\n\nCode:\n${code}`,
     });
 
     if (evaluation.startsWith("PASS")) {

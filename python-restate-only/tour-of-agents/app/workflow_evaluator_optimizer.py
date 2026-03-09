@@ -36,8 +36,7 @@ async def generate(ctx: restate.Context, req: CodeRequest) -> dict:
             f"Generate code (attempt {i + 1})",
             llm_call,
             RunOptions(max_attempts=3),
-            messages=prompt,
-            system="You are a code generator. Write clean, correct code.",
+            messages=f"You are a code generator. Write clean, correct code. {prompt}",
         )
 
         # Step 2: Evaluate the code
@@ -45,10 +44,10 @@ async def generate(ctx: restate.Context, req: CodeRequest) -> dict:
             f"Evaluate code (attempt {i + 1})",
             llm_call,
             RunOptions(max_attempts=3),
-            messages=f"Task: {req.task}\n\nCode:\n{code.content}",
-            system="""You are a code reviewer. Evaluate the code for correctness,
-            readability, and edge cases. Respond with PASS if acceptable,
-            or FAIL: <feedback> with specific issues to fix.""",
+            messages=f"""You are a code reviewer. Evaluate the code for correctness,
+            messages, and edge cases. Respond with PASS if acceptable,
+            or FAIL: <feedback> with specific issues to fix.
+            Task: {req.task}\n\nCode:\n{code.content}""",
         )
 
         if evaluation.content.startswith("PASS"):

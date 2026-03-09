@@ -18,6 +18,8 @@ class ResearchTask(BaseModel):
 class ReportRequest(BaseModel):
     topic: str = "The impact of renewable energy on global economies"
 
+class TaskList(BaseModel):
+    tasks: list[str]
 
 APP_NAME = "agents"
 
@@ -28,6 +30,7 @@ planner = Agent(
     instruction="""You are a research planner. Break the topic into 2-4 research
     sub-tasks. Respond with a JSON array of strings, each a specific
     research question. Example: ["question 1", "question 2"]""",
+    output_schema=TaskList,
 )
 plan_app = App(name=APP_NAME, root_agent=planner, plugins=[RestatePlugin()])
 plan_runner = Runner(app=plan_app, session_service=RestateSessionService())
@@ -63,7 +66,7 @@ async def generate(ctx: restate.ObjectContext, req: ReportRequest) -> dict:
         new_message=Content(role="user", parts=[Part.from_text(text=req.topic)]),
     )
     plan_output =  await parse_agent_response(plan_events)
-    tasks = json.loads(plan_output)
+    tasks = TaskList.model_validate_json(plan_output).tasks
 
     # Step 2: Dispatch workers in parallel
     worker_promises = []
@@ -75,7 +78,7 @@ async def generate(ctx: restate.ObjectContext, req: ReportRequest) -> dict:
     findings = [await p for p in worker_promises]
 
     # Step 3: Combine results into a report
-    results = f"Topic: {req.topic}\n\nResearch findings:\n{json.dumps(findings, indent=2)}"
+    results = f"Topic: {req.topic}\n\nResearch findings:\n{json.dumps(findings)}"
     events = writer_runner.run_async(
         user_id=ctx.key(),
         session_id=session_id,

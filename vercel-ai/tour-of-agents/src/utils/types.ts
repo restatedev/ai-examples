@@ -56,7 +56,6 @@ export const ResearchRequestSchema = z.object({
     .string()
     .default("Benefits of durable execution in distributed systems"),
 });
-export type ResearchRequest = z.infer<typeof ResearchRequestSchema>;
 
 export const CodeGenRequestSchema = z.object({
   task: z
@@ -65,7 +64,6 @@ export const CodeGenRequestSchema = z.object({
       "Write a TypeScript function that implements a retry mechanism with exponential backoff",
     ),
 });
-export type CodeGenRequest = z.infer<typeof CodeGenRequestSchema>;
 
 const tripExample =
   "Book a business trip to San Francisco from March 15-17. Flying from JFK. And a hotel downtown for 1 guest.";
