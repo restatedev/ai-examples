@@ -18,39 +18,45 @@ const schema = restate.serde.schema;
 async function analyze(ctx: Context, claim: ClaimInput) {
   // Create parallel tasks - each runs independently
   const claimJson = JSON.stringify(claim);
-  const tasks = [
-    ctx.run(
-      "Eligibility agent",
-      async () => llmCall(
-          "Decide whether the following claim is eligible for reimbursement." +
-          "Respond with eligible if it's a medical claim, and not eligible otherwise." +
-          "\n\nClaim: " + claimJson,
-      ),
-      { maxRetryAttempts: 3 },
+  const eligibility = ctx.run(
+    "Eligibility agent",
+    async () => llmCall(
+        "Decide whether the following claim is eligible for reimbursement." +
+        "Respond with eligible if it's a medical claim, and not eligible otherwise." +
+        "\n\nClaim: " + claimJson,
     ),
-    ctx.run(
-      "Fraud agent",
-      async () => llmCall(
-          "Decide whether the cost of the claim is reasonable given the treatment." +
-          "Respond with reasonable or not reasonable." +
-          "\n\nClaim: " + claimJson,
-      ),
-      { maxRetryAttempts: 3 },
+    { maxRetryAttempts: 3 },
+  )
+  const fraud = ctx.run(
+    "Fraud agent",
+    async () => llmCall(
+        "Decide whether the cost of the claim is reasonable given the treatment." +
+        "Respond with reasonable or not reasonable." +
+        "\n\nClaim: " + claimJson,
     ),
-    ctx.run(
-      "Rate comparison agent",
-      async () => llmCall(
-          "Decide whether the claim is fraudulent." +
-          "Always respond with low risk, medium risk, or high risk." +
-          "\n\nClaim: " + claimJson,
-      ),
-      { maxRetryAttempts: 3 },
+    { maxRetryAttempts: 3 },
+  )
+  const cost = ctx.run(
+    "Rate comparison agent",
+    async () => llmCall(
+        "Decide whether the claim is fraudulent." +
+        "Always respond with low risk, medium risk, or high risk." +
+        "\n\nClaim: " + claimJson,
     ),
-  ];
+    { maxRetryAttempts: 3 },
+  )
 
   // Wait for all tasks to complete and return the results
-  const results = await RestatePromise.all(tasks);
-  return results.map((res) => res.text);
+  await RestatePromise.all([eligibility, cost, fraud]);
+
+  // Make final decision
+  const { text } = await ctx.run(
+      "Decision agent",
+      async () => llmCall( `Decide about claim ${JSON.stringify(claim)}.
+        Base your decision on the following analyses:
+        Eligibility: ${eligibility}, Cost: ${cost} Fraud: ${fraud}`)
+  );
+  return text
 }
 // <end_here>
 
