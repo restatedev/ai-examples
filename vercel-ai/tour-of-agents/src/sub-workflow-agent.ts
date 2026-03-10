@@ -30,7 +30,7 @@ const run = async (ctx: restate.Context, { prompt }: ClaimPrompt) => {
         description: "Ask for human approval for high-value claims.",
         inputSchema: InsuranceClaimSchema,
         execute: async (claim: InsuranceClaim) =>
-          ctx.serviceClient(humanApprovalWorfklow).requestApproval(claim),
+          ctx.serviceClient(humanApprovalWorkflow).requestApproval(claim),
       }),
       // <end_here>
     },
@@ -51,7 +51,7 @@ export const agent = restate.service({
 });
 
 // <start_wf>
-export const humanApprovalWorfklow = restate.service({
+export const humanApprovalWorkflow = restate.service({
   name: "HumanApprovalWorkflow",
   handlers: {
     requestApproval: async (ctx: restate.Context, claim: InsuranceClaim) => {
@@ -65,4 +65,4 @@ export const humanApprovalWorfklow = restate.service({
 });
 // <end_wf>
 
-restate.serve({ services: [agent, humanApprovalWorfklow] });
+restate.serve({ services: [agent, humanApprovalWorkflow] });

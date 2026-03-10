@@ -25,6 +25,11 @@ class ClaimData(BaseModel):
     reason: str = "hospital bill for a broken leg"
 
 
+class ClaimEvaluation(BaseModel):
+    """Evaluation of an insurance claim."""
+    valid: bool
+
+
 def tool(name: str, description: str, parameters: dict[str, Any] | None = None):
     tool_def: dict[str, Any] = {
         "type": "function",

@@ -15,7 +15,7 @@ import {ClaimInputSchema, ClaimInput} from "./utils/utils";
 const schema = restate.serde.schema;
 
 // <start_here>
-async function analyze(ctx: Context, claim: ClaimInput) {
+async function run(ctx: Context, claim: ClaimInput) {
   // Create parallel tasks - each runs independently
   const claimJson = JSON.stringify(claim);
   const eligibility = ctx.run(
@@ -54,18 +54,20 @@ async function analyze(ctx: Context, claim: ClaimInput) {
       "Decision agent",
       async () => llmCall( `Decide about claim ${JSON.stringify(claim)}.
         Base your decision on the following analyses:
-        Eligibility: ${eligibility}, Cost: ${cost} Fraud: ${fraud}`)
+        - Eligibility: ${(await eligibility).text}, 
+        - Cost: ${(await cost).text},
+        - Fraud: ${(await fraud).text}`)
   );
   return text
 }
 // <end_here>
 
 const workflowParallel = restate.service({
-  name: "ParallelAgentsService",
+  name: "ParallelAgentClaimApproval",
   handlers: {
-    analyze: restate.createServiceHandler(
+    run: restate.createServiceHandler(
       { input: schema(ClaimInputSchema) },
-      analyze,
+      run,
     ),
   },
 });

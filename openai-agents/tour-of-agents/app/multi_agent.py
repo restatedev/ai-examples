@@ -28,7 +28,7 @@ intake_agent = Agent(
 agent_dict = {
     "IntakeAgent": intake_agent,
     "MedicalSpecialist": medical_agent,
-    "AutoSpecialist": car_agent,
+    "CarSpecialist": car_agent,
 }
 
 agent_service = restate.VirtualObject("MultiAgentClaimApproval")

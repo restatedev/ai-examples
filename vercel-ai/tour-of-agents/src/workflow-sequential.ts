@@ -5,6 +5,7 @@ import { durableCalls } from "@restatedev/vercel-ai-middleware";
 import { convertCurrency, processPayment } from "./utils/utils";
 import {ClaimData, ClaimPromptSchema} from "./utils/types";
 import { Context } from "@restatedev/restate-sdk";
+import { z } from "zod";
 const schema = restate.serde.schema;
 
 // <start_here>
@@ -24,12 +25,17 @@ const process = async (ctx: Context, {prompt}: {prompt: string}) => {
   });
 
   // Step 2: Analyze the claim (LLM step)
-  const { text: analysis } = await generateText({
+  const { output: valid } = await generateText({
     model,
     system:
       "You are a claims analyst. Assess whether this claim is valid and determine the approved amount.",
-    prompt: `Claim: ${output}`,
+    prompt: `Claim: ${JSON.stringify(output)}`,
+    output: Output.object({schema: z.object({valid: z.boolean()})}),
   });
+
+  if (!valid) {
+    return { analysis: "Claim is invalid", amountUsd: 0, confirmation: false };
+  }
 
   // Step 3: Convert currency (regular step)
   const amountUsd = await ctx.run("Convert currency", async () =>
@@ -41,7 +47,7 @@ const process = async (ctx: Context, {prompt}: {prompt: string}) => {
     processPayment(ctx.rand.uuidv4(), amountUsd),
   );
 
-  return { analysis, amountUsd, confirmation };
+  return { analysis: "Claim is valid", amountUsd, confirmation };
 };
 // <end_here>
 

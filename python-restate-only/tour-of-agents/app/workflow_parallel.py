@@ -18,11 +18,11 @@ from util.litellm_call import llm_call
 from util.util import ClaimData
 
 # <start_here>
-parallelization_svc = restate.Service("ParallelAgentsService")
+parallelization_svc = restate.Service("ParallelAgentClaimApproval")
 
 
 @parallelization_svc.handler()
-async def analyze(ctx: restate.Context, claim: ClaimData) -> list[str | None]:
+async def run(ctx: restate.Context, claim: ClaimData) -> list[str | None]:
     """Analyzes a claim in parallel with specialized agents."""
 
     # Create parallel tasks - each runs independently
