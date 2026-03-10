@@ -35,7 +35,7 @@ async def research(ctx: restate.Context, req: ResearchTask) -> dict:
         "Research",
         llm_call,
         RunOptions(max_attempts=3),
-        messages="You are a research assistant. Provide a concise, factual answer. {req.question}",
+        messages=f"You are a research assistant. Provide a concise, factual answer. {req.question}",
     )
     return {"question": req.question, "answer": answer.content}
 

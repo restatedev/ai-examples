@@ -39,16 +39,16 @@ async def run(ctx: restate.Context, claim: ClaimData) -> list[str | None]:
         "Fraud agent",
         llm_call,
         RunOptions(max_attempts=3),
-        messages="Decide whether the cost of the claim is reasonable given the treatment."
-        " Respond with reasonable or not reasonable."
+        messages="Decide whether the claim is fraudulent."
+        " Always respond with low risk, medium risk, or high risk."
         f"\n\nClaim: {claim_json}",
     )
     rate = ctx.run_typed(
         "Rate comparison agent",
         llm_call,
         RunOptions(max_attempts=3),
-        messages="Decide whether the claim is fraudulent."
-        " Always respond with low risk, medium risk, or high risk."
+        messages="Decide whether the cost of the claim is reasonable given the treatment."
+        " Respond with reasonable or not reasonable."
         f"\n\nClaim: {claim_json}",
     )
 

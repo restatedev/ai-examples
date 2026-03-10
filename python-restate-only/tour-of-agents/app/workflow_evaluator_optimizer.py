@@ -45,7 +45,7 @@ async def generate(ctx: restate.Context, req: CodeRequest) -> dict:
             llm_call,
             RunOptions(max_attempts=3),
             messages=f"""You are a code reviewer. Evaluate the code for correctness,
-            messages, and edge cases. Respond with PASS if acceptable,
+            readability, and edge cases. Respond with PASS if acceptable,
             or FAIL: <feedback> with specific issues to fix.
             Task: {req.task}\n\nCode:\n{code.content}""",
         )

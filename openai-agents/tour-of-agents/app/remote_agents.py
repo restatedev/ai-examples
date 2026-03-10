@@ -27,7 +27,7 @@ agent = Agent(
     tools=[check_eligibility, check_fraud],
 )
 
-agent_service = restate.Service("RemoteMultiAgentClaimApproval")
+agent_service = restate.Service("MultiAgentClaimApproval")
 
 
 @agent_service.handler()

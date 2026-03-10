@@ -29,19 +29,19 @@ async function run(ctx: Context, claim: ClaimInput) {
   )
   const fraud = ctx.run(
     "Fraud agent",
-    async () => llmCall(
-        "Decide whether the cost of the claim is reasonable given the treatment." +
-        "Respond with reasonable or not reasonable." +
-        "\n\nClaim: " + claimJson,
+      async () => llmCall(
+          "Decide whether the claim is fraudulent." +
+          "Always respond with low risk, medium risk, or high risk." +
+          "\n\nClaim: " + claimJson,
     ),
     { maxRetryAttempts: 3 },
   )
   const cost = ctx.run(
     "Rate comparison agent",
-    async () => llmCall(
-        "Decide whether the claim is fraudulent." +
-        "Always respond with low risk, medium risk, or high risk." +
-        "\n\nClaim: " + claimJson,
+      async () => llmCall(
+          "Decide whether the cost of the claim is reasonable given the treatment." +
+          "Respond with reasonable or not reasonable." +
+          "\n\nClaim: " + claimJson,
     ),
     { maxRetryAttempts: 3 },
   )
