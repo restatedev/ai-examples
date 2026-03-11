@@ -53,7 +53,7 @@ async def generate(ctx: restate.Context, req: CodeRequest) -> dict:
         if evaluation.content and evaluation.content.startswith("PASS"):
             return {"code": code.content, "iterations": i + 1}
 
-        feedback = evaluation.content
+        feedback = evaluation.content or ""
 
     return {"code": "Max iterations reached", "iterations": max_iterations}
 
