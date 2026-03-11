@@ -31,6 +31,8 @@ async def process(ctx: restate.Context, req: ClaimPrompt) -> dict:
         Document: {req.message}""",
         response_format=ClaimData,
     )
+    if not parsed.content:
+        raise restate.TerminalError("LLM failed to parse claim document.")
     claim = ClaimData.model_validate_json(parsed.content)
 
     # Step 2: Analyze the claim (LLM step)
@@ -42,6 +44,8 @@ async def process(ctx: restate.Context, req: ClaimPrompt) -> dict:
         Claim: {parsed.content}""",
         response_format=ClaimEvaluation,
     )
+    if not response.content:
+        raise restate.TerminalError("LLM failed to analyze claim.")
     evaluation = ClaimEvaluation.model_validate_json(response.content)
     if not evaluation.valid:
         return {"analysis": "Claim is invalid."}

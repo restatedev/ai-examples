@@ -16,9 +16,9 @@ from utils.models import (
 
 
 # <start_weather>
-async def fetch_weather(city: str) -> WeatherResponse:
-    fail_on_denver(city)
-    return f"The weather in {city} is sunny and warm."
+async def fetch_weather(req: WeatherRequest) -> WeatherResponse:
+    fail_on_denver(req.city)
+    return WeatherResponse(temperature=23, description="Sunny")
 
 # <end_weather>
 

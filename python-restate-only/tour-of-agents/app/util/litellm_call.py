@@ -6,7 +6,7 @@ from pydantic import BaseModel
 async def llm_call(
     messages: str | list[dict[str, str]],
     tools: list | None = None,
-    response_format: BaseModel | None = None,
+    response_format: type[BaseModel] | None = None,
 ) -> Message:
     """
     Calls the model with the given prompt and returns the response.

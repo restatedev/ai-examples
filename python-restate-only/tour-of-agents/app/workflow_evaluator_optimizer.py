@@ -50,7 +50,7 @@ async def generate(ctx: restate.Context, req: CodeRequest) -> dict:
             Task: {req.task}\n\nCode:\n{code.content}""",
         )
 
-        if evaluation.content.startswith("PASS"):
+        if evaluation.content and evaluation.content.startswith("PASS"):
             return {"code": code.content, "iterations": i + 1}
 
         feedback = evaluation.content

@@ -7,17 +7,17 @@ from google.adk.agents.llm_agent import Agent
 from restate import TerminalError
 from restate.ext.adk import RestatePlugin, restate_context, RestateSessionService
 
-from utils.models import WeatherResponse, WeatherPrompt
+from utils.models import WeatherResponse, WeatherPrompt, WeatherRequest
 from utils.utils import fetch_weather, parse_agent_response
 
 APP_NAME = "agents"
 
 
-async def get_weather(city: str) -> WeatherResponse:
+async def get_weather(city: WeatherRequest) -> WeatherResponse:
     """Get the current weather for a given city."""
     #  Do one or more durable steps using the Restate context
     return await restate_context().run_typed(
-        f"Get weather {city}", fetch_weather, city=city
+        f"Get weather {city}", fetch_weather, req=city
     )
 
 

@@ -23,7 +23,7 @@ parallel_tools_agent = restate.Service("ParallelToolAgent")
 @parallel_tools_agent.handler()
 async def run(ctx: Context, prompt: WeatherPrompt) -> str | None:
     """Main agent loop with tool calling"""
-    messages = [{"role": "user", "content": prompt.message}]
+    messages: list = [{"role": "user", "content": prompt.message}]
 
     while True:
         # Call LLM with durable execution

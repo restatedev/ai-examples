@@ -22,7 +22,7 @@ parallelization_svc = restate.Service("ParallelAgentClaimApproval")
 
 
 @parallelization_svc.handler()
-async def run(ctx: restate.Context, claim: ClaimData) -> list[str | None]:
+async def run(ctx: restate.Context, claim: ClaimData) -> str | None:
     """Analyzes a claim in parallel with specialized agents."""
 
     # Create parallel tasks - each runs independently

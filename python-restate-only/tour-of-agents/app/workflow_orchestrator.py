@@ -53,6 +53,8 @@ async def generate(ctx: restate.Context, req: ReportRequest) -> dict:
         messages=f"You are a research planner. Break the topic into 2-4 research sub-tasks. {req.topic}",
         response_format=TaskList,
     )
+    if not plan_result.content:
+        raise restate.TerminalError("No research plan created")
     tasks = TaskList.model_validate_json(plan_result.content).tasks
 
     # Step 2: Dispatch workers in parallel

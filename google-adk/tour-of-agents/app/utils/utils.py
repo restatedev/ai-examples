@@ -1,19 +1,15 @@
-from typing import AsyncGenerator
-
 import restate
-import httpx
-
 from google.adk import Agent, Runner
 from google.adk.apps import App
 from google.adk.events import Event
 from google.genai.types import Content, Part
 from restate.ext.adk import RestateSessionService, RestatePlugin
-
+from typing import AsyncGenerator
 from utils.models import (
     WeatherResponse,
     InsuranceClaim,
+WeatherRequest
 )
-
 
 async def parse_agent_response(events: AsyncGenerator[Event, None]) -> str:
     """Run an ADK agent and return the final text response."""
@@ -26,9 +22,9 @@ async def parse_agent_response(events: AsyncGenerator[Event, None]) -> str:
 
 
 # <start_weather>
-async def fetch_weather(city: str) -> WeatherResponse:
-    fail_on_denver(city)
-    return f"The weather in {city} is sunny and warm."
+async def fetch_weather(req: WeatherRequest) -> WeatherResponse:
+    fail_on_denver(req.city)
+    return WeatherResponse(temperature=23, description="Sunny")
 
 # <end_weather>
 
