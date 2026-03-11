@@ -37,7 +37,7 @@ agent_service = restate.Service("agent")
 
 
 @agent_service.handler()
-async def run(ctx: restate.Context, message: WeatherPrompt) -> str:
+async def run(ctx: restate.Context, message: WeatherPrompt) -> str | None:
     """Handle a user message, calling tools until a final answer is ready."""
     messages = [
         {"role": "system", "content": "You are a helpful weather assistant."},

@@ -1,6 +1,5 @@
-import { generateText, TypedToolCall } from "ai";
+import { generateText, TypedToolCall, ModelMessage } from "ai";
 import { openai } from "@ai-sdk/openai";
-import { ModelMessage } from "@ai-sdk/provider-utils";
 
 const model = openai("gpt-4");
 

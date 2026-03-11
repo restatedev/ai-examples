@@ -4,7 +4,7 @@ A template for creating a Restate agent in TypeScript.
 
 ## Run the example
 
-[Install Restate](/installation) and launch it:
+[Install Restate](https://docs.restate.dev/installation) and launch it:
 
 ```bash
 npm install --global @restatedev/restate-server@latest @restatedev/restate@latest
