@@ -4,7 +4,7 @@ Learn how to implement resilient agents with durable execution, human-in-the-loo
 
 ## Run the example
 
-[Install Restate](/installation) and launch it:
+[Install Restate](https://docs.restate.dev/installation) and launch it:
 
 ```bash
 npm install --global @restatedev/restate-server@latest @restatedev/restate@latest
