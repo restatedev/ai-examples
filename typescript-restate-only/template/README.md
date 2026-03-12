@@ -4,6 +4,8 @@ A template for creating a Restate agent in TypeScript.
 
 ## Run the example
 
+Check out the [AI Quickstart](/ai-quickstart) to run this example.
+
 [Install Restate](https://docs.restate.dev/installation) and launch it:
 
 ```bash
