@@ -27,5 +27,6 @@ search_and_replace_version $PROJECT_ROOT/openai-agents/template
 # Google ADK agents Python examples
 search_and_replace_version $PROJECT_ROOT/google-adk/tour-of-agents
 
-# Pattern Python examples
-search_and_replace_version $PROJECT_ROOT/python-patterns
+# Restate-only examples
+search_and_replace_version $PROJECT_ROOT/python-restate-only/template
+search_and_replace_version $PROJECT_ROOT/python-restate-only/tour-of-agents

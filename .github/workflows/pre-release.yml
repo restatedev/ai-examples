@@ -8,10 +8,9 @@ on:
         required: false
         type: string
       sdkPythonVersion:
-        description: 'sdk-python version (without prepending v). Leave empty if you do not want to update it.'
+        description: "sdk-python version (without prepending v). Leave empty if you do not want to update it."
         required: false
         type: string
-
 
 jobs:
   updates:

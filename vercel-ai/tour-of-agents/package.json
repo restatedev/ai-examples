@@ -1,26 +1,23 @@
 {
-  "name": "restate-ts-template",
+  "name": "restate-vercel-agents",
   "version": "0.0.1",
   "description": "Tour of Agents with Restate and AI SDK",
   "main": "app.js",
   "type": "commonjs",
   "scripts": {
     "build": "tsc --noEmitOnError",
-    "start": "node ./dist/app.js",
-    "dev": "tsx watch ./src/app.ts",
     "prebundle": "rm -rf dist",
     "bundle": "esbuild src/app.ts --bundle --minify --sourcemap --platform=node --target=es2020 --outfile=dist/app.js",
-    "postbundle": "cd dist && zip -r index.zip app.js*",
-    "app": "npm run start",
-    "app-dev": "npm run dev"
+    "postbundle": "cd dist && zip -r index.zip app.js*"
   },
   "dependencies": {
     "@ai-sdk/mcp": "^1.0.14",
     "@ai-sdk/openai": "^3.0.12",
-    "@restatedev/restate-sdk": "^1.10.2",
-    "@restatedev/restate-sdk-zod": "^1.10.2",
+    "@restatedev/restate-sdk": "^1.10.4",
+    "@restatedev/restate-sdk-zod": "^1.10.4",
     "@restatedev/vercel-ai-middleware": "^0.3.1",
-    "ai": "^6.0.52"
+    "ai": "^6.0.52",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/node": "^20.14.2",

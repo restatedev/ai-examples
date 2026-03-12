@@ -2,12 +2,11 @@ import restate
 from agents import Agent
 from restate.ext.openai import restate_context, DurableRunner, durable_function_tool
 
-from app.utils.models import ClaimPrompt
-from app.utils.utils import (
+from utils.models import ClaimPrompt
+from utils.utils import (
     InsuranceClaim,
     request_human_review,
 )
-
 
 # <start_wf>
 # Sub-workflow service for human approval
@@ -51,10 +50,20 @@ agent = Agent(
 )
 
 
-agent_service = restate.Service("SubWorkflowClaimApprovalAgent")
+agent_service = restate.Service("SubWorkflowClaimAgent")
 
 
 @agent_service.handler()
 async def run(_ctx: restate.Context, req: ClaimPrompt) -> str:
     result = await DurableRunner.run(agent, req.message)
     return result.final_output
+
+
+if __name__ == "__main__":
+    import hypercorn
+    import asyncio
+
+    app = restate.app(services=[agent_service, human_approval_workflow])
+    conf = hypercorn.Config()
+    conf.bind = ["0.0.0.0:9080"]
+    asyncio.run(hypercorn.asyncio.serve(app, conf))

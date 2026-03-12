@@ -1,0 +1,179 @@
+import * as restate from "@restatedev/restate-sdk";
+import { TerminalError } from "@restatedev/restate-sdk";
+import * as crypto from "node:crypto";
+import { generateText, wrapLanguageModel } from "ai";
+import { durableCalls } from "@restatedev/vercel-ai-middleware";
+import { openai } from "@ai-sdk/openai";
+import { FlightBooking, HotelBooking, InsuranceClaim } from "./types";
+
+// <start_weather>
+export async function fetchWeather(city: string) {
+  failOnDenver(city);
+  // Simulate API call response
+  return `The weather in ${city} is sunny and warm.`;
+}
+// <end_weather>
+
+function failOnDenver(city: string) {
+  if (city === "Denver") {
+    const message = `[👻 SIMULATED] "Fetching weather failed: Weather API down..."`;
+    console.error(message);
+    throw new Error(message);
+  }
+}
+
+export function requestHumanReview(
+  claim: InsuranceClaim,
+  responseId: string = "",
+) {
+  console.log(`🔔 Human review requested: Please review: ${JSON.stringify(claim)} \n
+  Submit your claim review via: \n
+    curl localhost:8080/restate/awakeables/${responseId}/resolve --json 'true'
+  `);
+}
+
+export function emailCustomer(message: string, responseId: string = "") {
+  console.log("Emailing customer:", message);
+}
+
+export function submitClaim(claim: InsuranceClaim) {
+  // Simulate adding the claim to a legacy system
+  console.log("Adding claim to legacy system:", claim);
+  return crypto.randomUUID().toString();
+}
+
+export function getMissingFields(claim: InsuranceClaim) {
+  return Object.entries(claim)
+    .filter(
+      ([_, value]) =>
+        value === null ||
+        value === "" ||
+        (Array.isArray(value) && value.length === 0),
+    )
+    .map(([key, _]) => key);
+}
+
+export function checkEligibility(claim: InsuranceClaim) {
+  return "eligible";
+}
+
+export function compareToStandardRates(claim: InsuranceClaim) {
+  return "reasonable";
+}
+
+export function checkFraud(claim: InsuranceClaim) {
+  return "low risk";
+}
+
+// <start_eligibility>
+export const eligibilityAgent = restate.service({
+  name: "EligibilityAgent",
+  handlers: {
+    run: async (ctx: restate.Context, claim: InsuranceClaim) => {
+      const model = wrapLanguageModel({
+        model: openai("gpt-4o"),
+        middleware: durableCalls(ctx, { maxRetryAttempts: 3 }),
+      });
+      const { text } = await generateText({
+        model,
+        system:
+          "Decide whether the following claim is eligible for reimbursement." +
+          "Respond with eligible if it's a medical claim, and not eligible otherwise.",
+        prompt: JSON.stringify(claim),
+      });
+      return text;
+    },
+  },
+});
+// <end_eligibility>
+
+export const rateComparisonAgent = restate.service({
+  name: "RateComparisonAgent",
+  handlers: {
+    run: async (ctx: restate.Context, claim: InsuranceClaim) => {
+      const model = wrapLanguageModel({
+        model: openai("gpt-4o"),
+        middleware: durableCalls(ctx, { maxRetryAttempts: 3 }),
+      });
+      const { text } = await generateText({
+        model,
+        system:
+          "Decide whether the cost of the claim is reasonable given the treatment." +
+          "Respond with reasonable or not reasonable.",
+        prompt: JSON.stringify(claim),
+      });
+      return text;
+    },
+  },
+});
+
+export const fraudCheckAgent = restate.service({
+  name: "FraudCheckAgent",
+  handlers: {
+    run: async (ctx: restate.Context, claim: InsuranceClaim) => {
+      const model = wrapLanguageModel({
+        model: openai("gpt-4o"),
+        middleware: durableCalls(ctx, { maxRetryAttempts: 3 }),
+      });
+      const { text } = await generateText({
+        model,
+        system:
+          "Decide whether the claim is fraudulent." +
+          "Always respond with low risk, medium risk, or high risk.",
+        prompt: JSON.stringify(claim),
+      });
+      return text;
+    },
+  },
+});
+
+export function convertCurrency(
+  amount: number,
+  from: string,
+  to: string,
+): Promise<number> {
+  // Simulate currency conversion
+  return Promise.resolve(amount * 1.3);
+}
+export function processPayment(
+  claimId: string,
+  amount: number,
+): Promise<string> {
+  // Simulate payment processing
+  return Promise.resolve("Payment successful");
+}
+
+export async function reserveHotel(
+  id: string,
+  { name, guests, dates }: HotelBooking,
+) {
+  console.log(`🏨 Created hotel booking ${id}`);
+  return {
+    id,
+    confirmation: `🏨 Hotel ${name} booked for ${guests} guests on ${dates}`,
+  };
+}
+
+export async function reserveFlight(
+  id: string,
+  { origin, destination, date, passengers }: FlightBooking,
+) {
+  if (destination === "San Francisco" || destination === "SFO") {
+    const message = `[👻 SIMULATED] Flight booking failed: No flights to SFO available...`;
+    console.error(message);
+    throw new TerminalError(message);
+  }
+  console.log(`✈️ Created flight booking ${id}`);
+  return {
+    id,
+    confirmation: `✈️ Flight from ${origin} to ${destination} on ${date} for ${passengers} passengers`,
+  };
+}
+
+export async function cancelHotel(id: string) {
+  console.log(`🏨 Cancelled hotel booking ${id}`);
+}
+
+export async function cancelFlight(id: string) {
+  console.log(`✈️ Cancelled flight booking ${id}`);
+}
