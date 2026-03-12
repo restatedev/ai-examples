@@ -10,11 +10,12 @@ A collection of examples showing how to build resilient AI agents with the [Open
 | **Human approvals** | Human approval steps that suspend execution | [📖](https://docs.restate.dev/ai/patterns/human-in-the-loop) | [human_approval_agent.py](app/human_approval_agent.py) |
 | **Human approvals with timeout** | Approvals with configurable timeout | [📖](https://docs.restate.dev/ai/patterns/human-in-the-loop) | [human_approval_agent_with_timeout.py](app/human_approval_agent_with_timeout.py) |
 | **Multi-agent orchestration** | Route requests to specialized agents | [📖](https://docs.restate.dev/ai/patterns/multi-agent) | [multi_agent.py](app/multi_agent.py) |
-| **Parallel tool calls** | Run multiple tools in parallel with recovery | [📖](https://docs.restate.dev/ai/patterns/parallelization) | [workflow_parallel.py](app/workflow_parallel.py) |
-| **Sequential pipeline** | Chain agents in multi-step pipelines | [📖](https://docs.restate.dev/ai/patterns/workflows) | [workflow_sequential.py](app/workflow_sequential.py) |
-| **Orchestrator-worker** | Break tasks into specialized subtasks | [📖](https://docs.restate.dev/ai/patterns/workflows) | [workflow_orchestrator.py](app/workflow_orchestrator.py) |
-| **Evaluator-optimizer** | Generate, evaluate, improve loop | [📖](https://docs.restate.dev/ai/patterns/workflows) | [workflow_evaluator_optimizer.py](app/workflow_evaluator_optimizer.py) |
-| **Workflows as tools** | Complex tool logic as separate durable services | [📖](https://docs.restate.dev/ai/patterns/tools) | [parallel_tools_agent.py](app/parallel_tools_agent.py), [sub_workflow_agent.py](app/sub_workflow_agent.py) |
+| **Parallel tool calls** | Run multiple tools in parallel with recovery | [📖](https://docs.restate.dev/ai/patterns/parallelization) | [parallel_tools_agent.py](app/parallel_tools_agent.py) |
+| **Workflow: Sequential pipeline** | Chain agents in multi-step pipelines | [📖](https://docs.restate.dev/ai/patterns/workflow-sequential) | [workflow_sequential.py](app/workflow_sequential.py) |
+| **Workflow: Parallel agents** | Execute multiple agents in parallel | [📖](https://docs.restate.dev/ai/patterns/workflow-parallel) | [workflow_parallel.py](app/workflow_parallel.py) |
+| **Workflow: Orchestrator-worker** | Break tasks into specialized subtasks | [📖](https://docs.restate.dev/ai/patterns/workflow-orchestrator) | [workflow_orchestrator.py](app/workflow_orchestrator.py) |
+| **Workflow: Evaluator-optimizer** | Generate, evaluate, improve loop | [📖](https://docs.restate.dev/ai/patterns/workflow-evaluator) | [workflow_evaluator_optimizer.py](app/workflow_evaluator_optimizer.py) |
+| **Workflows as tools** | Complex tool logic as separate durable services | [📖](https://docs.restate.dev/ai/patterns/tools) | [sub_workflow_agent.py](app/sub_workflow_agent.py) |
 | **Remote agents** | Deploy/scale agents separately with resilient RPC | [📖](https://docs.restate.dev/ai/patterns/remote-agents) | [remote_agents.py](app/remote_agents.py) |
 | **Error handling** | Retries and error handling for agents | [📖](https://docs.restate.dev/ai/patterns/error-handling) | [error_handling.py](app/error_handling.py) |
 
