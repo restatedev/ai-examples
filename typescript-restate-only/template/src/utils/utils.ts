@@ -8,7 +8,7 @@ export const InputMessage = z.object({
 
 export async function callLLM(prompt: ModelMessage[], tools?: Record<string, any>) {
   const response = await generateText({
-    model: openai("gpt-5-mini"),
+    model: openai("gpt-4o"),
     prompt,
     tools,
   });

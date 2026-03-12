@@ -28,9 +28,12 @@ jobs:
             python-openai-agents-examples.zip
             python-openai-agents-template.zip
             python-google-adk-tour-of-agents.zip
-            python-patterns.zip
+            python-google-adk-template.zip
+            python-restate-tour-of-agents.zip
+            python-restate-agent-template.zip
             typescript-vercel-ai-examples.zip
             typescript-vercel-ai-template.zip
             typescript-vercel-ai-template-nextjs.zip
             typescript-vercel-ai-tour-of-agents.zip
-            typescript-patterns.zip
+            typescript-restate-tour-of-agents.zip
+            typescript-restate-agent-template.zip

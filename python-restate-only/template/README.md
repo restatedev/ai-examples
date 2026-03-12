@@ -1,6 +1,6 @@
 # Restate Agent Template - Python
 
-A template for creating a Restate agent in TypeScript.
+A template for creating a Restate agent in Python.
 
 ## Run the example
 1. Export your OpenAI API key as an environment variable:
