@@ -28,7 +28,7 @@ export OPENAI_API_KEY=your-key
 
 Or run an agent:
 ```bash
-uv run app/durable_agent.py
+uv run app/chat_agent.py
 ```
 
 Start Restate:
