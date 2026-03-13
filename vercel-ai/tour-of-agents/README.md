@@ -26,8 +26,7 @@ A collection of examples showing how to build resilient AI agents with the [Verc
 [Install Restate](https://docs.restate.dev/installation) and launch it:
 
 ```bash
-npm install --global @restatedev/restate-server@latest @restatedev/restate@latest
-restate-server
+npx @restatedev/restate-server
 ```
 
 Get the example:
@@ -41,7 +40,7 @@ Export your [OpenAI API key](https://platform.openai.com/api-keys) and run the a
 
 ```bash
 export OPENAI_API_KEY=sk-...
-npx tsx src/durable-agent.ts
+npx tsx ./src/chat-agent.ts
 ```
 
 Change the path to the agent you want to run.
