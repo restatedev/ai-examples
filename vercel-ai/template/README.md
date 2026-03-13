@@ -7,7 +7,7 @@ Use this template when deploying the agent on generic containers, FaaS (Lambda, 
 
 ## Running the template example
 
-Check out the [AI Quickstart](/ai-quickstart) to run this example.
+Check out the [AI Quickstart](https://docs.restate.dev/ai-quickstart) to run this example.
 s
 1. Export your OpenAI key as an environment variable. If you want to use another model (e.g., Anthrophic Claude, Google Gemini) you need to change the dependencies in `package.json` and the model in `src/app.ts` accordingly:
     ```shell
