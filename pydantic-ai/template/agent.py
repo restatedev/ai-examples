@@ -12,7 +12,6 @@ weather_agent = Agent(
     "openai:gpt-4o-mini",
     system_prompt="You are a helpful agent that provides weather updates.",
 )
-restate_agent = RestateAgent(weather_agent)
 
 @weather_agent.tool()
 async def get_weather(_run_ctx: RunContext[None], city: str) -> dict:
@@ -27,6 +26,7 @@ async def get_weather(_run_ctx: RunContext[None], city: str) -> dict:
     )
 
 # AGENT SERVICE
+restate_agent = RestateAgent(weather_agent)
 agent_service = restate.Service("agent")
 
 

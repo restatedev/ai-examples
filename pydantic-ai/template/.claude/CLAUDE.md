@@ -1,3 +1,7 @@
+> ## Documentation Index
+> Fetch the complete documentation index at: https://docs.restate.dev/llms.txt
+> Use this file to discover all available pages before exploring further.
+
 # Restate Python SDK Rules
 
 ## Core Concepts
@@ -18,7 +22,7 @@ my_service = restate.Service("MyService")
 
 @my_service.handler("myHandler")
 async def my_handler(ctx: restate.Context, greeting: str) -> str:
-    return f"${greeting}!"
+    return f"{greeting}!"
 
 
 app = restate.app([my_service])
@@ -34,12 +38,12 @@ my_object = restate.VirtualObject("MyVirtualObject")
 
 @my_object.handler("myHandler")
 async def my_handler(ctx: restate.ObjectContext, greeting: str) -> str:
-    return f"${greeting} ${ctx.key()}!"
+    return f"{greeting} {ctx.key()}!"
 
 
 @my_object.handler(kind="shared")
 async def my_concurrent_handler(ctx: restate.ObjectSharedContext, greeting: str) -> str:
-    return f"${greeting} ${ctx.key()}!"
+    return f"{greeting} {ctx.key()}!"
 
 
 app = restate.app([my_object])
@@ -128,7 +132,7 @@ ctx.service_send(
 Call a service without using the generated client, but just String names.
 
 ```python {"CODE_LOAD::python/src/develop/agentsmd/actions.py#request_response_generic"}  theme={null}
-response = await ctx.generic_call(
+response_bytes = await ctx.generic_call(
     "MyObject", "my_handler", key="Mary", arg=json.dumps("Hi").encode("utf-8")
 )
 ```
@@ -150,10 +154,10 @@ response = await ctx.service_call(
 
 ```python {"CODE_LOAD::python/src/develop/agentsmd/actions.py#durable_steps"}  theme={null}
 # Wrap non-deterministic code in ctx.run
-result = await ctx.run_typed("my-side-effect", call_external_api, query="weather", some_id="123")
+result = await ctx.run_typed("my-side-effect", lambda: call_external_api("weather", "123"))
 
 # Or with typed version for better type safety
-result = await ctx.run_typed("my-side-effect", call_external_api)
+result = await ctx.run_typed("my-side-effect", call_external_api, query="weather", some_id="123")
 ```
 
 ### Deterministic randoms and time
@@ -204,10 +208,10 @@ ctx.reject_awakeable(awakeable_id, "Cannot be reviewed")
 
 ```python {"CODE_LOAD::python/src/develop/agentsmd/actions.py#workflow_promises"}  theme={null}
 # Wait for promise
-review = await ctx.promise("review").value()
+review = await ctx.promise("review", type_hint=str).value()
 
 # Resolve promise
-await ctx.promise("review").resolve("approval")
+await ctx.promise("review", type_hint=str).resolve("approval")
 ```
 
 ## Concurrency
@@ -364,3 +368,6 @@ with restate.test_harness(app) as harness:
     restate_client = harness.ingress_client()
     print(restate_client.post("/greeter/greet", json="Alice").json())
 ```
+
+
+Built with [Mintlify](https://mintlify.com).

@@ -1,0 +1,28 @@
+[project]
+name = "tour-of-agents"
+version = "0.1.0"
+description = "Tour of Pydantic AI agents using Restate for durability"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "httpx",
+    "hypercorn",
+    "pydantic>=2.11.9",
+    "pydantic-ai>=1.68.0",
+    "restate-sdk",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[tool.uv.sources]
+restate-sdk = { path = "../../../sdk-python/dist/restate_sdk-0.15.0-cp314-cp314-macosx_11_0_arm64.whl" }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "mypy>=1.18.2",
+]
