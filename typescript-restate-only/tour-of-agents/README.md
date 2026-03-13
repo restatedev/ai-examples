@@ -26,11 +26,11 @@ A collection of examples showing how to build resilient AI agents with the [Rest
    ```
 2. [Start the Restate Server](https://docs.restate.dev/installation) in a separate shell:
    ```shell
-   restate-server
+   npx @restatedev/restate-server
    ```
-3. Start the services:
+3. Start the agent:
    ```shell
-   npm run dev
+   npx tsx ./src/chat-agent.ts
    ```
 4. Register the services (use `--force` if you already had another deployment registered at 9080):
    ```shell
