@@ -6,20 +6,23 @@ from pydantic import BaseModel
 from restate.ext.openai import DurableRunner
 
 
+class ReportRequest(BaseModel):
+    topic: str = "The impact of renewable energy on global economies"
+
+
 class ResearchTask(BaseModel):
     question: str
 
 
-class ReportRequest(BaseModel):
-    topic: str = "The impact of renewable energy on global economies"
+class TaskList(BaseModel):
+    tasks: list[ResearchTask]
 
 
 # <start_here>
 planner = Agent(
     name="ResearchPlanner",
-    instructions="""You are a research planner. Break the topic into 2-4 research
-    sub-tasks. Respond with a JSON array of strings, each a specific
-    research question. Example: ["question 1", "question 2"]""",
+    instructions="You are a research planner. Break the topic into 2-4 research sub-tasks.",
+    output_type=TaskList
 )
 
 researcher = Agent(
@@ -39,12 +42,12 @@ report_service = restate.Service("ResearchReport")
 async def generate(ctx: restate.Context, req: ReportRequest) -> dict:
     # Step 1: Orchestrator creates a research plan
     plan_result = await DurableRunner.run(planner, req.topic)
-    tasks = json.loads(plan_result.final_output)
+    tasks = plan_result.final_output.tasks
 
     # Step 2: Dispatch workers in parallel
     worker_promises = []
     for task in tasks:
-        promise = ctx.service_call(run_researcher, ResearchTask(question=task))
+        promise = ctx.service_call(run_researcher, task)
         worker_promises.append(promise)
 
     await restate.gather(*worker_promises)

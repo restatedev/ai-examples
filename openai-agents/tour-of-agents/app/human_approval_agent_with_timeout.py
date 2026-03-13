@@ -11,7 +11,7 @@ from utils.utils import (
 )
 
 
-    # <start_here>
+# <start_here>
 @durable_function_tool
 async def human_approval(claim: InsuranceClaim) -> str:
     """Ask for human approval for high-value claims."""

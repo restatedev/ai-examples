@@ -14,15 +14,16 @@ from restate import RunOptions
 from util.litellm_call import llm_call
 
 
+class ReportRequest(BaseModel):
+    topic: str = "The impact of renewable energy on global economies"
+
+
 class ResearchTask(BaseModel):
     question: str
 
 
-class ReportRequest(BaseModel):
-    topic: str = "The impact of renewable energy on global economies"
-
 class TaskList(BaseModel):
-    tasks: list[str]
+    tasks: list[ResearchTask]
 
 
 # <start_here>
@@ -60,7 +61,7 @@ async def generate(ctx: restate.Context, req: ReportRequest) -> dict:
     # Step 2: Dispatch workers in parallel
     worker_promises = []
     for task in tasks:
-        promise = ctx.service_call(research, ResearchTask(question=task))
+        promise = ctx.service_call(research, task)
         worker_promises.append(promise)
 
     await restate.gather(*worker_promises)
