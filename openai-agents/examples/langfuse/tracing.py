@@ -7,7 +7,7 @@ from typing import Any
 from agents.tracing import Span, Trace
 from opentelemetry import context as otel_context
 from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
-from restate.server_context import current_context, get_extension_data, set_extension_data, clear_extension_data
+from restate.server_context import current_context, get_extension_data, set_extension_data, clear_extension_data, restate_context_is_replaying
 
 from openinference.instrumentation.openai_agents._processor import (
     OpenInferenceTracingProcessor,
@@ -97,6 +97,15 @@ class RestateTracingProcessor(OpenInferenceTracingProcessor):
         # We create a flat OTel span directly under the Restate trace parent (no nesting).
         if not span.started_at:
             return
+
+        # During Restate replay, the SDK re-executes the handler from the beginning but
+        # returns cached results from the journal instead of performing actual work.
+        # The OpenAI Agents SDK still fires tracing events during replay, which would
+        # create duplicate spans in Langfuse. Skip span creation while replaying;
+        # once replay ends and new work begins, is_replaying flips to False.
+        if restate_context_is_replaying.get(False):
+            return
+
         start_time = datetime.fromisoformat(span.started_at)
         span_name = _get_span_name(span)
 

@@ -44,7 +44,7 @@ uv run --env-file .env .
 ```bash
 # Export LangFuse API keys
 source .env 
-export RESTATE__TRACING_HEADERS__AUTHORIZATION="Basic $(echo -n "${LANGFUSE_PUBLIC_KEY}:${LANGFUSE_SECRET_KEY}" | base64)"
+export RESTATE_TRACING_HEADERS__AUTHORIZATION="Basic $(echo -n "${LANGFUSE_PUBLIC_KEY}:${LANGFUSE_SECRET_KEY}" | base64)"
 
 restate-server --tracing-endpoint otlp+https://cloud.langfuse.com/api/public/otel/v1/traces
 ```
