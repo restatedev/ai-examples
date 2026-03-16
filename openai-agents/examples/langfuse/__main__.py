@@ -12,7 +12,9 @@ from agent import claim_service
 
 # Initialize Langfuse (sets up the global OTEL tracer provider + exporter)
 langfuse = get_client()
-tracer = OITracer(trace_api.get_tracer("openinference.openai_agents"), config=TraceConfig())
+tracer = OITracer(
+    trace_api.get_tracer("openinference.openai_agents"), config=TraceConfig()
+)
 set_trace_processors([RestateTracingProcessor(tracer)])
 
 if __name__ == "__main__":

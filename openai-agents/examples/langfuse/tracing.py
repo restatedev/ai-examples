@@ -7,7 +7,13 @@ from typing import Any
 from agents.tracing import Span, Trace
 from opentelemetry import context as otel_context
 from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
-from restate.server_context import current_context, get_extension_data, set_extension_data, clear_extension_data, restate_context_is_replaying
+from restate.server_context import (
+    current_context,
+    get_extension_data,
+    set_extension_data,
+    clear_extension_data,
+    restate_context_is_replaying,
+)
 
 from openinference.instrumentation.openai_agents._processor import (
     OpenInferenceTracingProcessor,
@@ -35,7 +41,7 @@ class _SpanCleanup:
     when the Restate invocation context is cleaned up, ending any spans
     that were never properly closed (e.g. due to a failed invocation)."""
 
-    def __init__(self, processor: 'RestateTracingProcessor', token):
+    def __init__(self, processor: "RestateTracingProcessor", token):
         self._processor = processor
         # The OTel context token returned by otel_context.attach(); needed to detach later.
         self._token = token
