@@ -73,24 +73,26 @@ async def run(ctx: restate.Context, claim: ClaimRequest) -> str:
     )
     eligible = analysis.final_output
 
-    if eligible:
-        # Step 3: Convert currency (regular durable step, no LLM)
-        async def convert_currency(amount: float) -> float:
-            return amount * 0.92  # USD to EUR
+    if not eligible:
+        return f"Claim {claim.claim_id} rejected"
 
-        converted = await ctx.run_typed(
-            "Convert currency", convert_currency, amount=claim.amount
-        )
+    # Step 3: Convert currency (regular durable step, no LLM)
+    async def convert_currency(amount: float) -> float:
+        return amount * 0.92  # USD to EUR
 
-        # Step 4: Process reimbursement (regular durable step, no LLM)
-        async def reimburse(claim_id: str, amount: float) -> str:
-            return f"Reimbursed €{amount:.2f} for claim {claim_id}"
+    converted = await ctx.run_typed(
+        "Convert currency", convert_currency, amount=claim.amount
+    )
 
-        await ctx.run_typed(
-            "Process reimbursement",
-            reimburse,
-            claim_id=claim.claim_id,
-            amount=converted,
-        )
+    # Step 4: Process reimbursement (regular durable step, no LLM)
+    async def reimburse(claim_id: str, amount: float) -> str:
+        return f"Reimbursed €{amount:.2f} for claim {claim_id}"
 
-    return f"Claim {claim.claim_id} {"reimbursed" if eligible else "rejected"}"
+    await ctx.run_typed(
+        "Process reimbursement",
+        reimburse,
+        claim_id=claim.claim_id,
+        amount=converted,
+    )
+
+    return f"Claim {claim.claim_id} reimbursed"
