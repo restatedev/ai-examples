@@ -89,10 +89,6 @@ async def run(ctx: restate.Context, claim: ClaimRequest) -> str:
         return f"Reimbursed €{amount:.2f} for claim {claim_id}"
 
     await ctx.run_typed(
-        "Process reimbursement",
-        reimburse,
-        claim_id=claim.claim_id,
-        amount=converted,
+        "Reimburse", reimburse, claim_id=claim.claim_id, amount=converted
     )
-
     return f"Claim {claim.claim_id} reimbursed"
