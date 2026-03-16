@@ -4,7 +4,7 @@ A template for creating a Restate agent in Python.
 
 ## Run the example
 
-Check out the [AI Quickstart](/ai-quickstart) to run this example.
+Check out the [AI Quickstart](https://docs.restate.dev/ai-quickstart) to run this example.
 
 1. Export your OpenAI API key as an environment variable:
     ```shell

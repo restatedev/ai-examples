@@ -9,7 +9,7 @@ The example is an agent that can search for the weather in certain city.
 
 ## Running the example
 
-Check out the [AI Quickstart](/ai-quickstart) to run this example.
+Check out the [AI Quickstart](https://docs.restate.dev/ai-quickstart) to run this example.
 
 1. Export your OpenAI or Anthrophic API key as an environment variable:
     ```shell
