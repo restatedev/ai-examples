@@ -14,7 +14,8 @@ restate_parse_agent = RestateAgent(parse_agent)
 
 analysis_agent = Agent(
     "openai:gpt-4o-mini",
-    system_prompt="Assess whether this claim is valid and determine the approved amount.",
+    system_prompt="Analyze the claim and approve/deny it.",
+    output_type=bool
 )
 restate_analysis_agent = RestateAgent(analysis_agent)
 
@@ -28,7 +29,9 @@ async def process(ctx: restate.Context, req: ClaimPrompt) -> dict:
     claim = parsed.output
 
     # Step 2: Analyze the claim (LLM step)
-    analysis = await restate_analysis_agent.run(f"Claim: {claim.model_dump_json()}")
+    approved = await restate_analysis_agent.run(f"Claim: {claim.model_dump_json()}")
+    if not approved.output:
+        return {"analysis": "Claim is invalid", "amountUsd": 0, "confirmation": False}
 
     # Step 3: Convert currency (regular step)
     amount_usd = await ctx.run_typed(
@@ -48,7 +51,7 @@ async def process(ctx: restate.Context, req: ClaimPrompt) -> dict:
     )
 
     return {
-        "analysis": analysis.output,
+        "analysis": "Claim is valid.",
         "amount_usd": amount_usd,
         "confirmation": confirmation,
     }

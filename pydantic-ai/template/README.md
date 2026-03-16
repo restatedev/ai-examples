@@ -38,7 +38,7 @@ Check the Restate UI (`http://localhost:9070`) to see the journals of your invoc
 
 ## Integrating Restate with Pydantic AI
 
-The `RestateAgent` wrapper makes your Pydantic AI agent durable. By default, auto-wrapping is enabled: both LLM calls and tool calls are automatically wrapped in `ctx.run()` for durability. This means your tool functions can be plain Python — no special decorators needed.
+The `RestateAgent` wrapper makes your Pydantic AI agent durable. Use the Restate Context in your tools to make tool steps recoverable.
 
 On recovery, Restate replays the journaled results instead of re-executing LLM and tool calls, so your agent resumes exactly where it left off.
 

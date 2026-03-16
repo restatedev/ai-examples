@@ -1,17 +1,17 @@
 import restate
-from pydantic_ai import Agent, ModelMessagesTypeAdapter
-from pydantic_core import to_json
+from pydantic_ai import Agent
 from restate import VirtualObject, ObjectContext
 from restate.ext.pydantic import RestateAgent
 
+from app.utils.models import MessageSerde
 from utils.models import ChatMessage
 
 # <start_here>
-assistant = Agent(
+agent = Agent(
     "openai:gpt-4o-mini",
     system_prompt="You are a helpful assistant.",
 )
-restate_assistant = RestateAgent(assistant)
+restate_agent = RestateAgent(agent)
 
 chat = VirtualObject("Chat")
 
@@ -19,17 +19,12 @@ chat = VirtualObject("Chat")
 @chat.handler()
 async def message(ctx: ObjectContext, req: ChatMessage) -> str:
     # Load message history from Restate's durable key-value store
-    messages_json = await ctx.get("messages", type_hint=dict)
-    history = (
-        ModelMessagesTypeAdapter.validate_python(messages_json)
-        if messages_json
-        else None
-    )
+    history = await ctx.get("messages", serde=MessageSerde())
 
-    result = await restate_assistant.run(req.message, message_history=history)
+    result = await restate_agent.run(req.message, message_history=history)
 
     # Store updated history back in Restate state
-    ctx.set("messages", to_json(result.all_messages()))
+    ctx.set("messages", result.all_messages(), serde=MessageSerde())
     return result.output
 
 

@@ -1,6 +1,9 @@
 from pydantic.alias_generators import to_camel as camelize
 
 from pydantic import BaseModel, ConfigDict
+from pydantic_ai import ModelResponse, ModelMessagesTypeAdapter, ModelRequest
+from restate.serde import Serde
+
 
 # Prompts for AI agents (with default messages)
 
@@ -51,3 +54,13 @@ class WeatherResponse(BaseModel):
 
     temperature: float
     description: str
+
+
+class MessageSerde(Serde[list[ModelRequest | ModelResponse]]):
+    """Serde for messages."""
+
+    def serialize(self, obj: list[ModelRequest | ModelResponse]) -> bytes:
+        return ModelMessagesTypeAdapter.dump_json(obj)
+
+    def deserialize(self, buf: bytes) -> list[ModelRequest | ModelResponse]:
+        return ModelMessagesTypeAdapter.validate_json(buf)
