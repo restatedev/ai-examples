@@ -26,6 +26,11 @@ search_and_replace_version $PROJECT_ROOT/openai-agents/template
 
 # Google ADK agents Python examples
 search_and_replace_version $PROJECT_ROOT/google-adk/tour-of-agents
+search_and_replace_version $PROJECT_ROOT/google-adk/template
+
+# Pydantic AI agents Python examples
+search_and_replace_version $PROJECT_ROOT/pydantic-ai/tour-of-agents
+search_and_replace_version $PROJECT_ROOT/pydantic-ai/template
 
 # Restate-only examples
 search_and_replace_version $PROJECT_ROOT/python-restate-only/template
