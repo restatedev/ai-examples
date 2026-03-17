@@ -12,7 +12,9 @@ from utils.utils import fetch_weather
 # <start_here>
 async def get_weather(city: WeatherRequest) -> WeatherResponse:
     """Get the current weather for a given city."""
-    return await restate_context().run_typed(f"Get weather {city}", fetch_weather, req=city)
+    return await restate_context().run_typed(
+        f"Get weather {city}", fetch_weather, req=city
+    )
 
 
 # <end_here>
@@ -43,6 +45,8 @@ async def run(_ctx: restate.Context, req: WeatherPrompt) -> str:
         # Handle terminal errors gracefully
         return f"The agent couldn't complete the request: {e.message}"
     return result.output
+
+
 # <end_handle>
 
 

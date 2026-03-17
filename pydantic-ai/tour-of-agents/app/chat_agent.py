@@ -2,9 +2,7 @@ import restate
 from pydantic_ai import Agent
 from restate import VirtualObject, ObjectContext
 from restate.ext.pydantic import RestateAgent
-
-from app.utils.models import MessageSerde
-from utils.models import ChatMessage
+from utils.models import ChatMessage, MessageSerde
 
 # <start_here>
 agent = Agent(

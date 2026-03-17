@@ -15,7 +15,7 @@ restate_parse_agent = RestateAgent(parse_agent)
 analysis_agent = Agent(
     "openai:gpt-4o-mini",
     system_prompt="Analyze the claim and approve/deny it.",
-    output_type=bool
+    output_type=bool,
 )
 restate_analysis_agent = RestateAgent(analysis_agent)
 
