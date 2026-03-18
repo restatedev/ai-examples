@@ -1,20 +1,25 @@
 from datetime import timedelta
 
 import restate
-from agents import Agent
-from restate.ext.openai import restate_context, DurableRunner, durable_function_tool
+from pydantic_ai import Agent, RunContext
+from restate.ext.pydantic import RestateAgent, restate_context
 
-from utils.models import ClaimPrompt
-from utils.utils import (
-    InsuranceClaim,
-    request_human_review,
+from utils.models import ClaimPrompt, InsuranceClaim
+from utils.utils import request_human_review
+
+agent = Agent(
+    "openai:gpt-4o-mini",
+    system_prompt="""You are an insurance claim evaluation agent. Use these rules:
+    - if the amount is more than 1000, ask for human approval using tools;
+    - if the amount is less than 1000, decide by yourself.""",
 )
 
 
 # <start_here>
-@durable_function_tool
-async def human_approval(claim: InsuranceClaim) -> str:
+@agent.tool
+async def human_approval(_run_ctx: RunContext[None], claim: InsuranceClaim) -> str:
     """Ask for human approval for high-value claims."""
+
     # Create an awakeable for human approval
     approval_id, approval_promise = restate_context().awakeable(type_hint=bool)
 
@@ -32,25 +37,19 @@ async def human_approval(claim: InsuranceClaim) -> str:
             return "Approved" if approved else "Rejected"
         case _:
             return "Approval timed out - Evaluate with AI"
+
+
 # <end_here>
 
 
-agent = Agent(
-    name="ClaimApprovalAgent",
-    instructions="""You are an insurance claim evaluation agent. Use these rules: 
-    - if the amount is more than 1000, ask for human approval using tools; 
-    - if the amount is less than 1000, decide by yourself.""",
-    tools=[human_approval],
-)
-
-
+restate_agent = RestateAgent(agent)
 agent_service = restate.Service("HumanClaimApprovalWithTimeoutsAgent")
 
 
 @agent_service.handler()
 async def run(_ctx: restate.Context, req: ClaimPrompt) -> str:
-    result = await DurableRunner.run(agent, req.message)
-    return result.final_output
+    result = await restate_agent.run(req.message)
+    return result.output
 
 
 if __name__ == "__main__":

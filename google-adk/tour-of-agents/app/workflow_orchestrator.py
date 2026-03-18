@@ -11,15 +11,17 @@ from restate.ext.adk import RestatePlugin, RestateSessionService
 from utils.utils import parse_agent_response
 
 
+class ReportRequest(BaseModel):
+    topic: str = "The impact of renewable energy on global economies"
+
+
 class ResearchTask(BaseModel):
     question: str
 
 
-class ReportRequest(BaseModel):
-    topic: str = "The impact of renewable energy on global economies"
-
 class TaskList(BaseModel):
-    tasks: list[str]
+    tasks: list[ResearchTask]
+
 
 APP_NAME = "agents"
 
@@ -27,9 +29,7 @@ APP_NAME = "agents"
 planner = Agent(
     model="gemini-2.5-flash",
     name="research_planner",
-    instruction="""You are a research planner. Break the topic into 2-4 research
-    sub-tasks. Respond with a JSON array of strings, each a specific
-    research question. Example: ["question 1", "question 2"]""",
+    instruction="You are a research planner. Break the topic into 2-4 research sub-tasks.",
     output_schema=TaskList,
 )
 plan_app = App(name=APP_NAME, root_agent=planner, plugins=[RestatePlugin()])
@@ -65,13 +65,13 @@ async def generate(ctx: restate.ObjectContext, req: ReportRequest) -> dict:
         session_id=session_id,
         new_message=Content(role="user", parts=[Part.from_text(text=req.topic)]),
     )
-    plan_output =  await parse_agent_response(plan_events)
+    plan_output = await parse_agent_response(plan_events)
     tasks = TaskList.model_validate_json(plan_output).tasks
 
     # Step 2: Dispatch workers in parallel
     worker_promises = []
     for task in tasks:
-        promise = ctx.service_call(run_researcher, ResearchTask(question=task))
+        promise = ctx.object_call(run_researcher, key=str(ctx.uuid()), arg=task)
         worker_promises.append(promise)
 
     await restate.gather(*worker_promises)
