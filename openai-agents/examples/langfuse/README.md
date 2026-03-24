@@ -63,7 +63,7 @@ restate deployments add localhost:9080
 
 ```bash
 curl localhost:8080/InsuranceClaimAgent/run \
-  --json '{"text":"Hospital bill for broken leg treatment at General Hospital for 3000 euro on 24/04/26"}'
+  --json '{"text": "Customer ID: cus_123 - Hospital bill for broken leg treatment at General Hospital for 3000 euro on 24/04/26"}'
 ```
 
 Send the request to Restate (`localhost:8080`) which persists it and then forwards it to the agent.
