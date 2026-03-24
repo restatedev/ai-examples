@@ -4,13 +4,14 @@ import restate
 from agents import Agent
 from restate.ext.openai import restate_context, DurableRunner, durable_function_tool
 
-from app.utils.models import ClaimPrompt
-from app.utils.utils import (
+from utils.models import ClaimPrompt
+from utils.utils import (
     InsuranceClaim,
     request_human_review,
 )
 
 
+# <start_here>
 @durable_function_tool
 async def human_approval(claim: InsuranceClaim) -> str:
     """Ask for human approval for high-value claims."""
@@ -22,7 +23,6 @@ async def human_approval(claim: InsuranceClaim) -> str:
         "Request review", request_human_review, claim=claim, awakeable_id=approval_id
     )
 
-    # <start_here>
     # Wait for human approval for at most 3 hours to reach our SLA
     match await restate.select(
         approval=approval_promise,
@@ -32,7 +32,7 @@ async def human_approval(claim: InsuranceClaim) -> str:
             return "Approved" if approved else "Rejected"
         case _:
             return "Approval timed out - Evaluate with AI"
-    # <end_here>
+# <end_here>
 
 
 agent = Agent(
@@ -51,3 +51,13 @@ agent_service = restate.Service("HumanClaimApprovalWithTimeoutsAgent")
 async def run(_ctx: restate.Context, req: ClaimPrompt) -> str:
     result = await DurableRunner.run(agent, req.message)
     return result.final_output
+
+
+if __name__ == "__main__":
+    import hypercorn
+    import asyncio
+
+    app = restate.app(services=[agent_service])
+    conf = hypercorn.Config()
+    conf.bind = ["0.0.0.0:9080"]
+    asyncio.run(hypercorn.asyncio.serve(app, conf))

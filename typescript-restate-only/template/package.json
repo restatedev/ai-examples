@@ -1,0 +1,25 @@
+{
+  "name": "restate-agent-template",
+  "version": "0.0.1",
+  "description": "Template for JavaScript/TypeScript agents running with Restate (https://github.com/restatedev/) ",
+  "main": "app.js",
+  "type": "commonjs",
+  "scripts": {
+    "build": "tsc --noEmitOnError",
+    "app": "node ./dist/app.js",
+    "dev": "tsx watch ./src/agent.ts"
+  },
+  "dependencies": {
+    "@ai-sdk/openai": "^3.0.12",
+    "@restatedev/restate-sdk": "^1.11.1",
+    "@restatedev/restate-sdk-zod": "^1.11.1",
+    "ai": "^6.0.41",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.2",
+    "esbuild": "^0.25.4",
+    "tsx": "^4.19.2",
+    "typescript": "^5.4.5"
+  }
+}

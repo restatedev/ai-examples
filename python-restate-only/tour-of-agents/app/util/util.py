@@ -1,0 +1,331 @@
+import typing
+import httpx
+import restate
+
+from typing import Any, Coroutine
+from litellm.types.utils import Choices, ModelResponse
+from pydantic import BaseModel
+from restate import TerminalError, RunOptions
+
+from util.litellm_call import llm_call
+
+
+class ClaimPrompt(BaseModel):
+    message: str = (
+        "Process my hospital bill of 2024-10-01 for 3000USD for a broken leg at General Hospital."
+    )
+
+
+class ClaimData(BaseModel):
+    """Insurance claim data structure."""
+
+    date: str = "2024-10-01"
+    amount: float = 3000
+    currency: str = "EUR"
+    reason: str = "hospital bill for a broken leg"
+
+
+class ClaimEvaluation(BaseModel):
+    """Evaluation of an insurance claim."""
+    valid: bool
+
+
+def tool(name: str, description: str, parameters: dict[str, Any] | None = None):
+    tool_def: dict[str, Any] = {
+        "type": "function",
+        "function": {
+            "name": name,
+            "description": description,
+        },
+    }
+    if parameters:
+        tool_def["function"]["parameters"] = parameters
+    return tool_def
+
+
+def tool_result(tool_id: str, tool_name: str, output: str) -> dict:
+    return {
+        "role": "tool",
+        "tool_call_id": tool_id,
+        "name": tool_name,
+        "content": output,
+    }
+
+
+def print_evaluation(iteration: int, solution: str | None, evaluation: str | None):
+    print(f"Iteration {iteration + 1}:")
+    print(f"Solution: {(solution or "not available")[:100]}...")
+    print(f"Evaluation: {evaluation or "not available"}")
+    print("-" * 50)
+
+
+# MOCK DATA
+
+
+def fetch_service_status() -> str:
+    # Mock service status data (would be real API calls to monitoring systems)
+    return str(
+        {
+            "api": {
+                "name": "API Gateway",
+                "status": "operational",
+                "uptime_24h": 99.8,
+                "response_time_avg": "120ms",
+                "incidents": 0,
+            },
+            "database": {
+                "name": "Primary Database",
+                "status": "operational",
+                "uptime_24h": 100.0,
+                "response_time_avg": "15ms",
+                "incidents": 0,
+            },
+            "payment": {
+                "name": "Payment Service",
+                "status": "degraded",
+                "uptime_24h": 95.2,
+                "response_time_avg": "450ms",
+                "incidents": 1,
+                "incident_description": "Intermittent timeout issues with payment processor",
+            },
+            "dashboard": {
+                "name": "User Dashboard",
+                "status": "operational",
+                "uptime_24h": 99.9,
+                "response_time_avg": "200ms",
+                "incidents": 0,
+            },
+            "notifications": {
+                "name": "Email/SMS Service",
+                "status": "maintenance",
+                "uptime_24h": 98.5,
+                "response_time_avg": "N/A",
+                "incidents": 0,
+                "incident_description": "Scheduled maintenance until 14:00 UTC",
+            },
+        }
+    )
+
+
+class SupportTicket(BaseModel):
+    user_id: str
+    message: str
+
+
+async def create_ticket(ticket_id: str, ticket: SupportTicket) -> str:
+    # Mock ticket creation (would be real API calls to ticketing systems)
+    return str(
+        {
+            "ticket_id": ticket_id,
+            "user_id": ticket.user_id,
+            "status": "open",
+            "details": ticket.message,
+        }
+    )
+
+
+# Mock user database with subscription and usage data
+users_db = {
+    "user_12345": {
+        "user_id": "user_12345",
+        "email": "john@example.com",
+        "subscription": {
+            "plan": "Pro",
+            "status": "active",
+            "billing_cycle": "monthly",
+            "price": 49.99,
+            "next_billing": "2024-02-15",
+        },
+        "usage": {
+            "api_calls_this_month": 10000,
+            "api_limit": 10000,
+            "storage_used_gb": 12.5,
+            "storage_limit_gb": 50,
+        },
+        "account_status": "good_standing",
+        "created_date": "2023-06-15",
+    },
+    "user_67890": {
+        "user_id": "user_67890",
+        "email": "jane@startup.com",
+        "subscription": {
+            "plan": "Enterprise",
+            "status": "active",
+            "billing_cycle": "yearly",
+            "price": 999.99,
+            "next_billing": "2024-06-01",
+        },
+        "usage": {
+            "api_calls_this_month": 45000,
+            "api_limit": 100000,
+            "storage_used_gb": 180.2,
+            "storage_limit_gb": 1000,
+        },
+        "account_status": "good_standing",
+        "created_date": "2022-01-10",
+    },
+}
+
+
+def query_user_db(user_id: str) -> str:
+    content = users_db.get(user_id, None)
+    if content:
+        return str(content)
+    else:
+        return "User not found"
+
+
+def parse_instructions(task_breakdown: str) -> dict:
+    worker_instructions = {}
+    for line in task_breakdown.strip().split("\n"):
+        if ":" in line:
+            task_type, instruction = line.split(":", 1)
+            worker_instructions[task_type.strip()] = instruction.strip()
+
+    # print the parsed instructions for debugging
+    print(
+        f"Orchestrator broke down text analysis into {len(worker_instructions)} specialized tasks:"
+    )
+    for task, instruction in worker_instructions.items():
+        print(f"- {task}: {instruction}")
+
+    return worker_instructions
+
+
+class InsuranceClaim(BaseModel):
+    claim_id: str
+    amount: float
+    description: str
+
+
+def request_review(claim: InsuranceClaim, approval_id: str):
+    """Notify human reviewer about a claim requiring approval."""
+    print("\n📋 CLAIM REVIEW REQUIRED 📋")
+    print(f"Claim ID: {claim.claim_id}")
+    print(f"Amount: ${claim.amount}")
+    print(f"Description: {claim.description}")
+    print("Awaiting human decision...")
+    print("\nTo approve:")
+    print(
+        f"curl http://localhost:8080/restate/awakeables/{approval_id}/resolve --json '\"approved\"'"
+    )
+    print("\nTo reject:")
+    print(
+        f"curl http://localhost:8080/restate/awakeables/{approval_id}/resolve --json '\"rejected\"'"
+    )
+
+
+class WeatherRequest(BaseModel):
+    city: str
+
+
+async def get_weather(req: WeatherRequest) -> dict:
+    return {"temperature": 23, "description": "Sunny and warm."}
+
+
+class Task(BaseModel):
+    task_type: str
+    instruction: str
+
+
+class TaskList(BaseModel):
+    tasks: list[Task]
+
+
+def parse_task_list(response: ModelResponse) -> TaskList:
+    if not response.choices:
+        return TaskList(tasks=[])
+    first_choice = response.choices[0]
+    if (
+        not hasattr(first_choice, "message")
+        or not first_choice.message
+        or not first_choice.message.content
+    ):
+        return TaskList(tasks=[])
+    return TaskList.model_validate_json(first_choice.message.content)
+
+
+class Question(BaseModel):
+    message: str
+
+
+# Billing Support Agent
+# <start_here>
+billing_agent_svc = restate.Service("BillingAgent")
+
+
+@billing_agent_svc.handler("run")
+async def get_billing_support(ctx: restate.Context, question: Question) -> str | None:
+    result = await ctx.run_typed(
+        "LLM call",
+        llm_call,
+        RunOptions(max_attempts=3),
+        messages=f"""You are a billing support specialist.
+        Acknowledge the billing issue, explain charges clearly, provide next steps with timeline.
+        {question.message}""",
+    )
+    return result.content
+
+
+# <end_here>
+
+# Account Security Agent
+account_agent_svc = restate.Service("AccountAgent")
+
+
+@account_agent_svc.handler("run")
+async def get_account_support(ctx: restate.Context, question: Question) -> str | None:
+    result = await ctx.run_typed(
+        "LLM call",
+        llm_call,
+        RunOptions(max_attempts=3),
+        messages=f"""You are an account security specialist.
+        Prioritize account security and verification, provide clear recovery steps, include security tips.
+        {question.message}""",
+    )
+    return result.content
+
+
+# Product Support Agent
+product_agent_svc = restate.Service("ProductAgent")
+
+
+@product_agent_svc.handler("run")
+async def get_product_support(ctx: restate.Context, question: Question) -> str | None:
+    result = await ctx.run_typed(
+        "LLM call",
+        llm_call,
+        RunOptions(max_attempts=3),
+        messages=f"""You are a product specialist.
+        Focus on feature education and best practices, include specific examples, suggest related features.
+        {question.message}""",
+    )
+    return result.content
+
+
+# <start_remote_tool>
+crm_service = restate.Service("CRMService")
+
+
+@crm_service.handler()
+async def create_support_ticket(ctx: restate.Context, ticket: SupportTicket) -> str:
+    """Multi-step workflow to create a support ticket"""
+    ticket_id = str(ctx.uuid())
+    result = await ctx.run_typed(
+        "Create ticket", create_ticket, ticket_id=ticket_id, ticket=ticket
+    )
+    # ... other steps ...
+    return result
+
+
+# <end_remote_tool>
+
+
+async def convert_currency(amount: float, source: str, target: str) -> float:
+    """Convert between currencies using mock exchange rates."""
+    return amount * 1.3
+
+
+async def process_payment(claim_id: str, amount: float) -> str:
+    """Process a reimbursement payment (mock)."""
+    return f"Payment of ${amount:.2f} USD. Reference: PAY-123"

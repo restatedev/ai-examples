@@ -34,7 +34,13 @@ while IFS= read -r dir; do
 done < <(find "$PROJECT_ROOT/openai-agents/examples" -mindepth 2 -maxdepth 2 -name pyproject.toml -exec dirname {} \;)
 
 # Google ADK agents Python examples
+pushd $PROJECT_ROOT/google-adk/template && python_mypi_lint && popd
 pushd $PROJECT_ROOT/google-adk/tour-of-agents && python_mypi_lint && popd
 
-# Pattern Python examples
-pushd $PROJECT_ROOT/python-patterns && python_mypi_lint && popd
+# Pydantic AI agents Python examples
+pushd $PROJECT_ROOT/pydantic-ai/template && python_mypi_lint && popd
+pushd $PROJECT_ROOT/pydantic-ai/tour-of-agents && python_mypi_lint && popd
+
+# Restate-only examples
+pushd $PROJECT_ROOT/python-restate-only/template && python_mypi_lint && popd
+pushd $PROJECT_ROOT/python-restate-only/tour-of-agents && python_mypi_lint && popd

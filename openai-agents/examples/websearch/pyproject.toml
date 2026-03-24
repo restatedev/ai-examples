@@ -6,7 +6,7 @@ requires-python = ">=3.11"
 dependencies = [
     "hypercorn>=0.17.3",
     "pydantic>=2.10.6",
-    "restate-sdk[serde]>=0.14.0",
+    "restate-sdk[serde]>=0.16.0",
     "openai-agents>=0.6.5",
 ]
 
@@ -16,3 +16,8 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
 py-modules = ["agent"]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.19.1",
+]

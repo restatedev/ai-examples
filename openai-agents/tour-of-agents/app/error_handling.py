@@ -10,8 +10,8 @@ from restate.ext.openai import (
     durable_function_tool,
 )
 
-from app.utils.models import WeatherPrompt, WeatherRequest, WeatherResponse
-from app.utils.utils import fetch_weather
+from utils.models import WeatherPrompt, WeatherRequest, WeatherResponse
+from utils.utils import fetch_weather
 
 
 # <start_here>
@@ -51,3 +51,13 @@ async def run(_ctx: restate.Context, req: WeatherPrompt) -> str:
     # <end_handle>
 
     return result.final_output
+
+
+if __name__ == "__main__":
+    import hypercorn
+    import asyncio
+
+    app = restate.app(services=[agent_service])
+    conf = hypercorn.Config()
+    conf.bind = ["0.0.0.0:9080"]
+    asyncio.run(hypercorn.asyncio.serve(app, conf))

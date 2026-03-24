@@ -7,6 +7,8 @@ Use this template when deploying the agent on generic containers, FaaS (Lambda, 
 
 ## Running the template example
 
+Check out the [AI Quickstart](https://docs.restate.dev/ai-quickstart) to run this example.
+s
 1. Export your OpenAI key as an environment variable. If you want to use another model (e.g., Anthrophic Claude, Google Gemini) you need to change the dependencies in `package.json` and the model in `src/app.ts` accordingly:
     ```shell
     export OPENAI_API_KEY=your_openai_api_key
@@ -28,11 +30,15 @@ Use this template when deploying the agent on generic containers, FaaS (Lambda, 
 5. All should be ready. Now send a request to your agent. Note that we target Restate Server's endpoint (8080) because the server proxies requests to the service, to make them durable.
 
     ```shell
-    curl localhost:8080/agent/run --json '"What is the weather in Detroit?"'
+    curl localhost:8080/agent/run --json '{"prompt": "What is the weather in San Francisco?"}'
     ```
 
-   Returns: `The weather in Detroit is currently 22°C and sunny.`
+   Returns: `The weather in San Francisco is currently 23°C and sunny.`
 
 Check the Restate UI (`localhost:9080`) to see the journals of your invocations.
 
 <img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/get-started-vercel/journal_vercel.png" alt="Using Agent SDK - journal" width="1200px"/>
+
+## Limitations
+Restate does not allow executing tools in parallel, to avoid non-deterministic behavior on retries/resume.
+We are working on a solution to this.

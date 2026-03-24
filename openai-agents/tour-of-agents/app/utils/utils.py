@@ -5,7 +5,7 @@ from openai.types.chat import ChatCompletionMessage, ChatCompletionAssistantMess
 from restate import TerminalError
 from restate.ext.openai import DurableRunner
 
-from app.utils.models import (
+from utils.models import (
     WeatherResponse,
     InsuranceClaim,
     BookingResult,
@@ -18,9 +18,7 @@ from app.utils.models import (
 # <start_weather>
 async def fetch_weather(req: WeatherRequest) -> WeatherResponse:
     fail_on_denver(req.city)
-    weather_data = await call_weather_api(req.city)
-    return parse_weather_data(weather_data)
-
+    return WeatherResponse(temperature=23, description="Sunny")
 
 # <end_weather>
 
@@ -28,34 +26,6 @@ async def fetch_weather(req: WeatherRequest) -> WeatherResponse:
 def fail_on_denver(city):
     if city == "Denver":
         raise Exception("[👻 SIMULATED] Fetching weather failed: Weather API down...")
-
-
-async def call_weather_api(city):
-    try:
-        resp = httpx.get(f"https://wttr.in/{httpx.URL(city)}?format=j1", timeout=10.0)
-        resp.raise_for_status()
-
-        if resp.text.startswith("Unknown location"):
-            raise restate.TerminalError(
-                f"Unknown location: {city}. Please provide a valid city name."
-            )
-
-        return resp.json()
-    except httpx.HTTPStatusError as e:
-        if e.response.status_code == 404:
-            raise restate.TerminalError(
-                f"City not found: {city}. Please provide a valid city name."
-            ) from e
-        else:
-            raise Exception(f"HTTP error occurred: {e}") from e
-
-
-def parse_weather_data(weather_data: dict) -> WeatherResponse:
-    current = weather_data["current_condition"][0]
-    return WeatherResponse(
-        temperature=float(current["temp_C"]),
-        description=current["weatherDesc"][0]["value"],
-    )
 
 
 async def request_human_review(claim: InsuranceClaim, awakeable_id: str) -> None:
@@ -126,6 +96,7 @@ async def cancel_flight(booking_id: str) -> None:
     print(f"❌ Cancelling flight booking {booking_id}")
 
 
+# <start_eligibility>
 eligibility_agent_service = restate.Service("EligibilityAgent")
 
 
@@ -140,6 +111,7 @@ async def run_eligibility_agent(_ctx: restate.Context, claim: InsuranceClaim) ->
         input=claim.model_dump_json(),
     )
     return result.final_output
+# <end_eligibility>
 
 
 rate_comparison_agent_service = restate.Service("RateComparisonAgent")
@@ -174,3 +146,13 @@ async def run_fraud_agent(_ctx: restate.Context, claim: InsuranceClaim) -> str:
         input=claim.model_dump_json(),
     )
     return result.final_output
+
+
+async def convert_currency(amount: float, source: str, target: str) -> float:
+    """Convert currency (placeholder)."""
+    return amount
+
+
+async def process_payment(claim_id: str, amount: float) -> str:
+    """Process payment (placeholder)."""
+    return f"Payment processed for claim {claim_id}: ${amount}"

@@ -1,0 +1,69 @@
+import typing
+from pydantic.alias_generators import to_camel as camelize
+from pydantic import BaseModel, ConfigDict
+from pydantic_ai import ModelResponse, ModelMessagesTypeAdapter, ModelRequest
+from restate.serde import Serde
+
+# Prompts for AI agents (with default messages)
+
+
+class WeatherPrompt(BaseModel):
+    message: str = "What is the weather like in San Francisco?"
+
+
+class ClaimPrompt(BaseModel):
+    message: str = (
+        "Process my hospital bill of 2024-10-01 for 3000USD for a broken leg at General Hospital."
+    )
+
+
+class ClaimData(BaseModel):
+    """Insurance claim data structure."""
+
+    date: str = "2024-10-01"
+    amount: float = 3000
+    currency: str = "EUR"
+    reason: str = "hospital bill for a broken leg"
+
+
+class ChatMessage(BaseModel):
+    message: str = "Make a poem about durable execution."
+
+
+class InsuranceClaim(BaseModel):
+    """Insurance claim data structure."""
+
+    model_config = ConfigDict(populate_by_name=True, alias_generator=camelize)
+    date: str = "2024-10-01"
+    amount: float = 3000
+    category: str = "orthopedic"
+    place_of_service: str = "General Hospital"
+    reason: str = "hospital bill for a broken leg"
+
+
+class WeatherRequest(BaseModel):
+    """Request to get the weather for a city."""
+
+    model_config = ConfigDict(extra="forbid")
+    city: str
+
+
+class WeatherResponse(BaseModel):
+    """Request to get the weather for a city."""
+
+    temperature: float
+    description: str
+
+
+class MessageSerde(Serde[list[ModelRequest | ModelResponse]]):
+    """Serde for messages."""
+
+    def serialize(
+        self, obj: typing.Optional[list[ModelRequest | ModelResponse]]
+    ) -> bytes:
+        return ModelMessagesTypeAdapter.dump_json(obj if obj is not None else [])
+
+    def deserialize(
+        self, buf: bytes
+    ) -> typing.Optional[list[ModelRequest | ModelResponse]]:
+        return ModelMessagesTypeAdapter.validate_json(buf)
