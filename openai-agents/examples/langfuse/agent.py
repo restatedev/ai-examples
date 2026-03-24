@@ -35,7 +35,7 @@ analysis_agent = Agent(
     model="gpt-5.2",
     instructions="Assess whether this claim is valid and provide detailed reasoning.",
     output_type=ClaimAssessment,
-    tools=[check_fraud_database]
+    tools=[check_fraud_database],
 )
 
 # MAIN ORCHESTRATOR
