@@ -1,94 +1,76 @@
 import restate
-from pydantic import BaseModel
 from agents import Agent
 from restate.ext.openai import restate_context, DurableRunner, durable_function_tool
 
-# ---------------------------------------------------------------------------
-# Models
-# ---------------------------------------------------------------------------
+from evaluation import evaluate, EvaluationRequest
+from utils.utils import (
+    ClaimData,
+    ClaimAssessment,
+    ClaimDocument,
+    convert_currency,
+    reimburse,
+    query_fraud_db,
+)
 
 
-class ClaimRequest(BaseModel):
-    claim_id: str = "CLM-2024-001"
-    amount: float = 3000.0
-    description: str = "Hospital bill for broken leg treatment at General Hospital"
-
-
-# ---------------------------------------------------------------------------
-# Tool – fraud database check (used by the parser agent)
-# ---------------------------------------------------------------------------
-
-
+# TOOLS
 @durable_function_tool
-async def check_fraud_database(claim_id: str) -> dict[str, str]:
+async def check_fraud_database(customer_id: str) -> dict[str, str]:
     """Check the claim against the fraud database."""
-
-    async def _check(claim_id: str) -> dict[str, str]:
-        return {"risk_score": "0.12"}
-
     return await restate_context().run_typed(
-        "Check fraud DB", _check, claim_id=claim_id
+        "Query fraud DB", query_fraud_db, claim_id=customer_id
     )
 
 
-# ---------------------------------------------------------------------------
-# Agent definitions
-# ---------------------------------------------------------------------------
-
-parser_agent = Agent(
-    name="ClaimParserAgent",
-    instructions="You are a claim intake specialist. Parse the insurance claim, "
-    "extract key information, and check the fraud database. "
-    "Provide a structured summary of the claim with the fraud check results.",
-    tools=[check_fraud_database],
+# AGENTS
+parse_agent = Agent(
+    name="DocumentParser",
+    model="gpt-5.2",
+    instructions="Extract the customer ID, claim amount, currency, category, and description.",
+    output_type=ClaimData,
 )
 
 analysis_agent = Agent(
-    name="ClaimAnalysisAgent",
-    instructions="You are a claims analyst. Based on the parsed claim data, "
-    "determine if the claim is eligible for reimbursement. "
-    "Check policy validity, coverage limits, and provide your assessment.",
-    output_type=bool,
+    name="ClaimsAnalyst",
+    model="gpt-5.2",
+    instructions="Assess whether this claim is valid and provide detailed reasoning.",
+    output_type=ClaimAssessment,
+    tools=[check_fraud_database]
 )
 
-# ---------------------------------------------------------------------------
-# Main orchestrator – the insurance claim workflow
-# ---------------------------------------------------------------------------
-
+# MAIN ORCHESTRATOR
 claim_service = restate.Service("InsuranceClaimAgent")
 
 
 @claim_service.handler()
-async def run(ctx: restate.Context, claim: ClaimRequest) -> str:
-    # Step 1: Parse claim documents with LLM agent
-    parsed = await DurableRunner.run(
-        parser_agent,
-        f"Parse this insurance claim: {claim.model_dump_json()}",
-    )
+async def run(ctx: restate.Context, req: ClaimDocument) -> str:
+    # Step 1: Parse the claim document (LLM step)
+    parsed = await DurableRunner.run(parse_agent, req.text)
+    claim: ClaimData = parsed.final_output
 
-    # Step 2: Analyze claim eligibility with LLM agent
-    analysis = await DurableRunner.run(
-        analysis_agent,
-        f"Analyze this claim for eligibility:\n{parsed.final_output}",
-    )
-    eligible = analysis.final_output
+    # Step 2: Analyze the claim (LLM step)
+    response = await DurableRunner.run(analysis_agent, claim.model_dump_json())
+    assessment: ClaimAssessment = response.final_output
 
-    if not eligible:
-        return f"Claim {claim.claim_id} rejected"
+    if not assessment.valid:
+        return f"Claim rejected"
 
     # Step 3: Convert currency (regular durable step, no LLM)
-    async def convert_currency(amount: float) -> float:
-        return amount * 0.92  # USD to EUR
-
     converted = await ctx.run_typed(
         "Convert currency", convert_currency, amount=claim.amount
     )
 
     # Step 4: Process reimbursement (regular durable step, no LLM)
-    async def reimburse(claim_id: str, amount: float) -> str:
-        return f"Reimbursed €{amount:.2f} for claim {claim_id}"
+    await ctx.run_typed("Reimburse", reimburse, amount=converted)
 
-    await ctx.run_typed(
-        "Reimburse", reimburse, claim_id=claim.claim_id, amount=converted
+    # Step 5: Optionally, kick off async LLM-as-a-Judge evaluation (non-blocking).
+    ctx.service_send(
+        evaluate,
+        arg=EvaluationRequest(
+            traceparent=ctx.request().attempt_headers.get("traceparent", ""),
+            input=claim.model_dump_json(),
+            output=assessment.model_dump_json(),
+        ),
     )
-    return f"Claim {claim.claim_id} reimbursed"
+
+    return f"Claim reimbursed"

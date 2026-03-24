@@ -7,8 +7,9 @@ from opentelemetry import trace as trace_api
 from openinference.instrumentation import OITracer, TraceConfig
 from agents import set_trace_processors
 
-from tracing import RestateTracingProcessor
+from utils.tracing import RestateTracingProcessor
 from agent import claim_service
+from evaluation import evaluation_service
 
 # Initialize Langfuse (sets up the global OTEL tracer provider + exporter)
 langfuse = get_client()
@@ -18,7 +19,7 @@ tracer = OITracer(
 set_trace_processors([RestateTracingProcessor(tracer)])
 
 if __name__ == "__main__":
-    app = restate.app(services=[claim_service])
+    app = restate.app(services=[claim_service, evaluation_service])
 
     conf = hypercorn.Config()
     conf.bind = ["0.0.0.0:9080"]

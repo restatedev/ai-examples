@@ -3,9 +3,11 @@
 This example shows how to get full observability over your agentic workflows by combining [Restate](https://restate.dev/) with [LangFuse](https://langfuse.com/).
 
 It implements an insurance claim processor that mixes LLM agent steps (document parsing, claim analysis) with regular workflow steps (currency conversion, reimbursement).
-Restate orchestrates the workflow durably and exports OpenTelemetry traces. A custom tracing processor attaches the OpenAI Agents SDK spans to the Restate trace, so everything shows up as a single unified trace in LangFuse -- LLM calls with their prompts, model config, and outputs alongside the durable workflow steps.
+Restate orchestrates the workflow durably and exports OpenTelemetry traces. A [custom tracing processor](utils/tracing.py) attaches the OpenAI Agents SDK spans to the Restate trace, so everything shows up as a single unified trace in LangFuse: LLM calls with their prompts, model config, and outputs alongside the durable workflow steps.
 
 ## Running the example
+[See `agent.py`](agent.py)
+
 **Prerequisites**:
 
 - [LangFuse account and API key](https://langfuse.com/)
@@ -61,9 +63,24 @@ restate deployments add localhost:9080
 
 ```bash
 curl localhost:8080/InsuranceClaimAgent/run \
-  --json '{"claim_id":"123","amount":1000,"documents":"Accident report..."}'
+  --json '{"text":"Hospital bill for broken leg treatment at General Hospital for 3000 euro on 24/04/26"}'
 ```
 
 Send the request to Restate (`localhost:8080`) which persists it and then forwards it to the agent.
 
 You can now **inspect the trace in LangFuse**.
+
+## LLM-as-a-Judge evaluation
+
+[See `evaluation.py`](evaluation.py)
+
+After each claim is processed, the agent automatically fires off an async **LLM-as-a-Judge evaluation** without blocking the response to the caller.
+
+The evaluation runs as a separate Restate service (`LLMJudgeEvaluation`). It:
+
+1. Calls an LLM judge to rate the overall **quality** of the agent's output (0.0–1.0) with a reason.
+2. Writes the score back to LangFuse on the original claim trace.
+
+Because this runs as a Restate handler, you get **reliable execution** and **automatic retries** on failure. No queues, schedulers, or extra infra needed.
+
+The scores show up on the claim trace in LangFuse, so you can track agent quality over time and filter/sort traces by score.
