@@ -82,7 +82,7 @@ The Restate approach works **independent of specific SDKs** but **integrates eas
 | **Notify when ready** | Callback when agent completes | [📖](https://docs.restate.dev/ai/patterns/notify-when-ready) | - | - | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="20" height="20">](openai-agents/examples/notify_when_ready/agent.py) | - | - |
 
 
-## More Examples
+## More Examples & Integrations
 
 | Example                | Description                                                                                     | Code                                                                                                                    |
 |------------------------|-------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------|
@@ -90,7 +90,7 @@ The Restate approach works **independent of specific SDKs** but **integrates eas
 | **NextJS Example App** | Example app of Restate + AI SDK + NextJS with tools, chat, pubsub,...                           | [<img src="https://skillicons.dev/icons?i=ts&theme=light" width="20" height="20">](vercel-ai/nextjs-example-app/README.md)        |
 | **MCP**                | Using Restate for exposing tools and resilient orchestration of tool calls                       | [<img src="https://skillicons.dev/icons?i=ts&theme=light" width="20" height="20">](mcp/README.md)                                 |
 | **A2A**                | Implement Google's Agent-to-Agent protocol with Restate as resilient, scalable task orchestrator | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="20" height="20">](a2a/README.md)                             |
-
+| **Langfuse**           | Full observability over agentic workflows by combining Restate with Langfuse                    | [<img src="https://skillicons.dev/icons?i=python&theme=light" width="20" height="20">](openai-agents/examples/langfuse/README.md) |
 
 ## Supported Languages
 
