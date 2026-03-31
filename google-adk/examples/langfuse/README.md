@@ -32,7 +32,7 @@ cd python-google-adk-examples/langfuse
 echo 'LANGFUSE_PUBLIC_KEY=pk-lf-...' > .env                                                                                                                                   
 echo 'LANGFUSE_SECRET_KEY=sk-lf-...' >> .env              
 echo 'LANGFUSE_HOST=https://cloud.langfuse.com' >> .env 
-echo 'GOOGLE_API_KEY=sk-proj-...' >> .env 
+echo 'GOOGLE_API_KEY=AI...' >> .env 
 ```
 
 **Start the agent service**:

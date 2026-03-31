@@ -1,6 +1,6 @@
-# Restate and Google ADK for Python
+# Restate and Pydantic AI for Python
 
-This repository contains examples of using Restate with Google ADK in Python.
+This repository contains examples of using Restate with Pydantic AI in Python.
 
 **First, check out the basic examples in the [Tour of AI Agents with Restate](../tour-of-agents/README.md).**
 
