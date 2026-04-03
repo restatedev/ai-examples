@@ -11,7 +11,7 @@ Restate orchestrates the workflow durably and exports OpenTelemetry traces. A Re
 **Prerequisites**:
 
 - [LangFuse account and API key](https://langfuse.com/)
-- [OpenAI API key](https://platform.openai.com/api-keys)
+- [Google API key](https://aistudio.google.com/apikey)
 
 **Install Restate** via brew or [other installation methods](https://docs.restate.dev/installation#install-restate-server-&-cli):
 

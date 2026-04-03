@@ -10,9 +10,9 @@ The example is an agent that can search for the weather in certain city.
 
 Check out the [AI Quickstart](https://docs.restate.dev/ai-quickstart) to run this example. 
 
-1. Export your OpenAI or Anthrophic API key as an environment variable:
+1. Export your Google API key as an environment variable (get one at [Google AI Studio](https://aistudio.google.com/apikey)):
    ```shell
-   export OPENAI_API_KEY=your_openai_api_key
+   export GOOGLE_API_KEY=your_google_api_key_here
    ```
 2. [Start the Restate Server](https://docs.restate.dev/installation) in a separate shell:
    ```shell

@@ -22,8 +22,8 @@ brew install restatedev/tap/restate-server restatedev/tap/restate
 **Download the example**:
 
 ```bash
-restate example python-pydantic-ai-examples
-cd python-pydantic-ai-examples/langfuse
+restate example python-restate-agent-examples
+cd python-restate-agent-examples/langfuse
 ```
 
 **Add your API keys** to an `.env` file:
