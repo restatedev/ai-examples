@@ -1,9 +1,9 @@
 # Restate Agents + LangFuse example
 
-This example shows how to get full observability over your agentic workflows by combining [Restate](https://restate.dev/) with [LangFuse](https://langfuse.com/).
+This example shows how to get full observability over your agentic workflows by combining [Restate](https://restate.dev/) with [LangFuse](https://langfuse.com/). We use [LiteLLM](https://www.litellm.ai/) to abstract away the LLM calls.
 
 It implements an insurance claim processor that mixes LLM agent steps (document parsing, claim analysis) with regular workflow steps (currency conversion, reimbursement).
-Restate orchestrates the workflow durably and exports OpenTelemetry traces. A Restate tracing processor attaches the Pydantic AI spans to the Restate trace, so everything shows up as a single unified trace in LangFuse: LLM calls with their prompts, model config, and outputs alongside the durable workflow steps.
+Restate orchestrates the workflow durably and exports OpenTelemetry traces. A Restate tracing processor attaches the LiteLLM spans to the Restate trace, so everything shows up as a single unified trace in LangFuse: LLM calls with their prompts, model config, and outputs alongside the durable workflow steps.
 
 ## Running the example
 [See `agent.py`](agent.py)
