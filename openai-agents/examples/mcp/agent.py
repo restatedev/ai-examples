@@ -1,6 +1,11 @@
 import restate
 
-from agents import Agent, HostedMCPTool, MCPToolApprovalRequest, MCPToolApprovalFunctionResult
+from agents import (
+    Agent,
+    HostedMCPTool,
+    MCPToolApprovalRequest,
+    MCPToolApprovalFunctionResult,
+)
 from openai.types.responses.tool_param import Mcp
 from pydantic import BaseModel
 from restate.ext.openai import restate_context, DurableRunner
@@ -69,7 +74,7 @@ mcp_with_approval_agent = Agent(
                 server_label="restate_docs",
                 server_description="A knowledge base about Restate's documentation.",
                 server_url="https://docs.restate.dev/mcp",
-                require_approval="always"
+                require_approval="always",
             ),
             on_approval_request=approve_func,
         )

@@ -8,3 +8,4 @@ restate-data
 */.python-version
 */.env
 */.logfire
+*/.claude

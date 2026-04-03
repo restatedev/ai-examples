@@ -7,3 +7,4 @@ restate-data
 */uv.lock
 */.python-version
 */.env
+*/.claude

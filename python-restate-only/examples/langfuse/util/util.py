@@ -27,6 +27,7 @@ class ClaimData(BaseModel):
 
 class ClaimEvaluation(BaseModel):
     """Evaluation of an insurance claim."""
+
     valid: bool
 
 

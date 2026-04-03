@@ -11,7 +11,6 @@ from utils.utils import (
     query_fraud_db,
 )
 
-
 # AGENTS
 parse_agent = Agent(
     "openai:gpt-4o-mini",

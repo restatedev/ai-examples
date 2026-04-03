@@ -1066,7 +1066,7 @@ name = "restate-sdk"
 version = "0.16.0"
 source = { path = "../../../../sdk-python/dist/restate_sdk-0.16.0-cp313-cp313-macosx_11_0_arm64.whl" }
 wheels = [
-    { filename = "restate_sdk-0.16.0-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:40b32472bbb67b9195e23a56942bb00249354625b8619b517844a8c9b2fd3add" },
+    { filename = "restate_sdk-0.16.0-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:20f4cb4e23a08ede75fa34e397e453e1aaea890ada0d1404f4172e173d4cd99e" },
 ]
 
 [package.metadata]
@@ -1081,7 +1081,7 @@ requires-dist = [
     { name = "msgspec", marker = "extra == 'serde'" },
     { name = "mypy", marker = "extra == 'lint'", specifier = ">=1.11.2" },
     { name = "openai-agents", marker = "extra == 'openai'", specifier = ">=0.6.1" },
-    { name = "opentelemetry-api", marker = "extra == 'langfuse'", specifier = ">=1.39.1" },
+    { name = "opentelemetry-api", marker = "extra == 'langfuse'", specifier = ">=1.36.0" },
     { name = "pydantic", marker = "extra == 'serde'" },
     { name = "pydantic-ai-slim", marker = "extra == 'pydantic-ai'", specifier = ">=1.68.0" },
     { name = "pyright", marker = "extra == 'lint'", specifier = ">=1.1.390" },

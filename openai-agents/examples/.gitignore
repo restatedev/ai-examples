@@ -6,4 +6,5 @@ __pycache__/
 restate-data
 */uv.lock
 */.python-version
+*/.claude
 */.env

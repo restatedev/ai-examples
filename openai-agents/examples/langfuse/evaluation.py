@@ -11,41 +11,15 @@ Flow:
 """
 
 import restate
+
 from pydantic import BaseModel
 from agents import Agent
 from langfuse import get_client
 from restate.ext.openai import DurableRunner
 
+from utils.utils import EvaluationScore, EvaluationRequest
+
 langfuse = get_client()
-
-
-# ---------------------------------------------------------------------------
-# Models
-# ---------------------------------------------------------------------------
-
-
-class EvaluationRequest(BaseModel):
-    traceparent: str
-    input: str
-    output: str
-
-    def trace_id(self) -> str:
-        """Extract the OTel trace ID from the W3C traceparent."""
-        if not self.traceparent:
-            raise restate.TerminalError(
-                "No traceparent header found. Is Restate tracing enabled?"
-            )
-        return self.traceparent.split("-")[1]
-
-
-class EvaluationScore(BaseModel):
-    score: float
-    reason: str
-
-
-# ---------------------------------------------------------------------------
-# LLM judge agent
-# ---------------------------------------------------------------------------
 
 judge_agent = Agent(
     name="ClaimEvaluationJudge",
@@ -56,10 +30,6 @@ judge_agent = Agent(
     ),
     output_type=EvaluationScore,
 )
-
-# ---------------------------------------------------------------------------
-# Evaluation service
-# ---------------------------------------------------------------------------
 
 evaluation_service = restate.Service("LLMJudgeEvaluation")
 
@@ -76,20 +46,14 @@ async def evaluate(ctx: restate.Context, req: EvaluationRequest) -> None:
     evaluation: EvaluationScore = result.final_output
 
     # Step 2: Write the score to LangFuse on the original claim trace
-    async def score_trace(trace_id: str, score: float, reason: str) -> None:
+    async def score_trace() -> None:
         langfuse.create_score(
-            trace_id=trace_id,
+            trace_id=req.trace_id(),
             name="quality",
-            value=score,
+            value=evaluation.score,
             data_type="NUMERIC",
-            comment=reason,
+            comment=evaluation.reason,
         )
         langfuse.flush()
 
-    await ctx.run_typed(
-        "Score trace in Langfuse",
-        score_trace,
-        trace_id=req.trace_id(),
-        score=evaluation.score,
-        reason=evaluation.reason,
-    )
+    await ctx.run_typed("Score trace in Langfuse", score_trace)

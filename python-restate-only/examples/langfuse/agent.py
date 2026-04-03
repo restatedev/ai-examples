@@ -10,7 +10,13 @@ Input -> Parse Document -> Analyze Claim -> Convert Currency -> Process Payment 
 import restate
 from restate import RunOptions
 
-from util.util import ClaimData, ClaimEvaluation, ClaimPrompt, convert_currency, process_payment
+from util.util import (
+    ClaimData,
+    ClaimEvaluation,
+    ClaimPrompt,
+    convert_currency,
+    process_payment,
+)
 from util.litellm_call import llm_call
 
 # <start_here>
@@ -48,7 +54,6 @@ async def process(ctx: restate.Context, req: ClaimPrompt) -> dict:
     evaluation = ClaimEvaluation.model_validate_json(response.content)
     if not evaluation.valid:
         return {"analysis": "Claim is invalid."}
-
 
     # Step 3: Convert currency (regular step)
     amount_usd = await ctx.run_typed(

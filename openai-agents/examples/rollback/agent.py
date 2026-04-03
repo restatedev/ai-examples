@@ -6,8 +6,14 @@ from pydantic import Field, BaseModel, ConfigDict
 from restate.ext.openai import restate_context, DurableRunner, durable_function_tool
 
 from utils import (
-    HotelBooking, FlightBooking, BookingPrompt, BookingResult,
-    reserve_hotel, reserve_flight, cancel_hotel, cancel_flight,
+    HotelBooking,
+    FlightBooking,
+    BookingPrompt,
+    BookingResult,
+    reserve_hotel,
+    reserve_flight,
+    cancel_hotel,
+    cancel_flight,
 )
 
 

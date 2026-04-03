@@ -46,7 +46,9 @@ parse_app = App(name=PARSE_APP, root_agent=parse_agent, plugins=[RestatePlugin()
 parse_sessions = InMemorySessionService()
 
 ANALYSIS_APP = "analysis"
-analysis_app = App(name=ANALYSIS_APP, root_agent=analysis_agent, plugins=[RestatePlugin()])
+analysis_app = App(
+    name=ANALYSIS_APP, root_agent=analysis_agent, plugins=[RestatePlugin()]
+)
 analysis_sessions = InMemorySessionService()
 
 
@@ -85,9 +87,7 @@ claim_service = restate.Service("InsuranceClaimAgent")
 @claim_service.handler()
 async def run(ctx: restate.Context, req: ClaimDocument) -> str:
     # Step 1: Parse the claim document (LLM step)
-    parse_result = await run_agent(
-        parse_app, PARSE_APP, parse_sessions, ctx, req.text
-    )
+    parse_result = await run_agent(parse_app, PARSE_APP, parse_sessions, ctx, req.text)
     claim = ClaimData.model_validate_json(parse_result)
 
     # Step 2: Analyze the claim (LLM step)
