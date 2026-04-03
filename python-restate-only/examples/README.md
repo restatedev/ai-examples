@@ -1,4 +1,4 @@
-# Restate and Pydantic AI
+# Restate Agents in Python
 
 This repository contains examples of using Restate with Pydantic AI.
 
@@ -11,8 +11,8 @@ uv run .
 ```
 
 
-Run Restate and register the service, similar to [the AI Quickstart](https://docs.restate.dev/ai-quickstart). 
+Run Restate and register the service, similar to [the AI Quickstart](https://docs.restate.dev/ai-quickstart).
 
-Then invoke the agents that were registered, via the UI playground, using their default messages. 
+Then invoke the agents that were registered, via the UI playground, using their default messages.
 
 Check the Restate journal to see how the agents executed their steps durably.
