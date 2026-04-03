@@ -1,4 +1,5 @@
 # MODELS
+from restate import TerminalError
 from pydantic import BaseModel
 
 
@@ -33,7 +34,7 @@ class EvaluationRequest(BaseModel):
     def trace_id(self) -> str:
         """Extract the OTel trace ID from the W3C traceparent."""
         if not self.traceparent:
-            raise restate.TerminalError(
+            raise TerminalError(
                 "No traceparent header found. Is Restate tracing enabled?"
             )
         return self.traceparent.split("-")[1]
