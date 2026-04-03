@@ -1,0 +1,21 @@
+[project]
+name = "agents"
+version = "0.1.0"
+description = "Python template using Restate with OpenAI Agent SDK"
+requires-python = ">=3.12"
+
+dependencies = [
+    "hypercorn",
+    "openai-agents==0.12.3",
+    "arize-phoenix-otel",
+    "openinference-instrumentation-openai-agents",
+    "restate-sdk",
+]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.18.2",
+]
+
+[tool.uv.sources]
+restate-sdk = { path = "../../../../sdk-python/dist/restate_sdk-0.16.0-cp313-cp313-macosx_11_0_arm64.whl" }
