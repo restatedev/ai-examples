@@ -18,6 +18,7 @@ from langfuse import get_client
 from restate.ext.openai import DurableRunner
 
 from utils.utils import EvaluationScore, EvaluationRequest
+# <start_here>
 
 langfuse = get_client()
 
@@ -57,3 +58,5 @@ async def evaluate(ctx: restate.Context, req: EvaluationRequest) -> None:
         langfuse.flush()
 
     await ctx.run_typed("Score trace in Langfuse", score_trace)
+
+# <end_here>
