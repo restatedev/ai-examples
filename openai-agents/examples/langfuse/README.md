@@ -1,16 +1,16 @@
-# Restate + LangFuse example
+# Restate + Langfuse example
 
-This example shows how to get full observability over your agentic workflows by combining [Restate](https://restate.dev/) with [LangFuse](https://langfuse.com/).
+This example shows how to get full observability over your agentic workflows by combining [Restate](https://restate.dev/) with [Langfuse](https://langfuse.com/).
 
 It implements an insurance claim processor that mixes LLM agent steps (document parsing, claim analysis) with regular workflow steps (currency conversion, reimbursement).
-Restate orchestrates the workflow durably and exports OpenTelemetry traces. A [custom tracing processor](utils/tracing.py) attaches the OpenAI Agents SDK spans to the Restate trace, so everything shows up as a single unified trace in LangFuse: LLM calls with their prompts, model config, and outputs alongside the durable workflow steps.
+Restate orchestrates the workflow durably and exports OpenTelemetry traces. A Restate tracing processor attaches the Langfuse spans to the Restate trace, so everything shows up as a single unified trace in Langfuse: LLM calls with their prompts, model config, and outputs alongside the durable workflow steps.
 
 ## Running the example
 [See `agent.py`](agent.py)
 
 **Prerequisites**:
 
-- [LangFuse account and API key](https://langfuse.com/)
+- [Langfuse account and API key](https://langfuse.com/)
 - [OpenAI API key](https://platform.openai.com/api-keys)
 
 **Install Restate** via brew or [other installation methods](https://docs.restate.dev/installation#install-restate-server-&-cli):
@@ -44,14 +44,14 @@ uv run --env-file .env .
 **Start Restate**:
 
 ```bash
-# Export LangFuse API keys
+# Export Langfuse API keys
 source .env 
 export RESTATE_TRACING_HEADERS__AUTHORIZATION="Basic $(echo -n "${LANGFUSE_PUBLIC_KEY}:${LANGFUSE_SECRET_KEY}" | base64)"
 
 restate-server --tracing-endpoint otlp+https://cloud.langfuse.com/api/public/otel/v1/traces
 ```
 
-Restate exports OTEL traces. By setting the tracing endpoint and headers, we can export traces to LangFuse.
+Restate exports OTEL traces. By setting the tracing endpoint and headers, we can export traces to Langfuse.
 
 Now **register the service**, so Restate knows where it is running:
 
@@ -68,7 +68,7 @@ curl localhost:8080/InsuranceClaimAgent/run \
 
 Send the request to Restate (`localhost:8080`) which persists it and then forwards it to the agent.
 
-You can now **inspect the trace in LangFuse**.
+You can now **inspect the trace in Langfuse**.
 
 ## LLM-as-a-Judge evaluation
 
@@ -79,8 +79,8 @@ After each claim is processed, the agent automatically fires off an async **LLM-
 The evaluation runs as a separate Restate service (`LLMJudgeEvaluation`). It:
 
 1. Calls an LLM judge to rate the overall **quality** of the agent's output (0.0–1.0) with a reason.
-2. Writes the score back to LangFuse on the original claim trace.
+2. Writes the score back to Langfuse on the original claim trace.
 
 Because this runs as a Restate handler, you get **reliable execution** and **automatic retries** on failure. No queues, schedulers, or extra infra needed.
 
-The scores show up on the claim trace in LangFuse, so you can track agent quality over time and filter/sort traces by score.
+The scores show up on the claim trace in Langfuse, so you can track agent quality over time and filter/sort traces by score.
