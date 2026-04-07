@@ -16,4 +16,4 @@ dev = [
 ]
 
 [tool.uv.sources]
-restate-sdk = { path = "../../../../sdk-python/dist/restate_sdk-0.16.0-cp313-cp313-macosx_11_0_arm64.whl" }
+restate-sdk = { path = "../../../../sdk-python/dist/restate_sdk-0.17.0-cp313-cp313-macosx_11_0_arm64.whl" }
