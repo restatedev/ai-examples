@@ -34,4 +34,4 @@ async def convert_currency(amount: float) -> float:
 
 
 async def reimburse(amount: float) -> str:
-    return f"Reimbursed"
+    return "Reimbursed"

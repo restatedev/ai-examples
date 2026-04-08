@@ -52,7 +52,7 @@ async def run(ctx: restate.Context, req: ClaimDocument) -> str:
     assessment: ClaimAssessment = response.final_output
 
     if not assessment.valid:
-        return f"Claim rejected"
+        return "Claim rejected"
 
     # Step 3: Convert currency (regular durable step, no LLM)
     converted = await ctx.run_typed(
@@ -61,4 +61,4 @@ async def run(ctx: restate.Context, req: ClaimDocument) -> str:
 
     # Step 4: Process reimbursement (regular durable step, no LLM)
     await ctx.run_typed("Reimburse", reimburse, amount=converted)
-    return f"Claim reimbursed"
+    return "Claim reimbursed"

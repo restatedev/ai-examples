@@ -43,9 +43,6 @@ analysis_agent = Agent(
 analysis_app = App(name="analysis", root_agent=analysis_agent, plugins=[RestatePlugin()])
 analysis_runner = Runner(app=analysis_app, session_service=RestateSessionService())
 
-claim_service = restate.VirtualObject("ClaimReimbursement")
-
-
 # MAIN ORCHESTRATOR
 claim_service = restate.VirtualObject("InsuranceClaimAgent")
 

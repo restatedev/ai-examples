@@ -1,5 +1,5 @@
 import litellm
-from litellm.types.utils import Message, ModelResponse, Choices
+from litellm.types.utils import Message
 from pydantic import BaseModel
 
 
@@ -16,7 +16,7 @@ async def llm_call(
         tools (list, optional): List of tools for the model to use. Defaults to None.
 
     Returns:
-        str: The response from the language model.
+        Message: The response from the language model.
     """
     if tools is None:
         tools = []

@@ -7,7 +7,7 @@ evaluation runs to completion (with retries on failure) without extra infra.
 Flow:
   1. Receive the original trace_id, claim input, and agent output
   2. Ask an LLM judge to score the agent's work (durable LLM call)
-  3. Write the score back to LangFuse on the original claim trace
+  3. Write the score back to Langfuse on the original claim trace
 """
 
 import restate
@@ -46,7 +46,7 @@ async def evaluate(ctx: restate.Context, req: EvaluationRequest) -> None:
     )
     evaluation: EvaluationScore = result.final_output
 
-    # Step 2: Write the score to LangFuse on the original claim trace
+    # Step 2: Write the score to Langfuse on the original claim trace
     async def score_trace() -> None:
         langfuse.create_score(
             trace_id=req.trace_id(),

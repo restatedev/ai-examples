@@ -35,7 +35,7 @@ async def convert_currency(amount: float) -> float:
 
 
 async def reimburse(amount: float) -> str:
-    return f"Reimbursed"
+    return "Reimbursed"
 
 
 async def parse_agent_response(events: AsyncGenerator[Event, None]) -> str:

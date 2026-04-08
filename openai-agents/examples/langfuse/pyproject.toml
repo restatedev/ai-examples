@@ -2,7 +2,7 @@
 name = "agents"
 version = "0.1.0"
 description = "Python template using Restate with OpenAI Agent SDK"
-requires-python = ">=3.12"
+requires-python = ">=3.13"
 
 dependencies = [
     "hypercorn",

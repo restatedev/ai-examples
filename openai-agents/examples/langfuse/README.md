@@ -1,9 +1,9 @@
-# Restate + OpenAI Agents SDK + LangFuse example
+# Restate + OpenAI Agents SDK + Langfuse example
 
 This example shows how to get full observability over your agentic workflows by combining [Restate](https://restate.dev/) with [Langfuse](https://langfuse.com/).
 
 It implements an insurance claim processor that mixes LLM agent steps (document parsing, claim analysis) with regular workflow steps (currency conversion, reimbursement).
-Restate orchestrates the workflow durably and exports OpenTelemetry traces. A Restate tracing processor attaches the Langfuse spans to the Restate trace, so everything shows up as a single unified trace in LangFuse: LLM calls with their prompts, model config, and outputs alongside the durable workflow steps.
+Restate orchestrates the workflow durably and exports OpenTelemetry traces. A Restate tracing processor attaches the OpenAI Agent SDK spans to the Restate trace, so everything shows up as a single unified trace in Langfuse: LLM calls with their prompts, model config, and outputs alongside the durable workflow steps.
 
 ## Running the example
 [See `agent.py`](agent.py)
@@ -31,7 +31,7 @@ cd python-openai-agents-examples/langfuse
 ```bash
 echo 'LANGFUSE_PUBLIC_KEY=pk-lf-...' > .env                                                                                                                                   
 echo 'LANGFUSE_SECRET_KEY=sk-lf-...' >> .env              
-echo 'LANGFUSE_HOST=https://cloud.langfuse.com' >> .env 
+echo 'LANGFUSE_BASE_URL=https://cloud.langfuse.com' >> .env 
 echo 'OPENAI_API_KEY=sk-proj-...' >> .env 
 ```
 
