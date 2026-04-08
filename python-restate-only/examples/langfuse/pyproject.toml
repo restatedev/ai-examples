@@ -10,9 +10,6 @@ dependencies = [
     "pydantic>=2.11.9",
     "langfuse",
     "litellm",
-    "opentelemetry-api>=1.40.0",
-    "opentelemetry-sdk>=1.40.0",
-    "opentelemetry-exporter-otlp>=1.40.0",
     "restate-sdk[serde]>=0.17.1",
 ]
 
