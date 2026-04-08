@@ -45,7 +45,7 @@ async def process(ctx: restate.Context, req: ClaimPrompt) -> dict:
         "Evaluate claim",
         llm_call,
         RunOptions(max_attempts=3),
-        messages=f"""Assess whether this claim is valid and determine the approved amount.
+        messages=f"""Assess whether this claim is valid and provide detailed reasoning.
         Claim: {parsed.content}""",
         response_format=ClaimEvaluation,
     )

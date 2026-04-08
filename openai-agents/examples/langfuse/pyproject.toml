@@ -9,7 +9,7 @@ dependencies = [
     "openai-agents==0.12.3",
     "langfuse",
     "openinference-instrumentation-openai-agents",
-    "restate-sdk>=0.17.0",
+    "restate-sdk>=0.17.1",
 ]
 
 [dependency-groups]
