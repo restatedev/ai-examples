@@ -1,17 +1,18 @@
 # MODELS
+from typing import AsyncGenerator
+from google.adk.events import Event
 from pydantic import BaseModel
 
 
 class ClaimDocument(BaseModel):
     text: str = (
-        "Customer ID: cus_123 - Hospital bill for broken leg treatment at General Hospital for 3000 euro on 24/04/26"
+        "Hospital bill for broken leg treatment at General Hospital for 3000 euro on 24/04/26"
     )
 
 
 class ClaimData(BaseModel):
     """Insurance claim data structure."""
 
-    customer_id: str
     date: str
     amount: float
     currency: str
@@ -35,3 +36,13 @@ async def convert_currency(amount: float) -> float:
 
 async def reimburse(amount: float) -> str:
     return f"Reimbursed"
+
+
+async def parse_agent_response(events: AsyncGenerator[Event, None]) -> str:
+    """Run an ADK agent and return the final text response."""
+    final_response = ""
+    async for event in events:
+        if event.is_final_response() and event.content and event.content.parts:
+            if event.content.parts[0].text:
+                final_response = event.content.parts[0].text
+    return final_response

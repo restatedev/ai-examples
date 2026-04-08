@@ -2,9 +2,8 @@ import restate
 from google.adk.agents.llm_agent import Agent
 from google.adk import Runner
 from google.adk.apps import App
-from google.adk.sessions import InMemorySessionService
 from google.genai.types import Content, Part
-from restate.ext.adk import RestatePlugin, restate_context
+from restate.ext.adk import RestatePlugin, restate_context, RestateSessionService
 
 from utils.utils import (
     ClaimData,
@@ -12,7 +11,7 @@ from utils.utils import (
     ClaimDocument,
     convert_currency,
     reimburse,
-    query_fraud_db,
+    query_fraud_db, parse_agent_response,
 )
 
 
@@ -28,9 +27,11 @@ async def check_fraud_database(customer_id: str) -> dict:
 parse_agent = Agent(
     model="gemini-2.5-flash",
     name="DocumentParser",
-    instruction="Extract the customer ID, claim amount, currency, category, and description.",
+    instruction="Extract the claim amount, currency, category, and description.",
     output_schema=ClaimData,
 )
+parse_app = App(name="parse", root_agent=parse_agent, plugins=[RestatePlugin()])
+parse_runner = Runner(app=parse_app, session_service=RestateSessionService())
 
 analysis_agent = Agent(
     model="gemini-2.5-flash",
@@ -39,62 +40,35 @@ analysis_agent = Agent(
     output_schema=ClaimAssessment,
     tools=[check_fraud_database],
 )
+analysis_app = App(name="analysis", root_agent=analysis_agent, plugins=[RestatePlugin()])
+analysis_runner = Runner(app=analysis_app, session_service=RestateSessionService())
 
-# APPS
-PARSE_APP = "parse"
-parse_app = App(name=PARSE_APP, root_agent=parse_agent, plugins=[RestatePlugin()])
-parse_sessions = InMemorySessionService()
-
-ANALYSIS_APP = "analysis"
-analysis_app = App(
-    name=ANALYSIS_APP, root_agent=analysis_agent, plugins=[RestatePlugin()]
-)
-analysis_sessions = InMemorySessionService()
-
-
-async def run_agent(app, app_name, session_service, ctx, message: str) -> str:
-    """Run an ADK agent and return the final text response."""
-    user_id = "system"
-    session_id = str(ctx.uuid())
-
-    session = await session_service.get_session(
-        app_name=app_name, user_id=user_id, session_id=session_id
-    )
-    if not session:
-        await session_service.create_session(
-            app_name=app_name, user_id=user_id, session_id=session_id
-        )
-
-    runner = Runner(app=app, session_service=session_service)
-    events = runner.run_async(
-        user_id=user_id,
-        session_id=session_id,
-        new_message=Content(role="user", parts=[Part.from_text(text=message)]),
-    )
-
-    final_response = None
-    async for event in events:
-        if event.is_final_response() and event.content and event.content.parts:
-            if event.content.parts[0].text:
-                final_response = event.content.parts[0].text
-    return final_response
+claim_service = restate.VirtualObject("ClaimReimbursement")
 
 
 # MAIN ORCHESTRATOR
-claim_service = restate.Service("InsuranceClaimAgent")
+claim_service = restate.VirtualObject("InsuranceClaimAgent")
 
 
 @claim_service.handler()
-async def run(ctx: restate.Context, req: ClaimDocument) -> str:
+async def run(ctx: restate.ObjectContext, req: ClaimDocument) -> str:
     # Step 1: Parse the claim document (LLM step)
-    parse_result = await run_agent(parse_app, PARSE_APP, parse_sessions, ctx, req.text)
-    claim = ClaimData.model_validate_json(parse_result)
+    parsing_events = parse_runner.run_async(
+        user_id=ctx.key(),
+        session_id=str(ctx.uuid()),
+        new_message=Content(role="user", parts=[Part.from_text(text=req.text)]),
+    )
+    parsed = await parse_agent_response(parsing_events)
+    claim = ClaimData.model_validate_json(parsed)
 
     # Step 2: Analyze the claim (LLM step)
-    analysis_result = await run_agent(
-        analysis_app, ANALYSIS_APP, analysis_sessions, ctx, claim.model_dump_json()
+    analysis_events = analysis_runner.run_async(
+        user_id=ctx.key(),
+        session_id=str(ctx.uuid()),
+        new_message=Content(role="user", parts=[Part.from_text(text=parsed)]),
     )
-    assessment = ClaimAssessment.model_validate_json(analysis_result)
+    analysis = await parse_agent_response(analysis_events)
+    assessment = ClaimAssessment.model_validate_json(analysis)
 
     if not assessment.valid:
         return "Claim rejected"

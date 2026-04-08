@@ -62,7 +62,7 @@ restate deployments add localhost:9080
 **Send a request**:
 
 ```bash
-curl localhost:8080/InsuranceClaimAgent/run \
+curl localhost:8080/InsuranceClaimAgent/user123/run \
   --json '{"text": "Customer ID: cus_123 - Hospital bill for broken leg treatment at General Hospital for 3000 euro on 24/04/26"}'
 ```
 
