@@ -9,7 +9,7 @@ dependencies = [
     "google-adk>=1.18.0",
     "langfuse",
     "openinference-instrumentation-google-adk",
-    "restate-sdk>=0.17.1",
+    "restate-sdk[serde]>=0.17.1",
 ]
 
 [dependency-groups]
