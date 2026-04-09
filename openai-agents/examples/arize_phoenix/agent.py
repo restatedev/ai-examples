@@ -2,7 +2,6 @@ import restate
 from agents import Agent
 from restate.ext.openai import restate_context, DurableRunner, durable_function_tool
 
-from evaluation import evaluate, EvaluationRequest
 from utils.utils import (
     ClaimData,
     ClaimAssessment,
@@ -62,15 +61,4 @@ async def run(ctx: restate.Context, req: ClaimDocument) -> str:
 
     # Step 4: Process reimbursement (regular durable step, no LLM)
     await ctx.run_typed("Reimburse", reimburse, amount=converted)
-
-    # Step 5: Optionally, kick off async LLM-as-a-Judge evaluation (non-blocking).
-    ctx.service_send(
-        evaluate,
-        arg=EvaluationRequest(
-            traceparent=ctx.request().attempt_headers.get("traceparent", ""),
-            input=claim.model_dump_json(),
-            output=assessment.model_dump_json(),
-        ),
-    )
-
     return "Claim reimbursed"

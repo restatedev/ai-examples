@@ -7,7 +7,7 @@ requires-python = ">=3.13"
 dependencies = [
     "hypercorn",
     "openai-agents==0.12.3",
-    "langfuse",
+    "arize-phoenix-otel",
     "openinference-instrumentation-openai-agents",
     "restate-sdk[serde]>=0.17.1",
 ]

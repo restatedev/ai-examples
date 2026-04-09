@@ -34,4 +34,5 @@ async def on_notify(ctx: restate.WorkflowContext, email: str):
     # Send the email
     async def send_email(email: str, body: str) -> None:
         print(f"Agent done. Sending email to {email}: {body}")
+
     await ctx.run_typed("Email", send_email, email=email, body=response)

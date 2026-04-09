@@ -21,9 +21,9 @@ A collection of examples showing how to build resilient AI agents with [Google A
 
 ## Run the examples
 
-Export your OpenAI API key:
+Export your Google API key (get one at [Google AI Studio](https://aistudio.google.com/apikey)):
 ```bash
-export OPENAI_API_KEY=your-key
+export GOOGLE_API_KEY=your_google_api_key_here
 ```
 
 Or run an agent:

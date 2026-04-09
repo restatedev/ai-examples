@@ -24,14 +24,17 @@ create_release_zip openai-agents/examples python-openai-agents-examples
 # Google ADK examples
 create_release_zip google-adk/tour-of-agents python-google-adk-tour-of-agents
 create_release_zip google-adk/template python-google-adk-template
+create_release_zip google-adk/examples python-google-adk-examples
 
 # Pydantic AI examples
 create_release_zip pydantic-ai/tour-of-agents python-pydantic-ai-tour-of-agents
 create_release_zip pydantic-ai/template python-pydantic-ai-template
+create_release_zip pydantic-ai/examples python-pydantic-ai-examples
 
 # Restate-only Python examples
 create_release_zip python-restate-only/tour-of-agents python-restate-tour-of-agents
 create_release_zip python-restate-only/template python-restate-agent-template
+create_release_zip python-restate-only/examples python-restate-agent-examples
 
 
 # Vercel AI examples

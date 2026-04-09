@@ -36,11 +36,20 @@ done < <(find "$PROJECT_ROOT/openai-agents/examples" -mindepth 2 -maxdepth 2 -na
 # Google ADK agents Python examples
 pushd $PROJECT_ROOT/google-adk/template && python_mypi_lint && popd
 pushd $PROJECT_ROOT/google-adk/tour-of-agents && python_mypi_lint && popd
+while IFS= read -r dir; do
+  pushd "$dir" && python_mypi_lint && popd
+done < <(find "$PROJECT_ROOT/google-adk/examples" -mindepth 2 -maxdepth 2 -name pyproject.toml -exec dirname {} \;)
 
 # Pydantic AI agents Python examples
 pushd $PROJECT_ROOT/pydantic-ai/template && python_mypi_lint && popd
 pushd $PROJECT_ROOT/pydantic-ai/tour-of-agents && python_mypi_lint && popd
+while IFS= read -r dir; do
+  pushd "$dir" && python_mypi_lint && popd
+done < <(find "$PROJECT_ROOT/pydantic-ai/examples" -mindepth 2 -maxdepth 2 -name pyproject.toml -exec dirname {} \;)
 
 # Restate-only examples
 pushd $PROJECT_ROOT/python-restate-only/template && python_mypi_lint && popd
 pushd $PROJECT_ROOT/python-restate-only/tour-of-agents && python_mypi_lint && popd
+while IFS= read -r dir; do
+  pushd "$dir" && python_mypi_lint && popd
+done < <(find "$PROJECT_ROOT/python-restate-only/examples" -mindepth 2 -maxdepth 2 -name pyproject.toml -exec dirname {} \;)
