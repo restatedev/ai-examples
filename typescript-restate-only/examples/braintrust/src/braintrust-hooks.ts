@@ -24,7 +24,7 @@ import {
   CompositePropagator,
 } from "@opentelemetry/core";
 import { parentFromHeaders, setupOtelCompat } from "@braintrust/otel";
-import { isSuspendedError, type HooksProvider } from "@restatedev/restate-sdk";
+import type { HooksProvider } from "@restatedev/restate-sdk";
 
 setupOtelCompat();
 
@@ -82,3 +82,8 @@ export const braintrustTracingHook: HooksProvider = (ctx) => {
     },
   };
 };
+
+// Suspension uses error code 599 in the Restate SDK
+function isSuspendedError(e: unknown): boolean {
+  return e instanceof Error && "code" in e && e.code === 599;
+}
