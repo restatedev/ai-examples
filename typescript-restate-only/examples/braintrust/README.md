@@ -26,10 +26,9 @@ Then run Restate with the configuration file:
 restate-server --config-file restate.toml
 ```
 
-Get the example:
+Install the dependencies for the example:
 
 ```bash
-restate example typescript-restate-agent && cd typescript-restate-agent
 npm install
 ```
 
