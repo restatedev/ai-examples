@@ -24,7 +24,7 @@ import {
   CompositePropagator,
 } from "@opentelemetry/core";
 import { parentFromHeaders, setupOtelCompat } from "@braintrust/otel";
-import type { HooksProvider } from "@restatedev/restate-sdk";
+import { isSuspendedError, type HooksProvider } from "@restatedev/restate-sdk";
 
 setupOtelCompat();
 
@@ -58,8 +58,25 @@ export const braintrustTracingHook: HooksProvider = (ctx) => {
 
   return {
     interceptor: {
-      handler: (next) =>
-        logger.traced(next, { name: target, parent: braintrustParent }),
+      handler: async (next) => {
+        let suspended: unknown;
+        await logger.traced(
+          async (span) => {
+            try {
+              await next();
+            } catch (e) {
+              if (isSuspendedError(e)) {
+                span.log({ metadata: { status: "suspended" } });
+                suspended = e;
+              } else {
+                throw e;
+              }
+            }
+          },
+          { name: target, parent: braintrustParent },
+        );
+        if (suspended) throw suspended;
+      },
 
       run: (name, next) => logger.traced(next, { name: `run (${name})` }),
     },
