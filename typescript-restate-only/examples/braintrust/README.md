@@ -1,6 +1,6 @@
 # Restate TypeScript Agent + Braintrust tracing
 
-A template for creating a Restate agent in TypeScript that emits traces to Braintrust.
+An example of a Restate agent in TypeScript that emits traces to Braintrust.
 
 ## Run the example
 
