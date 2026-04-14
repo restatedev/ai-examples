@@ -100,6 +100,8 @@ async def run_researcher(ctx: restate.ObjectContext, task: ResearchTask) -> str:
         new_message=Content(role="user", parts=[Part.from_text(text=task.question)]),
     )
     return await parse_agent_response(events)
+
+
 # <end_here>
 
 

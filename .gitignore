@@ -5,4 +5,5 @@ node_modules
 .venv
 .env
 dist
-*/.python-version
+**/.python-version
+**/.claude/settings.local.json

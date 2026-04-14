@@ -14,7 +14,7 @@ async def process(ctx: restate.Context, req: ClaimPrompt) -> dict:
     parse_agent = Agent(
         name="DocumentParser",
         instructions="Extract the claim amount, currency, category, and description.",
-        output_type=ClaimData
+        output_type=ClaimData,
     )
     parsed = await DurableRunner.run(parse_agent, req.message)
     claim = parsed.final_output
@@ -24,7 +24,9 @@ async def process(ctx: restate.Context, req: ClaimPrompt) -> dict:
         name="ClaimsAnalyst",
         instructions="Assess whether this claim is valid and determine the approved amount.",
     )
-    analysis = await DurableRunner.run(analysis_agent, f"Claim: {parsed.final_output.model_dump_json()}")
+    analysis = await DurableRunner.run(
+        analysis_agent, f"Claim: {parsed.final_output.model_dump_json()}"
+    )
 
     # Step 3: Convert currency (regular step)
     amount_usd = await ctx.run_typed(

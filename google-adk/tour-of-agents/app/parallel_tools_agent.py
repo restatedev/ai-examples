@@ -9,7 +9,12 @@ from typing import List
 from restate.ext.adk import RestatePlugin, RestateSessionService, restate_object_context
 
 from utils.models import InsuranceClaim
-from utils.utils import check_eligibility, compare_to_standard_rates, check_fraud, parse_agent_response
+from utils.utils import (
+    check_eligibility,
+    compare_to_standard_rates,
+    check_fraud,
+    parse_agent_response,
+)
 
 APP_NAME = "agents"
 

@@ -22,12 +22,12 @@ class TaskList(BaseModel):
 planner = Agent(
     name="ResearchPlanner",
     instructions="You are a research planner. Break the topic into 2-4 research sub-tasks.",
-    output_type=TaskList
+    output_type=TaskList,
 )
 
 researcher = Agent(
     name="Researcher",
-    instructions="You are a research assistant. Provide a concise, factual answer."
+    instructions="You are a research assistant. Provide a concise, factual answer.",
 )
 
 writer = Agent(

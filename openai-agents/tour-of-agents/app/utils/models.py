@@ -14,8 +14,10 @@ class ClaimPrompt(BaseModel):
         "Process my hospital bill of 2024-10-01 for 3000USD for a broken leg at General Hospital."
     )
 
+
 class ClaimData(BaseModel):
     """Insurance claim data structure."""
+
     date: str = "2024-10-01"
     amount: float = 3000
     currency: str = "EUR"
