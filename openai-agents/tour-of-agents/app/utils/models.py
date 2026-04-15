@@ -10,9 +10,7 @@ class WeatherPrompt(BaseModel):
 
 
 class ClaimPrompt(BaseModel):
-    message: str = (
-        "Process my hospital bill of 2024-10-01 for 3000USD for a broken leg at General Hospital."
-    )
+    message: str = "Process my hospital bill of 2024-10-01 for 3000USD for a broken leg at General Hospital."
 
 
 class ClaimData(BaseModel):

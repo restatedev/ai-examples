@@ -18,6 +18,7 @@ packages = ["app"]
 [tool.uv.sources]
 restate-sdk = { path = "../../../sdk-python/dist/restate_sdk-0.17.1-cp314-cp314-macosx_11_0_arm64.whl" }
 
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
