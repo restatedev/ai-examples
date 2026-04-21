@@ -1,5 +1,5 @@
 """
-Abort & Regenerate
+Interrupt & Regenerate
 
 Interruptions are messages sent to the agent while it is already working.
 For coding agents, this is critical: a task can take a while, and you may
