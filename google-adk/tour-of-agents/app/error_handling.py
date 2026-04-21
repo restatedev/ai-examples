@@ -56,7 +56,6 @@ async def run(ctx: restate.ObjectContext, req: WeatherPrompt) -> str | None:
         return await parse_agent_response(events)
     except TerminalError as e:
         # Handle the error appropriately, e.g., log it or return a default response
-        print(f"An error occurred: {e}")
         return "Sorry, I'm unable to process your request at the moment."
 
 
