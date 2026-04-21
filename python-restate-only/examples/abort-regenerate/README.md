@@ -67,14 +67,14 @@ curl localhost:8080/CodingAgent/alice/get_history
 
 ```bash
 # Fire-and-forget the first message
-curl localhost:8080/CodingAgent/bobb/message/send \
+curl localhost:8080/CodingAgent/bob/message/send \
   --json '{"content":"Build a Flask app with user auth."}'
 
 # Immediately interrupt with new context
-curl localhost:8080/CodingAgent/bobb/message \
+curl localhost:8080/CodingAgent/bob/message \
   --json '{"content":"Actually, use FastAPI instead of Flask."}'
 
-curl localhost:8080/CodingAgent/bobb/get_history
+curl localhost:8080/CodingAgent/bob/get_history
 ```
 
 Open the Restate UI at `http://localhost:9070` to inspect the invocations — the first `CodingTask.run_task` shows status `cancelled`, and the second `completed`.

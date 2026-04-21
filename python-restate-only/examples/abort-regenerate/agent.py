@@ -12,6 +12,7 @@ target handler. The error propagates through sub-invocations, giving us
 stack-unwinding semantics across a distributed call tree, and leaves room
 for durable cleanup (notifying the orchestrator, releasing resources, etc.).
 """
+from datetime import timedelta
 
 import restate
 from pydantic import BaseModel
@@ -47,10 +48,10 @@ async def message(ctx: restate.ObjectContext, msg: UserMessage) -> None:
     messages = await ctx.get("messages", type_hint=list[dict]) or []
     messages.append({"role": "user", "content": msg.content})
 
-    # (2) Interrupt the ongoing task
+    # (2) Interrupt the ongoing task and wait for its cleanup to finish
     current_task_id = await ctx.get("current_task_id", type_hint=str)
     if current_task_id:
-        ctx.cancel_invocation(current_task_id)
+        await cancel_and_wait(ctx, current_task_id)
 
     # (3) Start executing the new task
     handle = ctx.service_send(
@@ -61,6 +62,26 @@ async def message(ctx: restate.ObjectContext, msg: UserMessage) -> None:
     invocation_id = await handle.invocation_id()
     ctx.set("current_task_id", invocation_id)
     ctx.set("messages", messages)
+
+
+async def cancel_and_wait(
+    ctx: restate.Context,
+    invocation_id: str,
+    timeout: timedelta = timedelta(seconds=30),
+) -> None:
+    """Cancel an invocation and block until it finishes its cleanup, up to `timeout`.
+
+    Waiting for the cancelled invocation ensures any durable cleanup it runs is
+    observed before the caller moves on (e.g. to undo some completed task).
+    """
+    ctx.cancel_invocation(invocation_id)
+    done = ctx.attach_invocation(invocation_id)
+    try:
+        await restate.select(done=done, timed_out=ctx.sleep(timeout))
+    except TerminalError:
+        # Expected: the cancelled invocation finishes with a TerminalError.
+        pass
+# <end_here>
 
 
 @agent.handler()
@@ -117,15 +138,12 @@ async def run_task(ctx: restate.Context, inp: TaskInput) -> None:
             ctx.object_send(
                 append_message,
                 key=inp.agent_id,
-                arg=AssistantMessage(content="[task cleanup ran after cancellation]"),
+                arg=AssistantMessage(content="[task cleanup ran after cancellation]", final=True),
             )
         else:
             ctx.object_send(
                 append_message,
                 key=inp.agent_id,
-                arg=AssistantMessage(content=f"[task cleanup ran after error]"),
+                arg=AssistantMessage(content=f"[task cleanup ran after error]", final=True),
             )
         raise
-
-
-# <end_here>
