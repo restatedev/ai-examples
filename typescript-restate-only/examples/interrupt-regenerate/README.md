@@ -65,11 +65,11 @@ curl localhost:8080/CodingAgent/alice/getHistory
 
 ```bash
 # Fire-and-forget the first message
-curl localhost:8080/CodingAgent/bobb/message/send \
+curl localhost:8080/CodingAgent/bob/message/send \
   --json '{"content":"Build a Fastify app with user auth."}'
 
 # Immediately interrupt with new context
-curl localhost:8080/CodingAgent/bobb/message \
+curl localhost:8080/CodingAgent/bob/message \
   --json '{"content":"Actually, use Hono instead of Fastify."}'
 
 curl localhost:8080/CodingAgent/bob/getHistory

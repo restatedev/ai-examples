@@ -16,7 +16,7 @@ from datetime import timedelta
 
 import restate
 from pydantic import BaseModel
-from restate import RunOptions, TerminalError
+from restate import RestateDurableFuture, RunOptions, TerminalError
 
 from util.litellm_call import llm_call
 
@@ -75,7 +75,7 @@ async def cancel_and_wait(
     observed before the caller moves on (e.g. to undo some completed task).
     """
     ctx.cancel_invocation(invocation_id)
-    done = ctx.attach_invocation(invocation_id)
+    done: RestateDurableFuture[None] = ctx.attach_invocation(invocation_id)
     try:
         await restate.select(done=done, timed_out=ctx.sleep(timeout))
     except TerminalError:
