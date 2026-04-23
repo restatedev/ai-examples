@@ -1,0 +1,33 @@
+{
+  "name": "restate-agent-template",
+  "version": "0.0.1",
+  "description": "Template for JavaScript/TypeScript agents running with Restate (https://github.com/restatedev/) ",
+  "main": "app.js",
+  "type": "commonjs",
+  "scripts": {
+    "build": "tsc --noEmitOnError",
+    "app": "node ./dist/app.js",
+    "dev": "tsx --watch ./src/agent.ts"
+  },
+  "dependencies": {
+    "@ai-sdk/openai": "^3.0.12",
+    "@braintrust/otel": "^0.2.0",
+    "@opentelemetry/api": "^1.9.1",
+    "@opentelemetry/core": "^2.6.1",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.214.0",
+    "@opentelemetry/resources": "^2.6.1",
+    "@opentelemetry/sdk-trace-base": "^2.6.1",
+    "@opentelemetry/semantic-conventions": "^1.40.0",
+    "@restatedev/restate-sdk": "1.12.0",
+    "@restatedev/restate-sdk-zod": "^1.11.1",
+    "ai": "^6.0.41",
+    "braintrust": "^3.7.1",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.2",
+    "esbuild": "^0.25.4",
+    "tsx": "^4.19.2",
+    "typescript": "^5.4.5"
+  }
+}
