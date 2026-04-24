@@ -26,3 +26,9 @@ Check out the [AI Quickstart](https://docs.restate.dev/ai-quickstart) to run thi
     ```shell
     curl localhost:8080/agent/run --json '{"message":"What is the weather in San Francisco?"}'
    ```
+
+## Using AI coding tools
+
+If you use Claude Code or Codex, then the Restate plugin will automatically be installed. For Cursor, consult the [skills repo README](https://github.com/restatedev/skills).
+
+Plugin repo: https://github.com/restatedev/skills/tree/main

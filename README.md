@@ -114,6 +114,10 @@ Restate currently supports 6 languages:
 The examples can be translated to any of the supported languages.
 Join our [Discord](https://discord.restate.dev)/[Slack](https://slack.restate.dev) to get help with translating an examples to your language of choice.
 
+## Using AI coding tools
+
+If you use Claude Code, Codex, or Cursor to build on Restate, we highly recommend installing the [Restate plugin](https://github.com/restatedev/skills). It bundles skills, prompts, and context that help AI coding assistants generate correct, idiomatic Restate code across all supported SDKs. Most templates in this repo install the plugin automatically — see the [skills repo](https://github.com/restatedev/skills) for setup instructions.
+
 ## Learn more
 - [AI Documentation](https://docs.restate.dev/ai)
 - [Examples on workflows, microservice orchestration, async tasks, event processing](https://github.com/restatedev/examples)
