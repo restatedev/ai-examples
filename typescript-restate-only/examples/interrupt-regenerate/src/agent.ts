@@ -42,11 +42,6 @@ type TaskInput = {
 type CodingAgent = typeof codingAgent;
 type CodingTask = typeof codingTask;
 
-const TASK_PROMPT =
-  "Take the user's latest request and respond with a full answer: " +
-  "first outline a high-level plan, then write a draft implementation, " +
-  "then polish it into a final version.";
-
 // ORCHESTRATOR VIRTUAL OBJECT
 const codingAgent = restate.object({
   name: "CodingAgent",
@@ -116,18 +111,27 @@ const codingTask = restate.service({
      */
     runTask: async (ctx: Context, inp: TaskInput) => {
       try {
-        const { text } = await ctx.run(
-          "LLM call",
-          () =>
-            llmCall([
-              ...inp.messages,
-              { role: "user", content: TASK_PROMPT },
-            ]),
-          { maxRetryAttempts: 3 },
+        // Three sequential LLM calls. Each is a Restate await, so a
+        // cancellation can land between any of them and unwind cleanly.
+        const convo: ModelMessage[] = [...inp.messages];
+
+        const plan = await ctx.run("LLM: plan", () =>
+          llmCall(convo, "Outline a high-level plan."),
         );
+        convo.push({ role: "assistant", content: plan.text });
+
+        const draft = await ctx.run("LLM: draft", () =>
+          llmCall(convo, "Write a draft implementation."),
+        );
+        convo.push({ role: "assistant", content: draft.text });
+
+        const polish = await ctx.run("LLM: polish", () =>
+          llmCall(convo, "Polish it into a final version."),
+        );
+
         ctx
           .objectSendClient<CodingAgent>({ name: "CodingAgent" }, inp.agentId)
-          .appendMessage({ content: text });
+          .appendMessage({ content: polish.text });
       } catch (err) {
         if (err instanceof TerminalError) {
           const content =

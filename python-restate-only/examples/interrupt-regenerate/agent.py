@@ -12,11 +12,12 @@ target handler. The error propagates through sub-invocations, giving us
 stack-unwinding semantics across a distributed call tree, and leaves room
 for durable cleanup (notifying the orchestrator, releasing resources, etc.).
 """
+
 from datetime import timedelta
 
 import restate
 from pydantic import BaseModel
-from restate import RestateDurableFuture, RunOptions, TerminalError
+from restate import RestateDurableFuture, TerminalError
 
 from util.litellm_call import llm_call
 
@@ -28,13 +29,6 @@ class ChatMessage(BaseModel):
 class TaskInput(BaseModel):
     agent_id: str
     messages: list[dict]
-
-
-TASK_PROMPT = (
-    "Take the user's latest request and respond with a full answer: "
-    "first outline a high-level plan, then write a draft implementation, "
-    "then polish it into a final version."
-)
 
 
 # ORCHESTRATOR VIRTUAL OBJECT
@@ -70,6 +64,8 @@ async def message(ctx: restate.ObjectContext, msg: ChatMessage) -> None:
     invocation_id = await handle.invocation_id()
     ctx.set("current_task_id", invocation_id)
     ctx.set("messages", messages)
+
+
 # <end_message_handler>
 
 
@@ -98,16 +94,28 @@ async def run_task(ctx: restate.Context, inp: TaskInput) -> None:
     as TerminalError at the next Restate await — we catch it, run durable
     cleanup, and re-raise so Restate records the invocation as cancelled."""
     try:
-        result = await ctx.run_typed(
-            "LLM call",
-            llm_call,
-            RunOptions(max_attempts=3),
-            messages=inp.messages + [{"role": "user", "content": TASK_PROMPT}],
+        # Three sequential LLM calls. Each is a Restate await, so a
+        # cancellation can land between any of them and unwind cleanly.
+        convo = list(inp.messages)
+
+        plan = await ctx.run_typed(
+            "Plan", llm_call, messages=convo, prompt="Outline a high-level plan."
         )
+        convo.append({"role": "assistant", "content": plan.content or ""})
+
+        draft = await ctx.run_typed(
+            "Draft", llm_call, messages=convo, prompt="Write a draft implementation."
+        )
+        convo.append({"role": "assistant", "content": draft.content or ""})
+
+        polish = await ctx.run_typed(
+            "Polish", llm_call, messages=convo, prompt="Polish it into a final version."
+        )
+
         ctx.object_send(
             append_message,
             key=inp.agent_id,
-            arg=ChatMessage(content=result.content or ""),
+            arg=ChatMessage(content=polish.content or ""),
         )
     except TerminalError as err:
         # Cancellations surface as TerminalError with status_code == 409.
@@ -122,4 +130,6 @@ async def run_task(ctx: restate.Context, inp: TaskInput) -> None:
             arg=ChatMessage(content=content),
         )
         raise
+
+
 # <end_run_task>

@@ -4,27 +4,20 @@ from pydantic import BaseModel
 
 
 async def llm_call(
-    messages: str | list[dict[str, str]],
+    messages: list[dict[str, str]],
+    prompt: str,
     tools: list | None = None,
     response_format: type[BaseModel] | None = None,
 ) -> Message:
     """
-    Calls the model with the given prompt and returns the response.
-
-    Args:
-        messages (str): The user prompt to send to the model.
-        tools (list, optional): List of tools for the model to use. Defaults to None.
-
-    Returns:
-        Message: The response from the language model.
+    Calls the model with the conversation history plus a new user prompt
+    and returns the response.
     """
     if tools is None:
         tools = []
-    if isinstance(messages, str):
-        messages = [{"role": "user", "content": messages}]
     response = await litellm.acompletion(
         model="gpt-5.2",
-        messages=messages,
+        messages=[*messages, {"role": "user", "content": prompt}],
         tools=tools,
         stream=False,
         response_format=response_format,

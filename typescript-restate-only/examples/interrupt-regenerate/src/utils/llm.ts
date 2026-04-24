@@ -4,9 +4,13 @@ import { openai } from "@ai-sdk/openai";
 const model = openai("gpt-4o");
 
 async function llmCall(
-  prompt: string | Array<ModelMessage>,
+  messages: ModelMessage[],
+  userMessage: string,
 ): Promise<{ text: string }> {
-  const response = await generateText({ model, prompt });
+  const response = await generateText({
+    model,
+    messages: [...messages, { role: "user", content: userMessage }],
+  });
   return { text: response.text };
 }
 
