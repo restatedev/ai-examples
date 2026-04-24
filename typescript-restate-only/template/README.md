@@ -34,3 +34,9 @@ restate deployments register http://localhost:9080 --force --yes
 ```
 
 Go to the Restate UI `localhost:9070` and click on your handler to run it via the playground.
+
+## Using AI coding tools
+
+If you use Claude Code or Codex, then the Restate plugin will automatically be installed. For Cursor, consult the [skills repo README](https://github.com/restatedev/skills).
+
+Plugin repo: https://github.com/restatedev/skills/tree/main

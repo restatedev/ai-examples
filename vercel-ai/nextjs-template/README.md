@@ -39,3 +39,9 @@ Use this template when deploying the agent as a NextJS app, for example on Verce
    Returns: `The weather in Detroit is currently 22°C and sunny.`
 
 Check the Restate UI (`localhost:9070`) to see the journals of your invocations.
+
+## Using AI coding tools
+
+If you use Claude Code or Codex, then the Restate plugin will automatically be installed. For Cursor, consult the [skills repo README](https://github.com/restatedev/skills).
+
+Plugin repo: https://github.com/restatedev/skills/tree/main
