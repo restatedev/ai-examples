@@ -46,7 +46,7 @@ async def human_approval(claim: InsuranceClaim) -> str:
 
 
 agent = create_agent(
-    model=init_chat_model("openai:gpt-4o-mini"),
+    model=init_chat_model("openai:gpt-5.4"),
     tools=[human_approval],
     system_prompt=(
         "You are an insurance claim evaluation agent. Use these rules:\n"

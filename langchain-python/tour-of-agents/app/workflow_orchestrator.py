@@ -15,7 +15,7 @@ from utils.models import ReportRequest, ResearchTask, TaskList
 
 # <start_here>
 planner = create_agent(
-    model=init_chat_model("openai:gpt-4o-mini"),
+    model=init_chat_model("openai:gpt-5.4"),
     tools=[],
     system_prompt="You are a research planner. Break the topic into 2-4 research sub-tasks.",
     response_format=TaskList,
@@ -23,14 +23,14 @@ planner = create_agent(
 )
 
 researcher = create_agent(
-    model=init_chat_model("openai:gpt-4o-mini"),
+    model=init_chat_model("openai:gpt-5.4"),
     tools=[],
     system_prompt="You are a research assistant. Provide a concise, factual answer.",
     middleware=[RestateMiddleware()],
 )
 
 writer = create_agent(
-    model=init_chat_model("openai:gpt-4o-mini"),
+    model=init_chat_model("openai:gpt-5.4"),
     tools=[],
     system_prompt="You are a report writer. Combine the research findings into a cohesive report.",
     middleware=[RestateMiddleware()],
@@ -43,7 +43,7 @@ report_service = restate.Service("ResearchReport")
 async def generate(ctx: restate.Context, req: ReportRequest) -> dict:
     # Step 1: Orchestrator creates a research plan.
     plan_result = await planner.ainvoke({"messages": [{"role": "user", "content": req.topic}]})
-    tasks: list[ResearchTask] = TaskList.model_validate(plan_result["structured_response"]).tasks
+    tasks: list[ResearchTask] = plan_result["structured_response"].tasks
 
     # Step 2: Dispatch researchers in parallel.
     worker_promises = [ctx.service_call(run_researcher, task) for task in tasks]

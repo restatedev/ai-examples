@@ -20,7 +20,7 @@ MESSAGES_SERDE = PydanticTypeAdapter(list[AnyMessage])
 chat = restate.VirtualObject("Chat")
 
 agent = create_agent(
-    model=init_chat_model("openai:gpt-4o-mini"),
+    model=init_chat_model("openai:gpt-5.4"),
     tools=[],
     system_prompt="You are a helpful assistant.",
     middleware=[RestateMiddleware()],

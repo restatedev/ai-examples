@@ -37,7 +37,7 @@ async def get_weather(city: WeatherRequest) -> WeatherResponse:
 
 
 agent = create_agent(
-    model=init_chat_model("openai:gpt-4o-mini"),
+    model=init_chat_model("openai:gpt-5.4"),
     tools=[get_weather],
     system_prompt="You are a helpful agent that provides weather updates.",
     middleware=[RestateMiddleware()],

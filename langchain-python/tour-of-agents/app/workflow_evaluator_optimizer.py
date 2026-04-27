@@ -12,14 +12,14 @@ from utils.models import CodeRequest
 
 # <start_here>
 generator = create_agent(
-    model=init_chat_model("openai:gpt-4o-mini"),
+    model=init_chat_model("openai:gpt-5.4"),
     tools=[],
     system_prompt="You are a code generator. Write clean, correct code.",
     middleware=[RestateMiddleware()],
 )
 
 evaluator = create_agent(
-    model=init_chat_model("openai:gpt-4o-mini"),
+    model=init_chat_model("openai:gpt-5.4"),
     tools=[],
     system_prompt=(
         "You are a code reviewer. Evaluate the code for correctness, "

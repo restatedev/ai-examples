@@ -35,7 +35,7 @@ async def calculate_metrics(claim: InsuranceClaim) -> list[str]:
 
 
 agent = create_agent(
-    model=init_chat_model("openai:gpt-4o-mini"),
+    model=init_chat_model("openai:gpt-5.4"),
     tools=[calculate_metrics],
     system_prompt=(
         "You are a claim analysis agent. Use the calculate_metrics tool and "

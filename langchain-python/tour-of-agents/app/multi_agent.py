@@ -24,7 +24,7 @@ from utils.models import InsuranceClaim
 MESSAGES_SERDE = PydanticTypeAdapter(list[AnyMessage])
 
 MIDDLEWARE = [RestateMiddleware()]
-MODEL = init_chat_model("openai:gpt-4o-mini")
+MODEL = init_chat_model("openai:gpt-5.4")
 
 
 # <start_here>

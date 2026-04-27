@@ -37,7 +37,7 @@ async def check_fraud(claim: InsuranceClaim) -> str:
 
 
 agent = create_agent(
-    model=init_chat_model("openai:gpt-4o-mini"),
+    model=init_chat_model("openai:gpt-5.4"),
     tools=[check_eligibility, check_fraud],
     system_prompt=(
         "You are a claim approval engine. Analyze the claim and use your "

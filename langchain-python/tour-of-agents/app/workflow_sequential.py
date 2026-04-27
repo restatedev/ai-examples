@@ -20,7 +20,7 @@ claim_service = restate.Service("ClaimReimbursement")
 async def process(ctx: restate.Context, req: ClaimPrompt) -> dict:
     # Step 1: Parse the claim document (structured-output LLM step).
     parse_agent = create_agent(
-        model=init_chat_model("openai:gpt-4o-mini"),
+        model=init_chat_model("openai:gpt-5.4"),
         tools=[],
         system_prompt="Extract the claim amount, currency, category, and description.",
         response_format=ClaimData,
@@ -29,11 +29,11 @@ async def process(ctx: restate.Context, req: ClaimPrompt) -> dict:
     parsed = await parse_agent.ainvoke(
         {"messages": [{"role": "user", "content": req.message}]}
     )
-    claim: ClaimData = ClaimData.model_validate(parsed["structured_response"])
+    claim = parsed["structured_response"]
 
     # Step 2: Analyze the claim (LLM step).
     analysis_agent = create_agent(
-        model=init_chat_model("openai:gpt-4o-mini"),
+        model=init_chat_model("openai:gpt-5.4"),
         tools=[],
         system_prompt="Assess whether this claim is valid and determine the approved amount.",
         middleware=[RestateMiddleware()],

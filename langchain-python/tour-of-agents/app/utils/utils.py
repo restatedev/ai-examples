@@ -73,7 +73,7 @@ async def process_payment(claim_id: str, amount: float) -> str:
 def _run_specialist(system_prompt: str):
     """Build a one-shot LLM-only specialist agent."""
     return create_agent(
-        model=init_chat_model("openai:gpt-4o-mini"),
+        model=init_chat_model("openai:gpt-5.4"),
         tools=[],
         system_prompt=system_prompt,
         middleware=[RestateMiddleware()],
@@ -117,21 +117,3 @@ async def run_fraud_agent(_ctx: restate.Context, claim: InsuranceClaim) -> str:
     )
     result = await agent.ainvoke({"messages": [{"role": "user", "content": claim.model_dump_json()}]})
     return result["messages"][-1].content
-
-
-__all__ = [
-    "TerminalError",
-    "fetch_weather",
-    "request_human_review",
-    "check_eligibility",
-    "compare_to_standard_rates",
-    "check_fraud",
-    "convert_currency",
-    "process_payment",
-    "eligibility_agent_service",
-    "rate_comparison_agent_service",
-    "fraud_agent_service",
-    "run_eligibility_agent",
-    "run_rate_comparison_agent",
-    "run_fraud_agent",
-]

@@ -31,7 +31,7 @@ async def run(ctx: restate.Context, claim: InsuranceClaim) -> str:
     await restate.gather(eligibility, cost, fraud)
 
     decision = create_agent(
-        model=init_chat_model("openai:gpt-4o-mini"),
+        model=init_chat_model("openai:gpt-5.4"),
         tools=[],
         system_prompt="You are a claim decision engine.",
         middleware=[RestateMiddleware()],
