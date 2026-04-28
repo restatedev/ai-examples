@@ -16,12 +16,14 @@ from langchain.agents import create_agent
 from langchain.chat_models import init_chat_model
 from langchain_core.messages import AnyMessage, HumanMessage
 from langchain_core.tools import tool
+from pydantic import BaseModel, Field
 
-from restate.ext.langchain import RestateMiddleware, PydanticTypeAdapter
+from restate.ext.langchain import RestateMiddleware
 
 from utils.models import InsuranceClaim
 
-MESSAGES_SERDE = PydanticTypeAdapter(list[AnyMessage])
+class ChatHistory(BaseModel):
+    messages: list[AnyMessage] = Field(default_factory=list)
 
 MIDDLEWARE = [RestateMiddleware()]
 MODEL = init_chat_model("openai:gpt-5.4")
@@ -84,10 +86,10 @@ agent_service = restate.VirtualObject("MultiAgentClaimApproval")
 
 @agent_service.handler()
 async def run(ctx: restate.ObjectContext, claim: InsuranceClaim) -> str:
-    history = await ctx.get("messages", serde=MESSAGES_SERDE) or []
-    history.append(HumanMessage(content=f"Claim: {claim.model_dump_json()}"))
-    result = await intake_agent.ainvoke({"messages": history})
-    ctx.set("messages", result["messages"], serde=MESSAGES_SERDE)
+    history = await ctx.get("messages", type_hint=ChatHistory) or ChatHistory()
+    history.messages.append(HumanMessage(content=f"Claim: {claim.model_dump_json()}"))
+    result = await intake_agent.ainvoke({"messages": history.messages})
+    ctx.set("messages", ChatHistory(messages=result["messages"]))
     return result["messages"][-1].content
 # <end_here>
 

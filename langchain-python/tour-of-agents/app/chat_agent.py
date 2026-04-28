@@ -8,12 +8,15 @@ import restate
 from langchain.agents import create_agent
 from langchain.chat_models import init_chat_model
 from langchain_core.messages import AnyMessage, HumanMessage
+from pydantic import BaseModel, Field
 
-from restate.ext.langchain import RestateMiddleware, PydanticTypeAdapter
+from restate.ext.langchain import RestateMiddleware
 
 from utils.models import ChatMessage
 
-MESSAGES_SERDE = PydanticTypeAdapter(list[AnyMessage])
+
+class ChatHistory(BaseModel):
+    messages: list[AnyMessage] = Field(default_factory=list)
 
 
 # <start_here>
@@ -29,16 +32,18 @@ agent = create_agent(
 
 @chat.handler()
 async def message(ctx: restate.ObjectContext, req: ChatMessage) -> str:
-    history = await ctx.get("messages", serde=MESSAGES_SERDE) or []
-    history.append(HumanMessage(content=req.message))
-    result = await agent.ainvoke({"messages": history})
-    ctx.set("messages", result["messages"], serde=MESSAGES_SERDE)
+    history = await ctx.get("messages", type_hint=ChatHistory) or ChatHistory()
+    history.messages.append(HumanMessage(content=req.message))
+
+    result = await agent.ainvoke({"messages": history.messages})
+
+    ctx.set("messages", ChatHistory(messages=result["messages"]))
     return result["messages"][-1].content
 
 
 @chat.handler(kind="shared")
-async def get_history(ctx: restate.ObjectSharedContext) -> list[AnyMessage]:
-    return await ctx.get("messages", serde=MESSAGES_SERDE) or []
+async def get_history(ctx: restate.ObjectSharedContext) -> ChatHistory:
+    return await ctx.get("messages", type_hint=ChatHistory) or ChatHistory()
 # <end_here>
 
 

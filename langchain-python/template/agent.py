@@ -1,15 +1,10 @@
-from datetime import timedelta
-
 import restate
 from langchain.agents import create_agent
 from langchain_core.messages import AnyMessage
 from langchain_core.tools import tool
 from langchain.chat_models import init_chat_model
 from pydantic import BaseModel
-
-from restate.ext.langchain import RestateMiddleware, PydanticTypeAdapter, restate_context
-
-MESSAGES_SERDE = PydanticTypeAdapter(list[AnyMessage])
+from restate.ext.langchain import RestateMiddleware, restate_context
 
 
 class WeatherPrompt(BaseModel):
@@ -31,7 +26,7 @@ async def get_weather(city: str) -> dict:
 
 # AGENT
 weather_agent = create_agent(
-    model=init_chat_model("openai:gpt-4o-mini"),
+    model=init_chat_model("openai:gpt-5.4"),
     tools=[get_weather],
     system_prompt="You are a helpful agent that provides weather updates.",
     middleware=[RestateMiddleware()],
