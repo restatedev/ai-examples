@@ -19,13 +19,12 @@ from utils.utils import request_human_review
 @tool
 async def human_approval(claim: InsuranceClaim) -> str:
     """Ask for human approval for high-value claims."""
-    ctx = restate_context()
 
     # Create an awakeable that a human can resolve via the Restate API.
-    approval_id, approval_promise = ctx.awakeable(type_hint=str)
+    approval_id, approval_promise = restate_context().awakeable(type_hint=str)
 
     # Notify the reviewer (durable step).
-    await ctx.run_typed(
+    await restate_context().run_typed(
         "Request review", request_human_review, claim=claim, awakeable_id=approval_id
     )
 
@@ -53,7 +52,7 @@ agent_service = restate.Service("HumanClaimApprovalAgent")
 
 @agent_service.handler()
 async def run(_ctx: restate.Context, req: ClaimPrompt) -> str:
-    result = await agent.ainvoke({"messages": [{"role": "user", "content": req.message}]})
+    result = await agent.ainvoke({"messages": req.message})
     return result["messages"][-1].content
 
 

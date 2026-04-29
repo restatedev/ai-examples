@@ -11,6 +11,7 @@ import restate
 from langchain.agents import create_agent
 from langchain.chat_models import init_chat_model
 from langchain_core.tools import tool
+from restate import RunOptions
 
 from restate.ext.langchain import RestateMiddleware, restate_context
 
@@ -23,13 +24,7 @@ from utils.utils import fetch_weather
 async def get_weather(city: WeatherRequest) -> WeatherResponse:
     """Get the current weather for a given city."""
     return await restate_context().run_typed(
-        "get weather",
-        fetch_weather,
-        restate.RunOptions(
-            max_attempts=3,
-            initial_retry_interval=timedelta(seconds=2),
-        ),
-        req=city,
+        "get weather", fetch_weather, RunOptions(max_attempts=3), req=city
     )
 
 
@@ -40,7 +35,7 @@ agent = create_agent(
     model=init_chat_model("openai:gpt-5.4"),
     tools=[get_weather],
     system_prompt="You are a helpful agent that provides weather updates.",
-    middleware=[RestateMiddleware()],
+    middleware=[RestateMiddleware(run_options=RunOptions(max_attempts=3))],
 )
 
 
@@ -51,9 +46,7 @@ agent_service = restate.Service("WeatherAgent")
 async def run(_ctx: restate.Context, req: WeatherPrompt) -> str:
     # <start_handle>
     try:
-        result = await agent.ainvoke(
-            {"messages": [{"role": "user", "content": req.message}]}
-        )
+        result = await agent.ainvoke({"messages": req.message})
     except restate.TerminalError as e:
         return f"The agent couldn't complete the request: {e.message}"
     # <end_handle>

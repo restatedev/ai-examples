@@ -15,7 +15,6 @@ from restate.ext.langchain import RestateMiddleware
 
 from .models import InsuranceClaim, WeatherRequest, WeatherResponse
 
-
 # ---------- weather ----------
 
 
@@ -89,7 +88,7 @@ async def run_eligibility_agent(_ctx: restate.Context, claim: InsuranceClaim) ->
         "Decide whether the following claim is eligible for reimbursement."
         " Respond with eligible if it's a medical claim, and not eligible otherwise."
     )
-    result = await agent.ainvoke({"messages": [{"role": "user", "content": claim.model_dump_json()}]})
+    result = await agent.ainvoke({"messages": claim.model_dump_json()})
     return result["messages"][-1].content
 
 
@@ -97,12 +96,14 @@ rate_comparison_agent_service = restate.Service("RateComparisonAgent")
 
 
 @rate_comparison_agent_service.handler()
-async def run_rate_comparison_agent(_ctx: restate.Context, claim: InsuranceClaim) -> str:
+async def run_rate_comparison_agent(
+    _ctx: restate.Context, claim: InsuranceClaim
+) -> str:
     agent = _run_specialist(
         "Decide whether the cost of the claim is reasonable given the treatment."
         " Respond with reasonable or not reasonable."
     )
-    result = await agent.ainvoke({"messages": [{"role": "user", "content": claim.model_dump_json()}]})
+    result = await agent.ainvoke({"messages": claim.model_dump_json()})
     return result["messages"][-1].content
 
 
@@ -115,5 +116,5 @@ async def run_fraud_agent(_ctx: restate.Context, claim: InsuranceClaim) -> str:
         "Decide whether the claim is fraudulent."
         " Always respond with low risk, medium risk, or high risk."
     )
-    result = await agent.ainvoke({"messages": [{"role": "user", "content": claim.model_dump_json()}]})
+    result = await agent.ainvoke({"messages": claim.model_dump_json()})
     return result["messages"][-1].content

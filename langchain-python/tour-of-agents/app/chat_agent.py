@@ -24,7 +24,6 @@ chat = restate.VirtualObject("Chat")
 
 agent = create_agent(
     model=init_chat_model("openai:gpt-5.4"),
-    tools=[],
     system_prompt="You are a helpful assistant.",
     middleware=[RestateMiddleware()],
 )
@@ -44,6 +43,8 @@ async def message(ctx: restate.ObjectContext, req: ChatMessage) -> str:
 @chat.handler(kind="shared")
 async def get_history(ctx: restate.ObjectSharedContext) -> ChatHistory:
     return await ctx.get("messages", type_hint=ChatHistory) or ChatHistory()
+
+
 # <end_here>
 
 

@@ -14,7 +14,6 @@ from restate.ext.langchain import RestateMiddleware, restate_context
 from utils.models import ClaimPrompt, InsuranceClaim
 from utils.utils import request_human_review
 
-
 # <start_wf>
 # Sub-workflow service for human approval.
 human_approval_workflow = restate.Service("HumanApprovalWorkflow")
@@ -62,7 +61,7 @@ agent_service = restate.Service("SubWorkflowClaimAgent")
 
 @agent_service.handler()
 async def run(_ctx: restate.Context, req: ClaimPrompt) -> str:
-    result = await agent.ainvoke({"messages": [{"role": "user", "content": req.message}]})
+    result = await agent.ainvoke({"messages": req.message})
     return result["messages"][-1].content
 
 

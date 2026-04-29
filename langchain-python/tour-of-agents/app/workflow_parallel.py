@@ -17,10 +17,17 @@ from utils.utils import (
     run_rate_comparison_agent,
 )
 
+# <start_here>
+decision = create_agent(
+    model=init_chat_model("openai:gpt-5.4"),
+    system_prompt="You are a claim decision engine.",
+    middleware=[RestateMiddleware()],
+)
+
+
 agent_service = restate.Service("ParallelAgentClaimApproval")
 
 
-# <start_here>
 @agent_service.handler()
 async def run(ctx: restate.Context, claim: InsuranceClaim) -> str:
     # Start multiple sub-agents in parallel with auto-retries and recovery.
@@ -30,25 +37,10 @@ async def run(ctx: restate.Context, claim: InsuranceClaim) -> str:
 
     await restate.gather(eligibility, cost, fraud)
 
-    decision = create_agent(
-        model=init_chat_model("openai:gpt-5.4"),
-        tools=[],
-        system_prompt="You are a claim decision engine.",
-        middleware=[RestateMiddleware()],
-    )
     result = await decision.ainvoke(
-        {
-            "messages": [
-                {
-                    "role": "user",
-                    "content": (
-                        f"Decide about claim: {claim.model_dump_json()}. "
-                        "Base your decision on the following analyses:"
-                        f"Eligibility: {await eligibility} Cost {await cost} Fraud: {await fraud}"
-                    ),
-                }
-            ]
-        }
+        {"messages": f"""Decide about claim: {claim.model_dump_json()}.
+        Base your decision on the following analyses:
+        Eligibility: {await eligibility} Cost {await cost} Fraud: {await fraud}"""}
     )
     return result["messages"][-1].content
 

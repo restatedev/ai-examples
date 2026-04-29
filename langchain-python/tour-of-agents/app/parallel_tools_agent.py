@@ -50,9 +50,7 @@ agent_service = restate.Service("ParallelToolClaimAgent")
 
 @agent_service.handler()
 async def run(_ctx: restate.Context, claim: InsuranceClaim) -> str:
-    result = await agent.ainvoke(
-        {"messages": [{"role": "user", "content": f"Claim: {claim.model_dump_json()}"}]}
-    )
+    result = await agent.ainvoke({"messages": f"Claim: {claim.model_dump_json()}"})
     return result["messages"][-1].content
 
 

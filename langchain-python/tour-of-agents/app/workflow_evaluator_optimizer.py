@@ -9,18 +9,15 @@ from restate.ext.langchain import RestateMiddleware
 
 from utils.models import CodeRequest
 
-
 # <start_here>
 generator = create_agent(
     model=init_chat_model("openai:gpt-5.4"),
-    tools=[],
     system_prompt="You are a code generator. Write clean, correct code.",
     middleware=[RestateMiddleware()],
 )
 
 evaluator = create_agent(
     model=init_chat_model("openai:gpt-5.4"),
-    tools=[],
     system_prompt=(
         "You are a code reviewer. Evaluate the code for correctness, "
         "readability, and edge cases. Respond with PASS if acceptable, or "
@@ -44,12 +41,12 @@ async def generate(_ctx: restate.Context, req: CodeRequest) -> dict:
             if feedback
             else f"Task: {req.task}"
         )
-        gen_result = await generator.ainvoke({"messages": [{"role": "user", "content": prompt}]})
+        gen_result = await generator.ainvoke({"messages": prompt})
         code = gen_result["messages"][-1].content
 
         # Step 2: Evaluate the code
         eval_result = await evaluator.ainvoke(
-            {"messages": [{"role": "user", "content": f"Task: {req.task}\n\nCode:\n{code}"}]}
+            {"messages": f"Task: {req.task}\n\nCode:\n{code}"}
         )
         evaluation = eval_result["messages"][-1].content
 
