@@ -39,5 +39,7 @@ agent_service = restate.Service("agent")
 
 @agent_service.handler()
 async def run(_ctx: restate.Context, req: WeatherPrompt) -> str:
-    result = await weather_agent.ainvoke({"messages": [{"role": "user", "content": req.message}]})
+    result = await weather_agent.ainvoke(
+        {"messages": [{"role": "user", "content": req.message}]}
+    )
     return result["messages"][-1].content
