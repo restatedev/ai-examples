@@ -1,2 +1,0 @@
-[2026-05-14 15:19:36 +0200] [25328] [WARNING] ASGI Framework Lifespan error, continuing without Lifespan support
-[2026-05-14 15:19:36 +0200] [25328] [INFO] Running on http://0.0.0.0:9080 (CTRL + C to quit)
