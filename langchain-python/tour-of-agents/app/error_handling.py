@@ -56,7 +56,6 @@ async def run(_ctx: restate.Context, req: WeatherPrompt) -> str:
 
 if __name__ == "__main__":
     import asyncio
-
     import hypercorn
     import hypercorn.asyncio
 

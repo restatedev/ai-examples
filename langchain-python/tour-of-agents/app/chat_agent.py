@@ -50,7 +50,6 @@ async def get_history(ctx: restate.ObjectSharedContext) -> ChatHistory:
 
 if __name__ == "__main__":
     import asyncio
-
     import hypercorn
     import hypercorn.asyncio
 

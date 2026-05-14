@@ -66,7 +66,6 @@ async def run_researcher(_ctx: restate.Context, task: ResearchTask) -> str:
 
 if __name__ == "__main__":
     import asyncio
-
     import hypercorn
     import hypercorn.asyncio
 

@@ -63,7 +63,6 @@ async def generate(_ctx: restate.Context, req: CodeRequest) -> dict:
 
 if __name__ == "__main__":
     import asyncio
-
     import hypercorn
     import hypercorn.asyncio
 
