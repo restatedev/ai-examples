@@ -22,7 +22,7 @@ Restate acts as a scalable, resilient task orchestrator that speaks the A2A prot
 
 - Python 3.12 or higher
 - [UV](https://docs.astral.sh/uv/)
-- A [Google API Key](https://platform.openai.com/docs/api-reference/authentication)
+- A Google API Key
   ```shell
   echo "GOOGLE_API_KEY=your_api_key_here" >> .env
   ```
