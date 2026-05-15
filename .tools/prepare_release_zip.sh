@@ -31,6 +31,10 @@ create_release_zip pydantic-ai/tour-of-agents python-pydantic-ai-tour-of-agents
 create_release_zip pydantic-ai/template python-pydantic-ai-template
 create_release_zip pydantic-ai/examples python-pydantic-ai-examples
 
+# LangChain Python examples
+create_release_zip langchain-python/tour-of-agents python-langchain-tour-of-agents
+create_release_zip langchain-python/template python-langchain-template
+
 # Restate-only Python examples
 create_release_zip python-restate-only/tour-of-agents python-restate-tour-of-agents
 create_release_zip python-restate-only/template python-restate-agent-template

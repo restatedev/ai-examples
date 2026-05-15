@@ -38,6 +38,10 @@ while IFS= read -r dir; do
   search_and_replace_version "$dir"
 done < <(find "$PROJECT_ROOT/pydantic-ai/examples" -mindepth 2 -maxdepth 2 -name pyproject.toml -exec dirname {} \;)
 
+# LangChain Python examples
+search_and_replace_version $PROJECT_ROOT/langchain-python/tour-of-agents
+search_and_replace_version $PROJECT_ROOT/langchain-python/template
+
 # Restate-only examples
 search_and_replace_version $PROJECT_ROOT/python-restate-only/template
 search_and_replace_version $PROJECT_ROOT/python-restate-only/tour-of-agents
