@@ -10,6 +10,7 @@ from utils.utils import parse_agent_response
 
 APP_NAME = "codegen"
 
+
 class CodeRequest(BaseModel):
     task: str = "Write a function that checks if a string is a palindrome"
 
@@ -61,7 +62,10 @@ async def generate(ctx: restate.ObjectContext, req: CodeRequest) -> dict:
         events = eval_runner.run_async(
             user_id=ctx.key(),
             session_id=str(ctx.uuid()),
-            new_message=Content(role="user", parts=[Part.from_text(text=f"Task: {req.task}\n\nCode:\n{code}")]),
+            new_message=Content(
+                role="user",
+                parts=[Part.from_text(text=f"Task: {req.task}\n\nCode:\n{code}")],
+            ),
         )
         evaluation = await parse_agent_response(events)
         if evaluation.startswith("PASS"):
@@ -69,6 +73,8 @@ async def generate(ctx: restate.ObjectContext, req: CodeRequest) -> dict:
         feedback = evaluation
 
     return {"code": "Max iterations reached", "iterations": max_iterations}
+
+
 # <end_here>
 
 

@@ -20,20 +20,20 @@ class TaskList(BaseModel):
 
 # <start_here>
 planner = Agent(
-    "openai:gpt-4o-mini",
+    "openai:gpt-5.4",
     system_prompt="You are a research planner. Break the topic into 2-4 research sub-tasks.",
     output_type=TaskList,
 )
 restate_planner = RestateAgent(planner)
 
 researcher = Agent(
-    "openai:gpt-4o-mini",
+    "openai:gpt-5.4",
     system_prompt="You are a research assistant. Provide a concise, factual answer.",
 )
 restate_researcher = RestateAgent(researcher)
 
 writer = Agent(
-    "openai:gpt-4o-mini",
+    "openai:gpt-5.4",
     system_prompt="You are a report writer. Combine the research findings into a cohesive report.",
 )
 restate_writer = RestateAgent(writer)

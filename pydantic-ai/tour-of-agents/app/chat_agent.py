@@ -6,7 +6,7 @@ from utils.models import ChatMessage, MessageSerde
 
 # <start_here>
 agent = Agent(
-    "openai:gpt-4o-mini",
+    "openai:gpt-5.4",
     system_prompt="You are a helpful assistant.",
 )
 restate_agent = RestateAgent(agent)

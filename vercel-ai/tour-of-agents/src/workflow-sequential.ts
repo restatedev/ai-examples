@@ -11,7 +11,7 @@ const schema = restate.serde.schema;
 // <start_here>
 const process = async (ctx: Context, {prompt}: {prompt: string}) => {
   const model = wrapLanguageModel({
-    model: openai("gpt-4o"),
+    model: openai("gpt-5.4"),
     middleware: durableCalls(ctx, { maxRetryAttempts: 3 }),
   });
 

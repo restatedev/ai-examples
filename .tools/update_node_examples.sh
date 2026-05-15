@@ -41,6 +41,6 @@ bump_restate_sdk_deps $PROJECT_ROOT/vercel-ai/tour-of-agents
 # Restate-only examples
 bump_restate_sdk_deps $PROJECT_ROOT/typescript-restate-only/template
 bump_restate_sdk_deps $PROJECT_ROOT/typescript-restate-only/tour-of-agents
-while IFS= read -r dir; do
-  bump_restate_sdk_deps "$dir"
-done < <(find "$PROJECT_ROOT/typescript-restate-only/examples" -mindepth 2 -maxdepth 2 -name package.json -not -path '*/node_modules/*' -exec dirname {} \;)
+for example_dir in $PROJECT_ROOT/typescript-restate-only/examples/*/; do
+    bump_restate_sdk_deps "$example_dir"
+done

@@ -5,11 +5,8 @@ from google.adk.events import Event
 from google.genai.types import Content, Part
 from restate.ext.adk import RestateSessionService, RestatePlugin
 from typing import AsyncGenerator
-from utils.models import (
-    WeatherResponse,
-    InsuranceClaim,
-WeatherRequest
-)
+from utils.models import WeatherResponse, InsuranceClaim, WeatherRequest
+
 
 async def parse_agent_response(events: AsyncGenerator[Event, None]) -> str:
     """Run an ADK agent and return the final text response."""
@@ -25,6 +22,7 @@ async def parse_agent_response(events: AsyncGenerator[Event, None]) -> str:
 async def fetch_weather(req: WeatherRequest) -> WeatherResponse:
     fail_on_denver(req.city)
     return WeatherResponse(temperature=23, description="Sunny")
+
 
 # <end_weather>
 
@@ -92,6 +90,8 @@ async def run_eligibility_agent(
     )
 
     return await parse_agent_response(events)
+
+
 # <end_eligibility>
 
 
@@ -153,7 +153,7 @@ async def run_fraud_agent(ctx: restate.ObjectContext, claim: InsuranceClaim) -> 
 
 async def convert_currency(amount: float, source: str, target: str) -> float:
     """Convert currency (placeholder)."""
-    return amount*1.3
+    return amount * 1.3
 
 
 async def process_payment(claim_id: str, amount: float) -> str:

@@ -13,7 +13,7 @@ export const researchWorker = restate.service({
   handlers: {
     research: async (ctx: restate.Context, {question}: { question: string }) => {
       const model = wrapLanguageModel({
-        model: openai("gpt-4o"),
+        model: openai("gpt-5.4"),
         middleware: durableCalls(ctx, { maxRetryAttempts: 3 }),
       });
       const { text: answer } = await generateText({
@@ -34,7 +34,7 @@ const orchestrator = restate.service({
       { input: schema(ResearchRequestSchema) },
       async (ctx: restate.Context, {topic}: { topic: string }) => {
         const model = wrapLanguageModel({
-          model: openai("gpt-4o"),
+          model: openai("gpt-5.4"),
           middleware: durableCalls(ctx, { maxRetryAttempts: 3 }),
         });
 
