@@ -23,7 +23,7 @@ async def llm_call(
     if isinstance(messages, str):
         messages = [{"role": "user", "content": messages}]
     response = await litellm.acompletion(
-        model="gpt-4o",
+        model="gpt-5.4",
         messages=messages,
         tools=tools,
         stream=False,

@@ -6,19 +6,19 @@ from utils.models import InsuranceClaim
 
 # <start_here>
 medical_agent = Agent(
-    "openai:gpt-4o-mini",
+    "openai:gpt-5.4",
     system_prompt="Review medical claims for coverage and necessity. Approve/deny up to $50,000.",
 )
 restate_medical_agent = RestateAgent(medical_agent)
 
 car_agent = Agent(
-    "openai:gpt-4o-mini",
+    "openai:gpt-5.4",
     system_prompt="Assess car claims for liability and damage. Approve/deny up to $25,000.",
 )
 restate_car_agent = RestateAgent(car_agent)
 
 intake_agent = Agent(
-    "openai:gpt-4o-mini",
+    "openai:gpt-5.4",
     system_prompt="Route insurance claims to the appropriate specialist using the available tools.",
 )
 

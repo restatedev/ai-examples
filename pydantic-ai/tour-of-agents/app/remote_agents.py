@@ -6,7 +6,7 @@ from utils.models import InsuranceClaim
 from utils.utils import run_eligibility_agent, run_fraud_agent
 
 agent = Agent(
-    "openai:gpt-4o-mini",
+    "openai:gpt-5.4",
     system_prompt="You are a claim approval engine. Analyze the claim and use your tools to decide whether to approve it.",
 )
 

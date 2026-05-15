@@ -1,10 +1,12 @@
+from datetime import timedelta
+
 import restate
 
 from google.adk import Runner
 from google.adk.apps import App
 from google.genai.types import Content, Part
 from google.adk.agents.llm_agent import Agent
-from restate import TerminalError
+from restate import TerminalError, RunOptions
 from restate.ext.adk import RestatePlugin, restate_context, RestateSessionService
 
 from utils.models import WeatherResponse, WeatherPrompt, WeatherRequest
@@ -30,8 +32,11 @@ agent = Agent(
 )
 
 # <start_retries>
+run_options = RunOptions(max_attempts=3, initial_retry_interval=timedelta(seconds=1))
 app = App(
-    name=APP_NAME, root_agent=agent, plugins=[RestatePlugin(max_model_call_retries=3)]
+    name=APP_NAME,
+    root_agent=agent,
+    plugins=[RestatePlugin(run_options=run_options)],
 )
 # <end_retries>
 runner = Runner(app=app, session_service=RestateSessionService())
@@ -51,7 +56,6 @@ async def run(ctx: restate.ObjectContext, req: WeatherPrompt) -> str | None:
         return await parse_agent_response(events)
     except TerminalError as e:
         # Handle the error appropriately, e.g., log it or return a default response
-        print(f"An error occurred: {e}")
         return "Sorry, I'm unable to process your request at the moment."
 
 

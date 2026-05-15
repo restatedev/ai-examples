@@ -13,7 +13,7 @@ const schema = restate.serde.schema;
 
 const run = async (ctx: restate.Context, { prompt }: ClaimPrompt) => {
   const model = wrapLanguageModel({
-    model: openai("gpt-4o"),
+    model: openai("gpt-5.4"),
     middleware: durableCalls(ctx, { maxRetryAttempts: 3 }),
   });
 

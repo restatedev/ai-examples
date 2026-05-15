@@ -20,6 +20,7 @@ async def fetch_weather(req: WeatherRequest) -> WeatherResponse:
     fail_on_denver(req.city)
     return WeatherResponse(temperature=23, description="Sunny")
 
+
 # <end_weather>
 
 
@@ -111,6 +112,8 @@ async def run_eligibility_agent(_ctx: restate.Context, claim: InsuranceClaim) ->
         input=claim.model_dump_json(),
     )
     return result.final_output
+
+
 # <end_eligibility>
 
 

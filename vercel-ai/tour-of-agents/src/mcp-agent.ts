@@ -13,7 +13,7 @@ const message = async (ctx: restate.Context, { prompt }: McpPrompt) => {
   let mcpClient: RestateMCPClient | undefined;
   try {
     const model = wrapLanguageModel({
-      model: openai("gpt-4o-mini"),
+      model: openai("gpt-5.4"),
       middleware: durableCalls(ctx, { maxRetryAttempts: 3 }),
     });
 

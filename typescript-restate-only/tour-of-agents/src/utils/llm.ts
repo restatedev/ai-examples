@@ -1,7 +1,7 @@
 import { generateText, TypedToolCall, ModelMessage } from "ai";
 import { openai } from "@ai-sdk/openai";
 
-const model = openai("gpt-4o");
+const model = openai("gpt-5.4");
 
 async function llmCall(
   prompt: string | Array<ModelMessage>,

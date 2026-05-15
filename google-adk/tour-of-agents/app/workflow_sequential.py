@@ -7,13 +7,12 @@ from restate.ext.adk import RestatePlugin, RestateSessionService
 from utils.models import ClaimData, ClaimPrompt
 from utils.utils import parse_agent_response, convert_currency, process_payment
 
-
 # <start_here>
 parse_agent = Agent(
     model="gemini-2.5-flash",
     name="document_parser",
     instruction="Extract the claim amount, currency, category, and description.",
-    output_schema=ClaimData
+    output_schema=ClaimData,
 )
 parse_app = App(name="claims", root_agent=parse_agent, plugins=[RestatePlugin()])
 parse_runner = Runner(app=parse_app, session_service=RestateSessionService())
@@ -50,17 +49,28 @@ async def process(ctx: restate.ObjectContext, req: ClaimPrompt) -> dict:
 
     # Step 3: Convert currency (regular step)
     amount_usd = await ctx.run_typed(
-        "Convert currency", convert_currency,
-        amount=claim.amount, source=claim.currency, target="USD",
+        "Convert currency",
+        convert_currency,
+        amount=claim.amount,
+        source=claim.currency,
+        target="USD",
     )
 
     # Step 4: Process reimbursement (regular step)
     confirmation = await ctx.run_typed(
-        "Process payment", process_payment,
-        claim_id=str(ctx.uuid()), amount=amount_usd,
+        "Process payment",
+        process_payment,
+        claim_id=str(ctx.uuid()),
+        amount=amount_usd,
     )
 
-    return {"analysis": analysis, "amount_usd": amount_usd, "confirmation": confirmation}
+    return {
+        "analysis": analysis,
+        "amount_usd": amount_usd,
+        "confirmation": confirmation,
+    }
+
+
 # <end_here>
 
 

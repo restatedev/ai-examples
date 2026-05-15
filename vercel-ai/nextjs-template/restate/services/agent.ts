@@ -16,7 +16,7 @@ async function simpleAgent(restate: restate.Context, prompt: string) {
   // we wrap the model with the 'durableCalls' middleware, which
   // stores each response in Restate's journal, to be restored on retries
   const model = wrapLanguageModel({
-    model: openai("gpt-4o-2024-08-06"),
+    model: openai("gpt-5.4"),
     middleware: durableCalls(restate, { maxRetryAttempts: 3 }),
   });
 

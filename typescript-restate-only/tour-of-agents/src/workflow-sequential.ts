@@ -28,7 +28,7 @@ async function process(ctx: Context, { message }: { message: string }) {
     "Parse claim",
     async () => {
       const { output } = await generateText({
-        model: openai("gpt-4o"),
+        model: openai("gpt-5.4"),
         prompt: `Extract the claim amount, currency, category, and description. Input: ${message}`,
         output: Output.object({ schema: ClaimData }),
       });
@@ -42,7 +42,7 @@ async function process(ctx: Context, { message }: { message: string }) {
     "Evaluate claim",
     async () => {
       const { output: valid } = await generateText({
-        model: openai("gpt-4o"),
+        model: openai("gpt-5.4"),
         system:
           "You are a claims analyst. Assess whether this claim is valid and determine the approved amount.",
         prompt: `Claim: ${JSON.stringify(output)}`,

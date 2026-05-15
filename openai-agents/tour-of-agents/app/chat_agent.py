@@ -24,6 +24,8 @@ async def message(_ctx: ObjectContext, req: ChatMessage) -> dict:
 @chat.handler(kind="shared")
 async def get_history(ctx: restate.ObjectSharedContext):
     return await ctx.get("messages", type_hint=list[dict]) or []
+
+
 # <end_here>
 
 

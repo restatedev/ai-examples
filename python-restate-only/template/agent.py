@@ -48,7 +48,7 @@ async def run(ctx: restate.Context, message: WeatherPrompt) -> str | None:
         # Call the LLM
         async def call_llm() -> Message:
             resp = await acompletion(
-                model="gpt-4o-mini", messages=messages, tools=TOOLS
+                model="gpt-5.4", messages=messages, tools=TOOLS
             )
             return resp.choices[0].message
 

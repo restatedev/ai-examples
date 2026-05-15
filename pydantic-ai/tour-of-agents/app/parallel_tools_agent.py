@@ -10,7 +10,7 @@ from utils.utils import (
 )
 
 agent = Agent(
-    "openai:gpt-4o-mini",
+    "openai:gpt-5.4",
     system_prompt="You are a claim analysis agent that analyzes insurance claims."
     "Use the calculate_metrics tool and decide whether to approve.",
 )

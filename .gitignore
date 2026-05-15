@@ -5,6 +5,6 @@ node_modules
 .venv
 .env
 dist
-*/.python-version
-*/test_examples.sh
-langchain-python/tour-of-agents/test_examples.sh
+**/.python-version
+**/.claude/settings.local.json
+**/test_examples.sh
