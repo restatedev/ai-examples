@@ -9,7 +9,7 @@ dependencies = [
     "hypercorn",
     "pydantic>=2.11.9",
     "litellm",
-    "restate-sdk[serde]>=0.17.1",
+    "restate-sdk[serde]>=0.18.0",
 ]
 
 [dependency-groups]
