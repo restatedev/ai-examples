@@ -10,7 +10,7 @@ dependencies = [
     "pydantic>=2.11.9",
     "langfuse",
     "litellm",
-    "restate-sdk[serde]>=0.17.1",
+    "restate-sdk[serde]>=0.18.0",
 ]
 
 [dependency-groups]
