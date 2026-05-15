@@ -18,3 +18,6 @@ npm_install_check $PROJECT_ROOT/vercel-ai/tour-of-agents
 # Restate-only examples
 npm_install_check $PROJECT_ROOT/typescript-restate-only/template
 npm_install_check $PROJECT_ROOT/typescript-restate-only/tour-of-agents
+while IFS= read -r dir; do
+  npm_install_check "$dir"
+done < <(find "$PROJECT_ROOT/typescript-restate-only/examples" -mindepth 2 -maxdepth 2 -name package.json -not -path '*/node_modules/*' -exec dirname {} \;)
