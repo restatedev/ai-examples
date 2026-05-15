@@ -47,6 +47,10 @@ while IFS= read -r dir; do
   pushd "$dir" && python_mypi_lint && popd
 done < <(find "$PROJECT_ROOT/pydantic-ai/examples" -mindepth 2 -maxdepth 2 -name pyproject.toml -exec dirname {} \;)
 
+# LangChain Python examples
+pushd $PROJECT_ROOT/langchain-python/template && python_mypi_lint && popd
+pushd $PROJECT_ROOT/langchain-python/tour-of-agents && python_mypi_lint && popd
+
 # Restate-only examples
 pushd $PROJECT_ROOT/python-restate-only/template && python_mypi_lint && popd
 pushd $PROJECT_ROOT/python-restate-only/tour-of-agents && python_mypi_lint && popd

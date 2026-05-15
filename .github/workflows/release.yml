@@ -33,6 +33,8 @@ jobs:
             python-pydantic-ai-tour-of-agents.zip
             python-pydantic-ai-template.zip
             python-pydantic-ai-examples.zip
+            python-langchain-tour-of-agents.zip
+            python-langchain-template.zip
             python-restate-tour-of-agents.zip
             python-restate-agent-template.zip
             python-restate-agent-examples.zip
