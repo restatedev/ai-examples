@@ -13,7 +13,7 @@ from utils.utils import (
 )
 
 decision_agent = Agent(
-    "openai:gpt-4o-mini",
+    "openai:gpt-5.4",
     system_prompt="You are a claim decision engine.",
 )
 restate_decision_agent = RestateAgent(decision_agent)

@@ -48,7 +48,7 @@ async function runAgent(ctx: restate.Context, prompt: string, topic: string) {
   );
 
   const model = wrapLanguageModel({
-    model: openai("gpt-4o-2024-08-06"),
+    model: openai("gpt-5.4"),
     middleware: durableCalls(ctx, { maxRetryAttempts: 3 }),
   });
 

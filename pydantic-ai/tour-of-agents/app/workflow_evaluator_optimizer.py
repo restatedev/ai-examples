@@ -10,13 +10,13 @@ class CodeRequest(BaseModel):
 
 # <start_here>
 generator = Agent(
-    "openai:gpt-4o-mini",
+    "openai:gpt-5.4",
     system_prompt="You are a code generator. Write clean, correct code.",
 )
 restate_generator = RestateAgent(generator)
 
 evaluator = Agent(
-    "openai:gpt-4o-mini",
+    "openai:gpt-5.4",
     system_prompt="""You are a code reviewer. Evaluate the code for correctness,
     readability, and edge cases. Respond with PASS if acceptable,
     or FAIL: <feedback> with specific issues to fix.""",

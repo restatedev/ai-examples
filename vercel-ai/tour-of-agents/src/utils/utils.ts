@@ -71,7 +71,7 @@ export const eligibilityAgent = restate.service({
   handlers: {
     run: async (ctx: restate.Context, claim: InsuranceClaim) => {
       const model = wrapLanguageModel({
-        model: openai("gpt-4o"),
+        model: openai("gpt-5.4"),
         middleware: durableCalls(ctx, { maxRetryAttempts: 3 }),
       });
       const { text } = await generateText({
@@ -92,7 +92,7 @@ export const rateComparisonAgent = restate.service({
   handlers: {
     run: async (ctx: restate.Context, claim: InsuranceClaim) => {
       const model = wrapLanguageModel({
-        model: openai("gpt-4o"),
+        model: openai("gpt-5.4"),
         middleware: durableCalls(ctx, { maxRetryAttempts: 3 }),
       });
       const { text } = await generateText({
@@ -112,7 +112,7 @@ export const fraudCheckAgent = restate.service({
   handlers: {
     run: async (ctx: restate.Context, claim: InsuranceClaim) => {
       const model = wrapLanguageModel({
-        model: openai("gpt-4o"),
+        model: openai("gpt-5.4"),
         middleware: durableCalls(ctx, { maxRetryAttempts: 3 }),
       });
       const { text } = await generateText({

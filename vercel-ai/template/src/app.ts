@@ -16,7 +16,7 @@ async function getWeather(ctx: restate.Context, city: string) {
 // AGENT
 const run = async (ctx: restate.Context, { prompt }: { prompt: string }) => {
   const model = wrapLanguageModel({
-    model: openai("gpt-4o"),
+    model: openai("gpt-5.4"),
     // Persist LLM responses
     middleware: durableCalls(ctx, { maxRetryAttempts: 3 }),
   });

@@ -29,7 +29,7 @@ async def review(ctx: restate.Context, claim: InsuranceClaim) -> str:
 
 
 agent = Agent(
-    "openai:gpt-4o-mini",
+    "openai:gpt-5.4",
     system_prompt="""You are an insurance claim evaluation agent. Use these rules:
     - if the amount is more than 1000, ask for human approval using tools;
     - if the amount is less than 1000, decide by yourself.""",

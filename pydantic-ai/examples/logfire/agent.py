@@ -13,13 +13,13 @@ from utils.utils import (
 
 # AGENTS
 parse_agent = Agent(
-    "openai:gpt-4o-mini",
+    "openai:gpt-5.4",
     system_prompt="Extract the customer ID, claim amount, currency, category, and description.",
     output_type=ClaimData,
 )
 
 analysis_agent = Agent(
-    "openai:gpt-4o-mini",
+    "openai:gpt-5.4",
     system_prompt="Assess whether this claim is valid and provide detailed reasoning.",
     output_type=ClaimAssessment,
 )

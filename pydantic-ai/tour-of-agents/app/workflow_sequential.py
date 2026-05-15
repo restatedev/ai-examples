@@ -6,14 +6,14 @@ from utils.utils import convert_currency, process_payment
 
 # <start_here>
 parse_agent = Agent(
-    "openai:gpt-4o-mini",
+    "openai:gpt-5.4",
     system_prompt="Extract the claim amount, currency, category, and description.",
     output_type=ClaimData,
 )
 restate_parse_agent = RestateAgent(parse_agent)
 
 analysis_agent = Agent(
-    "openai:gpt-4o-mini",
+    "openai:gpt-5.4",
     system_prompt="Analyze the claim and approve/deny it.",
     output_type=bool,
 )

@@ -50,7 +50,7 @@ async def check_fraud(claim: InsuranceClaim) -> str:
 
 # <start_eligibility>
 eligibility_agent = Agent(
-    "openai:gpt-4o-mini",
+    "openai:gpt-5.4",
     system_prompt="Decide whether the following claim is eligible for reimbursement."
     "Respond with eligible if it's a medical claim, and not eligible otherwise.",
 )
@@ -69,7 +69,7 @@ async def run_eligibility_agent(_ctx: restate.Context, claim: InsuranceClaim) ->
 
 
 rate_comparison_agent = Agent(
-    "openai:gpt-4o-mini",
+    "openai:gpt-5.4",
     system_prompt="Decide whether the cost of the claim is reasonable given the treatment."
     "Respond with reasonable or not reasonable.",
 )
@@ -87,7 +87,7 @@ async def run_rate_comparison_agent(
 
 
 fraud_agent = Agent(
-    "openai:gpt-4o-mini",
+    "openai:gpt-5.4",
     system_prompt="Decide whether the claim is fraudulent."
     "Always respond with low risk, medium risk, or high risk.",
 )
