@@ -41,3 +41,6 @@ bump_restate_sdk_deps $PROJECT_ROOT/vercel-ai/tour-of-agents
 # Restate-only examples
 bump_restate_sdk_deps $PROJECT_ROOT/typescript-restate-only/template
 bump_restate_sdk_deps $PROJECT_ROOT/typescript-restate-only/tour-of-agents
+for example_dir in $PROJECT_ROOT/typescript-restate-only/examples/*/; do
+    bump_restate_sdk_deps "$example_dir"
+done

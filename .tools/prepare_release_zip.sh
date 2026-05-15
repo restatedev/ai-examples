@@ -45,3 +45,4 @@ create_release_zip vercel-ai/tour-of-agents typescript-vercel-ai-tour-of-agents
 # Restate-only TS examples
 create_release_zip typescript-restate-only/tour-of-agents typescript-restate-tour-of-agents
 create_release_zip typescript-restate-only/template typescript-restate-agent-template
+create_release_zip typescript-restate-only/examples typescript-restate-agent-examples

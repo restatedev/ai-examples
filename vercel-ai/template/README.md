@@ -42,3 +42,9 @@ Check the Restate UI (`localhost:9080`) to see the journals of your invocations.
 ## Limitations
 Restate does not allow executing tools in parallel, to avoid non-deterministic behavior on retries/resume.
 We are working on a solution to this.
+
+## Using AI coding tools
+
+If you use Claude Code or Codex, then the Restate plugin will automatically be installed. For Cursor, consult the [skills repo README](https://github.com/restatedev/skills).
+
+Plugin repo: https://github.com/restatedev/skills/tree/main

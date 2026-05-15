@@ -11,8 +11,8 @@
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.12",
-    "@restatedev/restate-sdk": "^1.11.1",
-    "@restatedev/restate-sdk-zod": "^1.11.1",
+    "@restatedev/restate-sdk": "^1.13.0",
+    "@restatedev/restate-sdk-zod": "^1.13.0",
     "ai": "^6.0.41",
     "zod": "^4.3.6"
   },

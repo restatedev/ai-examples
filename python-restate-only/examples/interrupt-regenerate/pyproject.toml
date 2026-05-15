@@ -1,0 +1,18 @@
+[project]
+name = "patterns"
+version = "0.1.0"
+description = "Python DIY patterns using Restate for agents"
+readme = "README.md"
+requires-python = ">=3.12"
+
+dependencies = [
+    "hypercorn",
+    "pydantic>=2.11.9",
+    "litellm",
+    "restate-sdk[serde]>=0.17.1",
+]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.18.2",
+]

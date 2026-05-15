@@ -7,3 +7,4 @@ node_modules
 dist
 **/.python-version
 **/.claude/settings.local.json
+**/test_examples.sh
