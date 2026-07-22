@@ -3,22 +3,25 @@
   "version": "0.0.1",
   "description": "Template for an AI app with Restate and Vercel AI SDK",
   "main": "app.js",
-  "type": "commonjs",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "build": "tsc --noEmitOnError",
     "app": "node ./dist/app.js",
     "dev": "tsx watch ./src/app.ts"
   },
   "dependencies": {
-    "@ai-sdk/openai": "^3.0.12",
-    "@restatedev/restate-sdk": "^1.14.3",
-    "@restatedev/restate-sdk-zod": "^1.14.3",
-    "@restatedev/vercel-ai-middleware": "^0.3.0",
-    "ai": "^6.0.41",
+    "@ai-sdk/openai": "^4.0.17",
+    "@restatedev/restate-sdk": "^1.16.2",
+    "@restatedev/restate-sdk-zod": "^1.16.2",
+    "@restatedev/vercel-ai-middleware": "^0.4.0",
+    "ai": "^7.0.2",
     "zod": "^4.3"
   },
   "devDependencies": {
-    "@types/node": "^20.14.2",
+    "@types/node": "^22",
     "tsx": "^4.19.2",
     "typescript": "^5.4.5"
   }

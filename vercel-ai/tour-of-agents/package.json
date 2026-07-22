@@ -4,6 +4,9 @@
   "description": "Tour of Agents with Restate and AI SDK",
   "main": "app.js",
   "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "build": "tsc --noEmitOnError",
     "prebundle": "rm -rf dist",
@@ -20,7 +23,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@types/node": "^20.14.2",
+    "@types/node": "^22",
     "esbuild": "^0.25.4",
     "tsx": "^4.19.2",
     "typescript": "^5.4.5"

@@ -2,7 +2,8 @@
   "compilerOptions": {
     "target": "esnext",
     "lib": ["esnext"],
-    "module": "nodenext",
+    "module": "esnext",
+    "moduleResolution": "bundler",
     "allowJs": true,
     "declaration": true,
     "declarationMap": true,

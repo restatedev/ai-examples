@@ -2,6 +2,10 @@
   "name": "agents",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build --experimental-build-mode=compile",
@@ -9,22 +13,22 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@ai-sdk/openai": "^3.0.12",
+    "@ai-sdk/openai": "^4.0.17",
     "@restatedev/pubsub": "^0.3.2",
     "@restatedev/pubsub-client": "^0.3.2",
-    "@restatedev/restate-sdk": "^1.14.3",
-    "@restatedev/restate-sdk-clients": "^1.14.3",
-    "@restatedev/restate-sdk-zod": "^1.14.3",
-    "@restatedev/vercel-ai-middleware": "^0.3.1",
-    "ai": "^6.0.52",
+    "@restatedev/restate-sdk": "^1.16.2",
+    "@restatedev/restate-sdk-clients": "^1.16.2",
+    "@restatedev/restate-sdk-zod": "^1.16.2",
+    "@restatedev/vercel-ai-middleware": "^0.4.0",
+    "ai": "^7.0.2",
     "mathjs": "^14.7.0",
-    "next": "15.5.3",
+    "next": "15.5.21",
     "superjson": "^2.2.2"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
+    "@types/node": "^22",
     "@types/react": "19.1.6",
     "eslint": "^9",
     "eslint-config-next": "15.2.4",
