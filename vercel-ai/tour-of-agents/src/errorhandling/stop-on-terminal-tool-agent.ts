@@ -27,7 +27,7 @@ const agent = restate.service({
             description: "Get the current weather for a given city.",
             inputSchema: z.object({ city: z.string() }),
             execute: async ({ city }) => {
-              return await ctx.run("get weather", () => fetchWeather(city));
+              return await ctx.run("get weather", () => fetchWeather(city), {maxRetryAttempts: 1});
             },
           }),
         },
@@ -39,6 +39,7 @@ const agent = restate.service({
       const terminalSteps = getTerminalToolSteps(steps);
       if (terminalSteps.length > 0) {
         // Do something with the terminal tool error steps
+        return "There was an error!"
       }
       // <end_option3>
 

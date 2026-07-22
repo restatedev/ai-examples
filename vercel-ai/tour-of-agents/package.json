@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "description": "Tour of Agents with Restate and AI SDK",
   "main": "app.js",
-  "type": "commonjs",
+  "type": "module",
   "scripts": {
     "build": "tsc --noEmitOnError",
     "prebundle": "rm -rf dist",
@@ -11,12 +11,12 @@
     "postbundle": "cd dist && zip -r index.zip app.js*"
   },
   "dependencies": {
-    "@ai-sdk/mcp": "^1.0.14",
-    "@ai-sdk/openai": "^3.0.12",
+    "@ai-sdk/mcp": "^2.0.1",
+    "@ai-sdk/openai": "^4.0.17",
     "@restatedev/restate-sdk": "^1.14.3",
     "@restatedev/restate-sdk-zod": "^1.14.3",
-    "@restatedev/vercel-ai-middleware": "^0.3.1",
-    "ai": "^6.0.52",
+    "@restatedev/vercel-ai-middleware": "^0.4.0",
+    "ai": "^7.0.2",
     "zod": "^4.3.6"
   },
   "devDependencies": {

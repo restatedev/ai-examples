@@ -4,7 +4,7 @@ import { generateText, stepCountIs, tool, wrapLanguageModel } from "ai";
 import { z } from "zod";
 import { fetchWeather } from "../utils/utils";
 import {
-  durableCalls,
+  durableCalls, hasTerminalToolError,
   rethrowTerminalToolError,
 } from "@restatedev/vercel-ai-middleware";
 
@@ -21,22 +21,26 @@ const agent = restate.service({
 
       // Rethrow terminal tool errors as exceptions to fail the workflow
       // <start_option2>
-      const { text } = await generateText({
+      const { text, steps } = await generateText({
         model,
         tools: {
           getWeather: tool({
             description: "Get the current weather for a given city.",
             inputSchema: z.object({ city: z.string() }),
             execute: async ({ city }) => {
-              return await ctx.run("get weather", () => fetchWeather(city));
+              return await ctx.run("get weather", () => fetchWeather(city), {maxRetryAttempts: 1});
             },
           }),
         },
-        stopWhen: [stepCountIs(5)],
-        onStepFinish: rethrowTerminalToolError,
+        stopWhen: [stepCountIs(5), hasTerminalToolError],
         system: "You are a helpful agent that provides weather updates.",
         messages: [{ role: "user", content: prompt }],
       });
+
+
+      for (const step of steps) {
+        rethrowTerminalToolError(step);
+      }
       // <end_option2>
 
       return text;

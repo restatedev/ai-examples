@@ -19,7 +19,7 @@ const message = async (ctx: restate.Context, { prompt }: McpPrompt) => {
 
     // Create a Restate MPC client that persists responses from the MCP server
     mcpClient = await createRestateMCPClient(ctx, {
-      name: "my-mcp-client",
+      clientName: "my-mcp-client",
       transport: {
         type: "http",
         url: "https://docs.restate.dev/mcp",
@@ -33,6 +33,7 @@ const message = async (ctx: restate.Context, { prompt }: McpPrompt) => {
         "You are a helpful assistant. Use the provided tools to answer user queries when appropriate.",
       stopWhen: stepCountIs(5),
       prompt,
+      providerOptions: { openai: { parallelToolCalls: false } },
     });
 
     return { answer: res.text };
