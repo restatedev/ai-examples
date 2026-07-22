@@ -1,6 +1,6 @@
 # Restate + OpenAI Agents SDK + Arize Phoenix example
 
-This example shows how to get full observability over your agentic workflows by combining [Restate](https://restate.dev/) with [Arize Phoenix](https://phoenix.arize.com/).
+This example shows how to get full observability over your agentic workflows by combining [Restate](https://restate.dev/) with [Arize Phoenix](https://arize.com/phoenix/).
 
 It implements an insurance claim processor that mixes LLM agent steps (document parsing, claim analysis) with regular workflow steps (currency conversion, reimbursement).
 Restate orchestrates the workflow durably and exports OpenTelemetry traces. A Restate tracing processor attaches the OpenAI Agents SDK spans to the Restate trace, so everything shows up as a single unified trace in Arize Phoenix: LLM calls with their prompts, model config, and outputs alongside the durable workflow steps.
