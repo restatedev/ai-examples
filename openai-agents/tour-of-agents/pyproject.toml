@@ -9,7 +9,7 @@ dependencies = [
     "hypercorn",
     "pydantic>=2.11.9",
     "openai-agents>=0.6.5",
-    "restate-sdk[serde]>=0.18.0",
+    "restate-sdk[serde]>=1.0.3",
 ]
 
 [tool.hatch.build.targets.wheel]
