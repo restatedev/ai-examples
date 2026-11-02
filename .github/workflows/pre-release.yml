@@ -27,10 +27,11 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v3.7.0
+
 
       # Bump TypeScript SDK and agentlib
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v3.9.1
         if: inputs.sdkTypescriptVersion != '' || inputs.agentlibVersion != ''
         with:
           node-version: "22.x"
@@ -50,12 +51,12 @@ jobs:
         run: ./.tools/run_node_tests.sh
 
       # Bump Python SDK
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5.6.0
         if: github.event.inputs.sdkPythonVersion != ''
         with:
           python-version: "3.12"
       - name: Install uv
-        uses: astral-sh/setup-uv@v4
+        uses: astral-sh/setup-uv@v4.2.0
       - name: Bump Python SDK
         if: github.event.inputs.sdkPythonVersion != ''
         run: ./.tools/update_python_examples.sh ${{ inputs.sdkPythonVersion }}
@@ -64,7 +65,7 @@ jobs:
         run: ./.tools/run_python_tests.sh
 
       - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v5
+        uses: peter-evans/create-pull-request@v5.0.3
         with:
           title: "[GithubActions] Update ${{ inputs.sdkTypescriptVersion != '' && format('SDK-Typescript {0} ', inputs.sdkTypescriptVersion) }}${{ inputs.agentlibVersion != '' && format('agentlib {0} ', inputs.agentlibVersion) }}${{ inputs.sdkPythonVersion != '' && format('SDK-Python {0} ', inputs.sdkPythonVersion) }}"
           commit-message: "[GithubActions] Update ${{ inputs.sdkTypescriptVersion != '' && format('SDK-Typescript {0} ', inputs.sdkTypescriptVersion) }}${{ inputs.agentlibVersion != '' && format('agentlib {0} ', inputs.agentlibVersion) }}${{ inputs.sdkPythonVersion != '' && format('SDK-Python {0} ', inputs.sdkPythonVersion) }}"

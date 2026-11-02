@@ -10,7 +10,7 @@ jobs:
   markdown-link-check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v3.7.0
       - uses: gaurav-nelson/github-action-markdown-link-check@v1
         with:
           use-quiet-mode: "yes"
@@ -27,12 +27,12 @@ jobs:
         node-version: [22.x]
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v3.7.0
 
       - name: Pull restate-server docker image
         run: docker pull docker.io/restatedev/restate:latest
       - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v3.9.1
         with:
           node-version: ${{ matrix.node-version }}
           registry-url: "https://registry.npmjs.org"
@@ -51,11 +51,11 @@ jobs:
         python: ["3.12"]
 
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v3.7.0
+      - uses: actions/setup-python@v5.6.0
         with:
           python-version: ${{ matrix.python }}
       - name: Install uv
-        uses: astral-sh/setup-uv@v4
+        uses: astral-sh/setup-uv@v4.2.0
       - name: Run tests
         run: ./.tools/run_python_tests.sh
