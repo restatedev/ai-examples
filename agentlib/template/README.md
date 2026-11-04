@@ -1,4 +1,4 @@
-# Weather agent with the agentlib
+# Weather agent with agentlib
 
 A minimal durable weather agent: [agent.ts](src/agent.ts) defines the model,
 tool, and handler; [app.ts](src/app.ts) serves it. The weather tool returns
@@ -6,7 +6,7 @@ fixed demo data, so only an OpenAI API key is needed to run the agent.
 
 ## Run
 
-Requires Node.js 22.21.1+ and the [agentlib setup](../README.md#setup).
+Requires Node.js 22.21.1+ and an OpenAI API key.
 From this directory:
 
 ```sh

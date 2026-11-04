@@ -15,6 +15,10 @@ npm_install_check $PROJECT_ROOT/vercel-ai/nextjs-template
 npm_install_check $PROJECT_ROOT/vercel-ai/nextjs-example-app
 npm_install_check $PROJECT_ROOT/vercel-ai/tour-of-agents
 
+# agentlib examples (published agentlib package)
+npm_install_check "$PROJECT_ROOT/agentlib/template"
+npm_install_check "$PROJECT_ROOT/agentlib/examples"
+
 # Restate-only examples
 npm_install_check $PROJECT_ROOT/typescript-restate-only/template
 npm_install_check $PROJECT_ROOT/typescript-restate-only/tour-of-agents
