@@ -1,0 +1,28 @@
+{
+  "name": "agentlib-template",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.21.1"
+  },
+  "scripts": {
+    "build": "tsc --noEmitOnError && tsc -p tsconfig.test.json",
+    "dev": "tsx watch src/app.ts",
+    "app": "node dist/app.js",
+    "test": "node --experimental-test-module-mocks --import tsx --test --test-timeout=180000 tests/*.integration.ts"
+  },
+  "dependencies": {
+    "@restatedev/restate-sdk": "^1.18.2",
+    "@restatedev/restate-sdk-gen": "^1.18.2",
+    "zod": "^4.6.5",
+    "@restatedev/agentlib": "^0.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "@restatedev/restate-sdk-clients": "^1.18.2",
+    "@restatedev/restate-sdk-testcontainers": "^1.18.2",
+    "tsx": "^4.23.13",
+    "typescript": "^5.9.3"
+  }
+}
