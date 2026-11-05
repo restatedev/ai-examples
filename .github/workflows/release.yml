@@ -38,6 +38,8 @@ jobs:
             python-restate-tour-of-agents.zip
             python-restate-agent-template.zip
             python-restate-agent-examples.zip
+            typescript-agentlib-template.zip
+            typescript-agentlib-examples.zip
             typescript-vercel-ai-examples.zip
             typescript-vercel-ai-template.zip
             typescript-vercel-ai-template-nextjs.zip

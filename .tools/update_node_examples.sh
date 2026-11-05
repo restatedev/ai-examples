@@ -16,21 +16,30 @@ function bump_restate_sdk_deps() {
         return
     fi
 
-    # Extract dependencies that start with @restatedev/restate-sdk
-    local deps=$(node -e "
-        const fs = require('fs');
-        const pkg = JSON.parse(fs.readFileSync('$package_json', 'utf8'));
-        const deps = pkg.dependencies || {};
-        const restateDeps = Object.keys(deps).filter(dep => dep.startsWith('@restatedev/restate-sdk'));
-        console.log(restateDeps.join(' '));
-    ")
-
-    # Install each dependency with the new version
-    for dep in $deps; do
-        echo "Installing $dep@^$NEW_VERSION in $project_dir"
-        npm --prefix $project_dir install $dep@^$NEW_VERSION
+    # Keep runtime and test SDK packages on the same version.
+    local dependency_type deps dep save_flag
+    for dependency_type in dependencies devDependencies; do
+        deps=$(node -e '
+            const fs = require("fs");
+            const pkg = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+            console.log(Object.keys(pkg[process.argv[2]] || {})
+                .filter(dep => dep.startsWith("@restatedev/restate-sdk"))
+                .join(" "));
+        ' "$package_json" "$dependency_type")
+        save_flag=--save-prod
+        if [ "$dependency_type" = devDependencies ]; then
+            save_flag=--save-dev
+        fi
+        for dep in $deps; do
+            echo "Installing $dep@^$NEW_VERSION in $project_dir"
+            npm --prefix "$project_dir" install "$save_flag" "$dep@^$NEW_VERSION"
+        done
     done
 }
+
+# agentlib examples
+bump_restate_sdk_deps "$PROJECT_ROOT/agentlib/template"
+bump_restate_sdk_deps "$PROJECT_ROOT/agentlib/examples"
 
 # Vercel AI TypeScript examples
 bump_restate_sdk_deps $PROJECT_ROOT/vercel-ai/template
