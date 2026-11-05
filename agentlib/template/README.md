@@ -1,8 +1,6 @@
 # Weather agent with agentlib
 
-A minimal durable weather agent: [agent.ts](src/agent.ts) defines the model,
-tool, and handler; [app.ts](src/app.ts) serves it. The weather tool returns
-fixed demo data, so only an OpenAI API key is needed to run the agent.
+A minimal weather agent using the agentlib library.
 
 ## Run
 
@@ -16,7 +14,7 @@ export OPENAI_API_KEY=your-api-key
 npm run dev
 ```
 
-Start Restate in a second terminal:
+[Install Restate](https://docs.restate.dev/installation) and launch it:
 
 ```sh
 npx @restatedev/restate-server
@@ -32,12 +30,6 @@ curl localhost:8080/agent/run --json '{"prompt":"What is the weather in San Fran
 Use `{}` to try the default prompt. Open http://localhost:9070 to inspect the
 model and tool calls. Stop and restart the app during a request to see it
 resume from its journal.
-
-`asyncTool` validates arguments, journals results, and retries failed attempts.
-Replace its demo implementation with an ordinary async weather API call.
-The model has an explicit retry policy and the agent is bounded to five steps.
-Each request starts a fresh conversation; see the
-[conversation example](../examples/src/lessons/03_conversation.ts) for persistent sessions.
 
 ## Build and test
 

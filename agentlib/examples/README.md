@@ -1,7 +1,7 @@
 # agentlib examples
 
-Examples of agents and workflows built with [Restate agentlib](https://github.com/restatedev/agentlib).
-Each example runs on its own. Examples 01-10 cover the basics, from tool calls to
+Runnable examples of agents and workflows built with [Restate agentlib](https://github.com/restatedev/agentlib).
+Examples 01-10 cover the basics, from tool calls to
 session management. The remaining examples cover coding agents, routing, and MCP.
 
 | Example | Pattern                                 | Source                                                             |
@@ -126,7 +126,7 @@ curl --globoff "localhost:8080/TicketTriage/classify" \
   --json '{"message":"I was charged twice for my subscription."}'
 ```
 
-The handler returns the classification directly, for example:
+The handler returns the classification:
 `{"category":"billing","summary":"The customer reports a duplicate subscription charge."}`.
 Example 05 uses structured output to pass results between two agents.
 
@@ -144,7 +144,7 @@ curl --globoff "localhost:8080/CodeReview/generate" \
 ```
 
 The handler returns the approved code. After three rejected drafts, it returns
-the latest code and feedback. The reviewer is an LLM; this example does not execute
+the latest code and feedback. The reviewer is an LLM. This example does not execute
 the generated code. A stopped or interrupted run throws a `TerminalError`.
 
 Each draft starts a new agent run. A run can include multiple steps, with one
@@ -171,10 +171,8 @@ name, and approval decision filled in. Copy that command from the app's terminal
 and run it in another terminal.
 
 The command calls `TicketApproval/<key>/approve` with `approved: true`.
-Change it to `false` to reject the tool call. The handler sends the decision to
-the waiting agent, and the original `ask` request returns the agent's reply.
-The approval request is not stored in object state. In an application, you could
-send it to a reviewer by email or through a ticketing system instead.
+The handler sends the decision to the waiting agent, and the original `ask` request returns the agent's reply.
+In an application, you could send it to a reviewer by email or through a ticketing system instead.
 
 ## 07 - Racing agents
 
