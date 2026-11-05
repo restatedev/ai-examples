@@ -1,6 +1,9 @@
 {
   "ignorePatterns": [
     {
+      "pattern": "^https?://localhost([:/?#]|$)"
+    },
+    {
       "pattern": "^https://slack\\.restate\\.dev"
     }
   ]

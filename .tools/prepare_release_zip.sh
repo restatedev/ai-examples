@@ -41,6 +41,10 @@ create_release_zip python-restate-only/template python-restate-agent-template
 create_release_zip python-restate-only/examples python-restate-agent-examples
 
 
+# agentlib examples
+create_release_zip agentlib/template typescript-agentlib-template
+create_release_zip agentlib/examples typescript-agentlib-examples
+
 # Vercel AI examples
 create_release_zip vercel-ai/template typescript-vercel-ai-template
 create_release_zip vercel-ai/nextjs-template typescript-vercel-ai-template-nextjs

@@ -1,0 +1,4 @@
+# The Restate plugin is provided by .agents/plugins/marketplace.json.
+# Codex applies project configuration after the project is trusted.
+[plugins."restatedev@restatedev-plugin"]
+enabled = true
