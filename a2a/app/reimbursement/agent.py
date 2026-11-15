@@ -1,11 +1,11 @@
-import restate
 import json
-
 from typing import Any, Optional
+
+import restate
 from google.adk import Runner
-from google.adk.tools.tool_context import ToolContext
 from google.adk.agents.llm_agent import Agent
 from google.adk.apps import App
+from google.adk.tools.tool_context import ToolContext
 from google.genai.types import Content, Part
 
 from app.common.a2a.models import A2AAgent, AgentInvokeResult
@@ -13,8 +13,13 @@ from app.common.adk.restate_plugin import RestatePlugin
 from app.common.adk.restate_session_service import RestateSessionService
 from app.common.adk.restate_utils import restate_overrides
 from app.reimbursement.prompt import PROMPT
-from app.reimbursement.utils import Reimbursement, backoffice_submit_request, \
-    backoffice_email_employee, end_of_month, handle_payment
+from app.reimbursement.utils import (
+    Reimbursement,
+    backoffice_email_employee,
+    backoffice_submit_request,
+    end_of_month,
+    handle_payment,
+)
 
 APP_NAME = "agents"
 
@@ -26,12 +31,14 @@ async def create_request_form(
     purpose: Optional[str] = None,
 ) -> dict[str, Any]:
     """Create a request form for the employee to fill out."""
-    restate_context: restate.ObjectContext = tool_context.session.state["restate_context"]
+    restate_context: restate.ObjectContext = tool_context.session.state[
+        "restate_context"
+    ]
     return {
-        'request_id': str(restate_context.uuid()),
-        'date': '<transaction date>' if not date else date,
-        'amount': '<transaction dollar amount>' if not amount else amount,
-        'purpose': '<business justification/purpose of the transaction>'
+        "request_id": str(restate_context.uuid()),
+        "date": "<transaction date>" if not date else date,
+        "amount": "<transaction dollar amount>" if not amount else amount,
+        "purpose": "<business justification/purpose of the transaction>"
         if not purpose
         else purpose,
     }
@@ -42,20 +49,18 @@ async def return_form(
     instructions: Optional[str] = None,
 ) -> str:
     """Returns a structured json object indicating a form to complete."""
-    return json.dumps({
-        "type": "form",
-        "form": Reimbursement.model_json_schema(),
-        "form_data": form_request,
-        "instructions": instructions,
-    })
+    return json.dumps(
+        {
+            "type": "form",
+            "form": Reimbursement.model_json_schema(),
+            "form_data": form_request,
+            "instructions": instructions,
+        }
+    )
 
 
 async def reimburse(
-    tool_context: ToolContext,
-    request_id: str,
-    date: str,
-    amount: float,
-    purpose: str
+    tool_context: ToolContext, request_id: str, date: str, amount: float, purpose: str
 ) -> dict[str, str]:
     """Reimbursement workflow."""
     restate_context = tool_context.session.state["restate_context"]
@@ -65,7 +70,10 @@ async def reimburse(
         # Human approval
         callback_id, callback_promise = restate_context.awakeable()
         await restate_context.run_typed(
-            "Request approval", backoffice_submit_request, request_id=request_id, callback_id=callback_id
+            "Request approval",
+            backoffice_submit_request,
+            request_id=request_id,
+            callback_id=callback_id,
         )
         approved = await callback_promise
     else:
@@ -73,20 +81,28 @@ async def reimburse(
         approved = True
 
     # 2. Notify employee
-    await restate_context.run_typed("Notify", backoffice_email_employee, request_id=request_id, approved=approved)
+    await restate_context.run_typed(
+        "Notify", backoffice_email_employee, request_id=request_id, approved=approved
+    )
 
     if not approved:
         return {"status": "rejected"}
 
     # 3. Schedule task for later: reimburse at end of month
     delay = end_of_month(await restate_context.time())
-    restate_context.service_send(handle_payment, arg=Reimbursement(request_id=request_id, date=date, amount=amount, purpose=purpose), send_delay=delay)
+    restate_context.service_send(
+        handle_payment,
+        arg=Reimbursement(
+            request_id=request_id, date=date, amount=amount, purpose=purpose
+        ),
+        send_delay=delay,
+    )
     return {"status": "approved"}
 
 
 # AGENTS
 agent = Agent(
-    model='gemini-2.5-flash',
+    model="gemini-2.5-flash",
     name="ReimbursementAgent",
     description=(
         "This agent handles the reimbursement process for the employees"
@@ -112,7 +128,7 @@ async def invoke(ctx: restate.ObjectContext, query: str) -> AgentInvokeResult:
         events = runner.run_async(
             user_id=user_id,
             session_id=ctx.key(),
-            new_message=Content(role="user", parts=[Part.from_text(text=query)])
+            new_message=Content(role="user", parts=[Part.from_text(text=query)]),
         )
 
         final_output = ""
@@ -122,7 +138,7 @@ async def invoke(ctx: restate.ObjectContext, query: str) -> AgentInvokeResult:
                     final_output = event.content.parts[0].text
 
         # Prepare the response
-        parts = [{"type": "text", "text": final_output}]
+        parts = [{"text": final_output}]
         requires_input = "MISSING_INFO:" in final_output
         completed = not requires_input
         return AgentInvokeResult(

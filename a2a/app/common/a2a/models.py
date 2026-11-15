@@ -1,10 +1,12 @@
 from abc import ABC, abstractmethod
+from typing import Any
+
 import restate
-from a2a.types import Part
 from pydantic import BaseModel
 
+
 class A2AAgent(ABC):
-    """Agent interface that works with A2A SDK types."""
+    """Agent invoked inside a durable Restate handler."""
 
     @abstractmethod
     async def invoke(
@@ -15,7 +17,12 @@ class A2AAgent(ABC):
 
 
 class AgentInvokeResult(BaseModel):
-    """Result of agent invocation using A2A SDK types."""
-    parts: list[Part]
+    """Agent result containing A2A 1.x ProtoJSON parts, e.g. {\"text\": \"hi\"}.
+
+    JSON keeps this result serializable across Restate calls. The middleware
+    converts parts to the SDK's protobuf types at the A2A boundary.
+    """
+
+    parts: list[dict[str, Any]]
     require_user_input: bool = False
     is_task_complete: bool = True

@@ -7,6 +7,29 @@ on:
     branches: [main]
 
 jobs:
+  a2a-recovery:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3.7.0
+      - uses: actions/setup-python@v5.6.0
+        with:
+          python-version: '3.12'
+      - uses: astral-sh/setup-uv@v4.2.0
+      - name: Install Restate 1.8.1
+        working-directory: ${{ runner.temp }}
+        run: |
+          curl --fail --location --retry 3 https://github.com/restatedev/restate/releases/download/v1.8.1/restate-server-x86_64-unknown-linux-musl.tar.xz --output restate-server-x86_64-unknown-linux-musl.tar.xz
+          echo '56f12ccc54ee227657d4d8b070622849977444425184ee242a33e3ccc28bf745  restate-server-x86_64-unknown-linux-musl.tar.xz' | sha256sum --check
+          tar -xf restate-server-x86_64-unknown-linux-musl.tar.xz
+      - name: Check A2A example types and worker recovery
+        working-directory: a2a
+        env:
+          RESTATE_SERVER_BIN: ${{ runner.temp }}/restate-server-x86_64-unknown-linux-musl/restate-server
+        run: |
+          uv sync --locked
+          uv run mypy app/common/a2a app/weather app/reimbursement
+          uv run python -m unittest discover -s tests -v
+
   markdown-link-check:
     runs-on: ubuntu-latest
     steps:

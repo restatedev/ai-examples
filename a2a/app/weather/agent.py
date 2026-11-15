@@ -1,24 +1,24 @@
 import restate
-
 from google.adk import Runner
 from google.adk.agents.llm_agent import Agent
 from google.adk.apps import App
+from google.adk.tools.tool_context import ToolContext
 from google.genai.types import Content, Part
 
+from app.common.a2a.models import A2AAgent, AgentInvokeResult
 from app.common.adk.restate_plugin import RestatePlugin
 from app.common.adk.restate_session_service import RestateSessionService
 from app.common.adk.restate_utils import restate_overrides
-from app.weather.utils import WeatherResponse, WeatherPrompt
-from app.weather.utils import fetch_weather
-from google.adk.tools.tool_context import ToolContext
-from app.common.a2a.models import A2AAgent, AgentInvokeResult
+from app.weather.utils import WeatherPrompt, WeatherResponse, fetch_weather
 
 APP_NAME = "agents"
+
 
 async def get_weather(tool_context: ToolContext, city: str) -> WeatherResponse:
     """Get the current weather for a given city."""
     restate_context = tool_context.session.state["restate_context"]
     return await restate_context.run_typed("Get weather", fetch_weather, city=city)
+
 
 agent = Agent(
     model="gemini-2.5-flash",
@@ -34,6 +34,7 @@ session_service = RestateSessionService()
 
 agent_service = restate.VirtualObject("WeatherAgent")
 
+
 @agent_service.handler()
 async def run(ctx: restate.ObjectContext, prompt: WeatherPrompt) -> str:
     user_id = "test_user"
@@ -45,7 +46,9 @@ async def run(ctx: restate.ObjectContext, prompt: WeatherPrompt) -> str:
         events = runner.run_async(
             user_id=user_id,
             session_id=ctx.key(),
-            new_message=Content(role="user", parts=[Part.from_text(text=prompt.message)]),
+            new_message=Content(
+                role="user", parts=[Part.from_text(text=prompt.message)]
+            ),
         )
 
         final_response = ""
@@ -55,12 +58,15 @@ async def run(ctx: restate.ObjectContext, prompt: WeatherPrompt) -> str:
                     final_response = event.content.parts[0].text
         return final_response
 
+
 class ADKWeatherAgent(A2AAgent):
     async def invoke(
         self, restate_context: restate.ObjectContext, query: str, session_id: str
     ) -> AgentInvokeResult:
-        final_output = await restate_context.object_call(run, key=session_id, arg=WeatherPrompt(message=query))
-        parts = [{"type": "text", "text": final_output}]
+        final_output = await restate_context.object_call(
+            run, key=session_id, arg=WeatherPrompt(message=query)
+        )
+        parts = [{"text": final_output}]
         return AgentInvokeResult(
             parts=parts,
             require_user_input=False,

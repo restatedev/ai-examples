@@ -1,484 +1,173 @@
 # Resilient A2A Agents with Restate
 
-**This integration is work-in-progress.**
+This example exposes agents over A2A 1.0 JSON-RPC using `a2a-sdk` 1.x and
+[Restate](https://restate.dev/) for durable execution. The integration is still
+work in progress; it is not a complete implementation of every A2A operation.
 
-These examples use [Restate](https://ai.restate.dev/) to implement the [Agent2Agent (A2A) protocol](https://github.com/a2aproject/A2A).
+Each task runs inside a Restate virtual object. Calls, timers, state and completed
+`ctx.run_typed` steps are journaled. After a Python worker restarts, Restate
+replays the invocation and reuses completed step results.
 
-Restate acts as a scalable, resilient task orchestrator that speaks the A2A protocol and gives you:
+## What is supported
 
-- 🔁 **Automatic retries** - Handles LLM API downtime, timeouts, and infrastructure failures
-- 🔄 **Smart recovery** - Preserves progress across failures without duplicating work
-- ⏱️ **Persistent task handles** - Tracks progress across failures, time, and processes
-- 🎮 **Task control** - Cancel tasks, query status, re-subscribe to ongoing tasks
-- 🧠 **Idempotent submission** - Automatic deduplication based on task ID
-- 🤖 **Agentic workflows** - Build resilient agents with human-in-the-loop and parallel tool execution
-- 💾 **Durable state** - Maintain consistent agent state across infrastructure events
-- 👀 **Full observability** - Line-by-line execution tracking with built-in audit trail
-- ☁️️ **Easy to self-host** - or connect to Restate Cloud
+- `SendMessage`, including `configuration.returnImmediately`.
+- `GetTask`, with A2A 1.0 history semantics: omitted returns available history,
+  zero omits history, and a positive value returns the last messages.
+- `CancelTask`, including cancellation during an active invocation.
+- Multi-turn tasks that pause in `TASK_STATE_INPUT_REQUIRED`.
+- A discoverable Agent Card at `/.well-known/agent-card.json`.
+- ProtoJSON messages and errors consumed by the official Python SDK 1.x client.
 
-<img src="https://raw.githubusercontent.com/restatedev/img/refs/heads/main/a2a/a2a.png" width="600px"/>
+Streaming, push notifications, extended cards and task listing are not implemented.
+The card advertises streaming and push notifications as disabled; unsupported
+operations return A2A errors.
+
+Protobuf values are converted to ProtoJSON before crossing Restate state or
+journal boundaries. `AgentInvokeResult.parts` consequently contains ProtoJSON
+parts such as `{"text": "hello"}`. A2A 0.3 `kind` discriminators, lowercase roles
+and slash-separated method names are not used by this example.
 
 ## Prerequisites
 
-- Python 3.12 or higher
-- [UV](https://docs.astral.sh/uv/)
-- A Google API Key
-  ```shell
-  echo "GOOGLE_API_KEY=your_api_key_here" >> .env
-  ```
+- Python 3.12 or newer and [uv](https://docs.astral.sh/uv/).
+- A local Restate server. The recovery tests were exercised with Restate 1.8.1.
+- For the ADK agents, a Google API key in `GOOGLE_API_KEY` or `GEMINI_API_KEY`, or
+  configured Vertex AI credentials. The deterministic recovery tests need no key.
 
-## Quickstart: running the weather agent
+Install the locked dependencies from this directory:
 
-This example shows how to run a weather agent (Restate+Google ADK) and use the A2A protocol to communicate with it:
-
-1. Run the application:
-
-   ```bash
-   uv run app/weather
-   ```
-
-   The agent prints the address where it is running: `http://localhost:9080/restate/v1`
-
-2. [Install and launch Restate](https://docs.restate.dev/installation#install-restate-server-%26-cli)
-   ```shell
-   restate-server
-   ```
-3. Go to the Restate UI at `http://localhost:9070`. Click on `register deployment`. And fill in the agent url `http://localhost:9080/restate/v1` (for the reimbursement agent).
-
-   ![Register service](./docs/images/register_deployment.png)
-
-4. Click on the `WeatherAgentA2AServer/process_request` handler of the registered service and send a request using the A2A protocol:
-
-   ```shell
-   curl localhost:8080/WeatherAgentA2AServer/process_request \
-       --json '{
-     "jsonrpc": "2.0",
-     "id": 142,
-     "method": "message/send",
-     "params": {
-       "message": {
-         "role": "user",
-         "parts": [
-           {
-             "kind": "text",
-             "text": "What is the weather in Detroit?"
-           }
-         ],
-         "messageId": "92249e7702-767c-417b-a0b0-f0741243c589"
-       },
-       "metadata": {}
-     }
-   }' | jq .
-   ```
-
-## Reimbursement example: Experimenting with A2A messages
-
-This is a stateful agent which supports long-running conversations and tasks, giving you time to experiment with the A2A protocol by starting, querying, and canceling tasks.
-
-The example implements a reimbursement workflow where the agent gathers the required input and blocks on human approval if the amount is greater than 100 USD.
-
-### Run the reimbursement agent
-
-1. Run the application:
-
-   ```bash
-   uv run app/reimbursement
-   ```
-
-   The agent prints the address where it is running: `http://localhost:9081/restate/v1`
-
-2. [Launch Restate](https://docs.restate.dev/installation#install-restate-server-%26-cli)
-   ```shell
-   restate-server
-   ```
-3. Go to the Restate UI at `http://localhost:9070`. Click on `register deployment`. And fill in the agent url `http://localhost:9081/restate/v1` (for the reimbursement agent).
-
-### Multi-turn conversations
-
-You can do multi-turn conversations with the agent by providing the `contextId` in the message.
-If you provide the context ID, the agent will remember the conversation and the tasks you have sent to it.
-
-To start a task that **will block on human approval**, run the following command:
-
-```shell
-curl localhost:8080/ReimbursementAgentA2AServer/process_request \
-    --json '{
-  "jsonrpc": "2.0",
-  "id": 1424643,
-  "method": "message/send",
-  "params": {
-    "message": {
-      "role": "user",
-      "parts": [
-        {
-          "kind": "text",
-          "text": "Reimburse my hotel for my business trip of 5 nights for 1200USD"
-        }
-      ],
-      "taskId": "0d9g9ea6-dcc67-43ee-a389-8s9g0e6es5554",
-      "contextId": "5e00b4a6-dcc67-43ee-a389-0e2a65958444",
-      "messageId": "9224947643702-7674c-417b-a0b0-f0741243c589"
-    },
-    "metadata": {}
-  }
-}' | jq .
+```sh
+uv sync --locked
 ```
 
-It will then return a response mentioning you need to provide a date.
+Start Restate, using a fresh data directory for this 1.x example:
 
-<details><summary>View output</summary>
+```sh
+restate-server --base-dir ./restate-data
+```
 
-```json
-{
-  "id": 1424643,
-  "jsonrpc": "2.0",
-  "result": {
-    "artifacts": null,
-    "contextId": "5e00b4a6-dcc67-43ee-a389-0e2a65958444",
-    "history": [
-      {
-        "contextId": "5e00b4a6-dcc67-43ee-a389-0e2a65958444",
-        "extensions": null,
-        "kind": "message",
-        "messageId": "9224947643702-7674c-417b-a0b0-f0741243c589",
-        "metadata": null,
-        "parts": [
-          {
-            "kind": "text",
-            "metadata": null,
-            "text": "Reimburse my hotel for my business trip of 5 nights for 1200USD"
-          }
-        ],
-        "referenceTaskIds": null,
-        "role": "user",
-        "taskId": "0d9g9ea6-dcc67-43ee-a389-8s9g0e6es5554"
-      }
-    ],
-    "id": "9224947643702-7674c-417b-a0b0-f0741243c589",
-    "kind": "task",
-    "metadata": null,
-    "status": {
+## Weather agent
+
+Run the worker:
+
+```sh
+uv run python -m app.weather
+```
+
+The worker listens on port 9080. Register its Restate endpoint:
+
+```sh
+restate deployments register http://localhost:9080/restate/v1 --yes
+```
+
+Discover the card:
+
+```sh
+curl -s http://localhost:9080/.well-known/agent-card.json
+```
+
+Call the JSON-RPC URL advertised in `supportedInterfaces`:
+
+```sh
+curl -s http://localhost:8080/WeatherAgentA2AServer/process_request \
+  -H 'Content-Type: application/json' \
+  -H 'A2A-Version: 1.0' \
+  --data '{
+    "jsonrpc": "2.0",
+    "id": "weather-request-1",
+    "method": "SendMessage",
+    "params": {
       "message": {
-        "contextId": null,
-        "extensions": null,
-        "kind": "message",
-        "messageId": "89194646-702b-4af3-86d5-7c60355fbb77",
-        "metadata": null,
-        "parts": [
-          {
-            "kind": "text",
-            "metadata": null,
-            "text": "MISSING_INFO: Please provide the date of the transaction."
-          }
-        ],
-        "referenceTaskIds": null,
-        "role": "agent",
-        "taskId": null
-      },
-      "state": "input-required",
-      "timestamp": "2025-11-10T08:57:25.462064"
+        "messageId": "weather-message-1",
+        "role": "ROLE_USER",
+        "parts": [{"text": "What is the weather in Detroit?"}]
+      }
     }
-  }
-}
+  }'
 ```
 
-</details>
+The task is at `result.task`; its state uses names such as
+`TASK_STATE_COMPLETED`. The first request omits `taskId`. For follow-up messages,
+use the returned task's `id` and `contextId`, with a new `messageId`.
 
-You can then provide the date of the transaction by sending another request to the same stateful session (same task and context ID):
+## Reimbursement agent
 
-```shell
-curl localhost:8080/ReimbursementAgentA2AServer/process_request \
-    --json '{
-  "jsonrpc": "2.0",
-  "id": 1423,
-  "method": "message/send",
-  "params": {
-    "message": {
-      "role": "user",
-      "parts": [
-        {
-          "kind": "text",
-          "text": "The date of the transaction is 05/04/2025"
-        }
-      ],
-      "taskId": "0d9g9ea6-dcc67-43ee-a389-8s9g0e6es5554",
-      "contextId": "5e00b4a6-dcc67-43ee-a389-0e2a65958444",
-      "messageId": "92249e73702-767c-417b-a06b0-5sg6g881243c589"
-    },
-    "metadata": {}
-  }
-}' | jq .
+```sh
+uv run python -m app.reimbursement
+restate deployments register http://localhost:9081/restate/v1 --yes
 ```
 
-Possibly, the agent will ask for a final approval before it can proceed with the reimbursement.
+Discover `http://localhost:9081/.well-known/agent-card.json` and use the same
+`SendMessage` shape at the advertised JSON-RPC URL. The agent requests missing
+information and uses a Restate awakeable for human approval. Its logs print the
+approval callback URL.
 
-```shell
-curl localhost:8080/ReimbursementAgentA2AServer/process_request \
-    --json '{
-      "jsonrpc": "2.0",
-      "id": 22325,
-      "method": "message/send",
-      "params": {
-        "message": {
-          "role":"user",
-          "parts": [{
-            "kind": "text",
-            "text": "The info looks good"
-          }]
-          "taskId": "0d9g9ea6-dcc67-43ee-a389-8s9g0e6es5554",
-          "contextId": "5e00b4a6-dcc67-43ee-a389-0e2a65958444",
-          "messageId": "92249e737032-767c-417b-a0b0-f0741243c589"
-        },
-        "metadata": {}
-      }
-    }' | jq .
+Retrieve or cancel a task using its returned ID:
+
+```sh
+curl -s http://localhost:8080/ReimbursementAgentA2AServer/process_request \
+  -H 'Content-Type: application/json' -H 'A2A-Version: 1.0' \
+  --data '{"jsonrpc":"2.0","id":"get-1","method":"GetTask","params":{"id":"TASK_ID","historyLength":10}}'
+
+curl -s http://localhost:8080/ReimbursementAgentA2AServer/process_request \
+  -H 'Content-Type: application/json' -H 'A2A-Version: 1.0' \
+  --data '{"jsonrpc":"2.0","id":"cancel-1","method":"CancelTask","params":{"id":"TASK_ID"}}'
 ```
 
-Once the agent has all the information, it will ask start the reimbursement process and will block until a human approves the request.
+## Reproduce worker recovery without an LLM
 
-The logs of the agent service will print the curl command to approve the reimbursement and unblock the task.
-Or you can leave the task blocked if you want to try out the get and cancel task commands below.
+Stop any existing local Restate server and workers on ports 8080, 9070, 9071,
+5122 and 19080. The test suite starts its own server with a temporary data
+store, registers a deterministic worker and cleans up its processes.
 
-```text
-... first part of logs ...
-[2025-05-16 13:42:50,410] [310993] [INFO] - Agent session lwp13w5e3sdf258t3wesf13234 -   Starting iteration of agent loop with agent: ReimbursementAgent and tools/handoffs: ['create_request_form', 'reimburse', 'return_form']
-[2025-05-16 13:42:50,410] [310993] [INFO] - Agent session lwp13w5e3sdf258t3wesf13234 -  Calling LLM
-[2025-05-16 13:42:52,293] [310993] [INFO] - HTTP Request: POST https://api.openai.com/v1/responses "HTTP/1.1 200 OK"
-[2025-05-16 13:42:52,303] [310993] [INFO] - Agent session lwp13w5e3sdf258t3wesf13234 -  Executing tool reimburse
-==================================================
- Requesting approval for request_id_1633297
- Resolve via:
-curl localhost:8080/restate/awakeables/sign_1oqmHpDF_RJQBltjnf48zszmfmRr4w9izAAAAEQ/resolve --json '{"approved": true}'
-==================================================
+```sh
+RESTATE_SERVER_BIN=/absolute/path/to/restate-server \
+  uv run python -m unittest discover -s tests -v
 ```
 
-Approve the reimbursement.
+Set `RESTATE_TEST_EVIDENCE=/path/to/output` to retain worker/server logs and the
+step event ledger. No API keys or external agent services are used.
 
-You can have a look at the Restate UI at `http://localhost:9070/ui/invocations` to see the end-to-end flow:
+The tests verify:
 
-<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/a2a/long-running-task.png" alt="Restate UI" width="1200"/>
+1. An official SDK 1.x client can send and fetch tasks, and retrying a message
+   with a different JSON-RPC correlation ID reuses the result.
+2. After the first step's journal result is acknowledged, killing the worker
+   with `SIGKILL` and restarting it allows the durable timer and second step to
+   complete. The saved first step executes once in the observed run, and the
+   second step's PID belongs to the replacement worker.
+3. An approval wait survives the same worker kill and resumes after resolving
+   the original awakeable.
+4. The real ADK runner, Restate plugin and session service replay a saved model
+   response after a worker kill. The model is a deterministic local `BaseLlm`;
+   its response-generation code executes once in the observed run.
+5. Multi-turn history preserves user/agent message order; cancellation and
+   terminal errors produce persistent terminal task states. An agent's business
+   conflict is a failure, not a cancellation.
+6. Nonblocking follow-ups include the accepted message and can be retried after
+   completion without executing the turn again.
+7. Invalid requests and unsupported methods return the corresponding A2A errors;
+   invalid JSON-RPC envelopes are rejected without retrying the invocation.
 
-We see how the A2A server called the task object. The task object then called the `invoke` method of the reimbursement agent, which then called the LLM to process the request.
-We see how it waited for the human approval and then continued with the reimbursement process.
+These checks exercise a real local Restate server and HTTP transport. They do
+not establish successful Google/LLM execution, recovery from loss of the Restate
+data store, or full A2A TCK conformance.
 
-Finally, it scheduled the payment task to execute at the end of the month.
+## Durability and upgrade boundaries
 
-**You can now also use the A2A protocol to query the task status and history, or cancel the task:**
-
-#### Get the task
-
-```shell
-curl localhost:8080/ReimbursementAgentA2AServer/process_request \
-    --json '{
-      "jsonrpc": "2.0",
-      "id": 2,
-      "method":"tasks/get",
-      "params": {
-        "id": "0d9g9ea6-dcc67-43ee-a389-8s9g0e6es5554",
-        "history_length": 10,
-        "metadata": {}
-      }
-    }' | jq .
-```
-
-<details>
-<summary>View output</summary>
-
-```json
-{
-  "id": 2,
-  "jsonrpc": "2.0",
-  "result": {
-    "artifacts": [
-      {
-        "artifactId": "d2ab957f-003d-49f7-b96d-1a5a83fee3b9",
-        "description": null,
-        "extensions": null,
-        "metadata": null,
-        "name": null,
-        "parts": [
-          {
-            "kind": "text",
-            "metadata": null,
-            "text": "Your reimbursement request with ID da52bd93-1927-4a62-8a15-eaafb29dd899 has been approved."
-          }
-        ]
-      }
-    ],
-    "contextId": "5e00b4a6-dcc67-43ee-a389-0e2a65958444",
-    "history": [
-      {
-        "contextId": "5e00b4a6-dcc67-43ee-a389-0e2a65958444",
-        "extensions": null,
-        "kind": "message",
-        "messageId": "9224947643702-7674c-417b-a0b0-f0741243c589",
-        "metadata": null,
-        "parts": [
-          {
-            "kind": "text",
-            "metadata": null,
-            "text": "Reimburse my hotel for my business trip of 5 nights for 1200USD"
-          }
-        ],
-        "referenceTaskIds": null,
-        "role": "user",
-        "taskId": "0d9g9ea6-dcc67-43ee-a389-8s9g0e6es5554"
-      },
-      {
-        "contextId": "5e00b4a6-dcc67-43ee-a389-0e2a65958444",
-        "extensions": null,
-        "kind": "message",
-        "messageId": "92249e73702-767c-417b-a06b0-5sg6g881243c589",
-        "metadata": null,
-        "parts": [
-          {
-            "kind": "text",
-            "metadata": null,
-            "text": "The date of the transaction is 05/04/2025"
-          }
-        ],
-        "referenceTaskIds": null,
-        "role": "user",
-        "taskId": "0d9g9ea6-dcc67-43ee-a389-8s9g0e6es5554"
-      },
-      {
-        "contextId": null,
-        "extensions": null,
-        "kind": "message",
-        "messageId": "89194646-702b-4af3-86d5-7c60355fbb77",
-        "metadata": null,
-        "parts": [
-          {
-            "kind": "text",
-            "metadata": null,
-            "text": "MISSING_INFO: Please provide the date of the transaction."
-          }
-        ],
-        "referenceTaskIds": null,
-        "role": "agent",
-        "taskId": null
-      }
-    ],
-    "id": "9224947643702-7674c-417b-a0b0-f0741243c589",
-    "kind": "task",
-    "metadata": null,
-    "status": {
-      "message": null,
-      "state": "completed",
-      "timestamp": "2025-11-10T09:05:15.488894"
-    }
-  }
-}
-```
-
-</details>
-
-The Durable Task Object stores the Task data in Restate's embedded K/V store.
-We can query the K/V store via the UI. Have a look at the task progress in the Restate UI at `http://localhost:9070/ui/state`:
-
-<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/a2a/restate_ui_task_state.png" alt="Restate UI" width="1000"/>
-
-#### Cancel a Task
-
-For example, start a new reimbursement task and then cancel it:
-
-```shell
-curl localhost:8080/ReimbursementAgentA2AServer/process_request \
-    --json '{
-  "jsonrpc": "2.0",
-  "id": 1424443,
-  "method": "message/send",
-  "params": {
-    "message": {
-      "role": "user",
-      "parts": [
-        {
-          "kind": "text",
-          "text": "Reimburse my hotel for my business trip of 5 nights for 1200USD of 05/04/2025"
-        }
-      ],
-      "messageId": "92249e73702-7674c-417b-a0b0-f0741243c449",
-      "taskId": "33349e733702-7674c-417b-a0b0-f0741243c333"
-    },
-    "metadata": {}
-  }
-}' | jq .
-```
-
-```shell
-curl localhost:8080/ReimbursementAgentA2AServer/process_request \
-    --json '{
-      "jsonrpc": "2.0",
-      "id": 3,
-      "method":"tasks/cancel",
-      "params": {
-        "id": "33349e733702-7674c-417b-a0b0-f0741243c333"
-      }
-    }' | jq .
-```
-
-<details>
-<summary>View output</summary>
-
-```json
-{
-  "id": 3,
-  "jsonrpc": "2.0",
-  "result": {
-    "artifacts": null,
-    "contextId": "a64226cb-90d9-4a9b-b014-c2a3923e3645",
-    "history": [
-      {
-        "contextId": "a64226cb-90d9-4a9b-b014-c2a3923e3645",
-        "extensions": null,
-        "kind": "message",
-        "messageId": "92249e73702-7674c-417b-a0b0-f0741243c449",
-        "metadata": null,
-        "parts": [
-          {
-            "kind": "text",
-            "metadata": null,
-            "text": "Reimburse my hotel for my business trip of 5 nights for 1200USD of 05/04/2025"
-          }
-        ],
-        "referenceTaskIds": null,
-        "role": "user",
-        "taskId": "33349e733702-7674c-417b-a0b0-f0741243c333"
-      },
-      {
-        "contextId": null,
-        "extensions": null,
-        "kind": "message",
-        "messageId": "3d4d228d-4adf-4dc5-9ff3-2c8c7b45f5aa",
-        "metadata": null,
-        "parts": [
-          {
-            "kind": "text",
-            "metadata": null,
-            "text": "MISSING_INFO: Please provide the request_id."
-          }
-        ],
-        "referenceTaskIds": null,
-        "role": "agent",
-        "taskId": null
-      }
-    ],
-    "id": "92249e73702-7674c-417b-a0b0-f0741243c449",
-    "kind": "task",
-    "metadata": null,
-    "status": {
-      "message": null,
-      "state": "canceled",
-      "timestamp": "2025-11-10T09:13:41.690479"
-    }
-  }
-}
-```
-
-</details>
-
-The UI also shows the task as canceled in the state tab and in the journal overview of the long-running task:
-
-<img src="https://raw.githubusercontent.com/restatedev/ai-examples/refs/heads/main/doc/img/a2a/cancel_journal.png" alt="Restate UI" width="1200"/>
-
-This is implemented via Restate's [cancel task API](https://docs.restate.dev/develop/python/service-communication#cancel-an-invocation).
+- Put nondeterministic work, LLM calls and external side effects inside durable
+  steps or durable service calls. Code outside those boundaries executes again
+  during replay.
+- An external write can succeed before its result is journaled. That crash
+  window still requires downstream idempotency; these tests do not demonstrate
+  exactly-once execution of arbitrary external effects.
+- This example deduplicates task invocations by `messageId` within a task object,
+  for Restate's configured idempotency retention. Initial task IDs are derived
+  deterministically from the agent service name and message ID. Reuse a message
+  ID only for retries of the same message. JSON-RPC `id` is only correlation.
+- The example has no authentication or tenant isolation. Add these at the
+  application boundary before exposing it beyond a local development machine.
+- The wire format, task state and journal command sequence changed from the 0.3
+  example. Existing tasks/journals are not migrated. Drain the old deployment
+  and use a separate endpoint/service namespace or a fresh local store; do not
+  overwrite an in-flight 0.3 deployment with `--force`.
