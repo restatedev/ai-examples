@@ -3,7 +3,7 @@
 // Source links and the differences are documented in ../../README.md.
 import {TerminalError} from "@restatedev/restate-sdk";
 import * as restate from "@restatedev/restate-sdk-gen";
-import {agent, GuardrailError, tool, ToolError} from "@restatedev/agentlib";
+import {agent, tool, ToolError} from "@restatedev/agentlib";
 import {z} from "zod";
 import {exampleModel as model} from "../shared.js";
 
@@ -68,12 +68,13 @@ Available sources: ${JSON.stringify(context.sources.map(({id, title}) => ({id, t
       },
     }),
   },
+  // A rejected finding goes back to the worker's model with the reason, so it can
+  // read the sources it cites or cite only the ones it read.
   *afterRun(result, {context}) {
-    if (
-      result.status === "completed" &&
-      result.output.sourceIds.some((id) => !context.readSourceIds.has(id))
-    )
-      throw new GuardrailError("The finding cites a source the worker did not read");
+    if (result.status !== "completed") return;
+    const unread = result.output.sourceIds.filter((id) => !context.readSourceIds.has(id));
+    if (unread.length)
+      return `The finding cites sources the worker did not read: ${unread.join(", ")}. Read them with readSource, or cite only sources you read.`;
   },
 });
 const writer = agent({

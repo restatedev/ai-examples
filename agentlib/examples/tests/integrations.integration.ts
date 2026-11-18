@@ -59,7 +59,7 @@ const model = journaledModel(async (request): Promise<ModelResponse> => {
   assert.equal(result.result.status, "success");
   return { type: "final", text: "A virtual object has durable state. https://docs.restate.dev" };
 });
-mock.module("@restatedev/agentlib/openai", { namedExports: { openAIModel: () => model } });
+mock.module("@restatedev/agentlib/provider", { namedExports: { aiModel: () => model } });
 const { refundAgent, refundService } = await import("../src/lessons/10_service_tool.js");
 const { docsGuide } = await import("../src/lessons/17_mcp_tools.js");
 

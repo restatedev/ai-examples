@@ -1,11 +1,12 @@
+import { openai } from "@ai-sdk/openai";
 import { agent, asyncTool } from "@restatedev/agentlib";
-import { openAIModel } from "@restatedev/agentlib/openai";
+import { aiModel } from "@restatedev/agentlib/provider";
 import * as restate from "@restatedev/restate-sdk-gen";
 import { z } from "zod";
 
 const weatherAgent = agent({
-  model: openAIModel({
-    model: process.env.AGENT_MODEL ?? "gpt-5.4",
+  model: aiModel({
+    model: openai(process.env.AGENT_MODEL ?? "gpt-5.4"),
     retry: { maxAttempts: 3 },
   }),
   instructions:

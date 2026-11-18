@@ -14,16 +14,19 @@
     "pretest": "npm run build"
   },
   "dependencies": {
+    "@ag-ui/core": "1.0.0",
+    "@ai-sdk/openai": "4.0.13",
+    "@restatedev/agentlib": "^0.2.0",
     "@restatedev/restate-sdk": "^1.18.2",
-    "@restatedev/restate-sdk-gen": "^1.18.2",
-    "zod": "^4.6.5",
     "@restatedev/restate-sdk-clients": "^1.18.2",
+    "@restatedev/restate-sdk-gen": "^1.18.2",
     "modal": "0.10.1",
-    "@restatedev/agentlib": "^0.1.0"
+    "zod": "^4.6.5"
   },
   "devDependencies": {
-    "@types/node": "^22",
+    "@ag-ui/client": "1.0.0",
     "@restatedev/restate-sdk-testcontainers": "^1.18.2",
+    "@types/node": "^22",
     "tsx": "^4.23.13",
     "typescript": "^5.9.3"
   }

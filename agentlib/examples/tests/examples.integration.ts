@@ -7,7 +7,13 @@ import {TerminalError} from "@restatedev/restate-sdk";
 import {connect} from "@restatedev/restate-sdk-clients";
 import {RestateContainer, RestateTestEnvironment} from "@restatedev/restate-sdk-testcontainers";
 import * as r from "@restatedev/restate-sdk-gen";
-import {journaledModel, type Model, type ModelResponse} from "@restatedev/agentlib";
+import {
+  journaledModel,
+  type Model,
+  type ModelRequest,
+  type ModelResponse,
+  type ToolResult,
+} from "@restatedev/agentlib";
 
 const sources = [
   {
@@ -51,7 +57,16 @@ const researchModel: Model = function* (request) {
   const role = request.instructions!.split(".")[0];
   const invocationId = r.handlerRequest().id;
   if (role === "Research worker" && prompt(request) === "cite without reading") {
-    return answer({answer: "Unsupported claim", sourceIds: ["durability"]});
+    // The first answer cites a source it never read; afterRun's reason comes back
+    // as a note, and the worker reads the source before answering again.
+    if (!/did not read/.test(JSON.stringify(request.messages)))
+      return answer({answer: "Unsupported claim", sourceIds: ["durability"]});
+    if (!request.messages.some((message) => message.role === "tool"))
+      return {
+        type: "tool_calls",
+        calls: [{id: "read-durability", name: "readSource", input: {id: "durability"}}],
+      };
+    return answer({answer: "Supported claim", sourceIds: ["durability"]});
   }
   if (role === "Research worker" && request.step === 1) {
     yield* r.client(barrier, "parallel").arrive(invocationId);
@@ -182,8 +197,106 @@ const tutorialModel = journaledModel(async (request): Promise<ModelResponse> => 
   return {type: "final", text: turns.map((message) => message.content).join(" | ")};
 });
 
+/** Example 19's writer: loads the release-notes skill, reads its template, and
+ * answers with the template's first line. */
+function skillsModel(request: ModelRequest): ModelResponse {
+  assert.match(request.instructions!, /- release-notes: Write release notes/);
+  assert.match(request.instructions!, /- incident-summary: Summarize a production incident/);
+  if (request.step === 1)
+    return {
+      type: "tool_calls",
+      calls: [{id: "load", name: "load_skill", input: {name: "release-notes"}}],
+    };
+  if (request.step === 2)
+    return {
+      type: "tool_calls",
+      calls: [
+        {
+          id: "read",
+          name: "read_skill_file",
+          input: {name: "release-notes", path: "template.md"},
+        },
+      ],
+    };
+  const [skill, template] = request.messages.flatMap((message) =>
+    message.role === "tool" &&
+    message.result.status === "success" &&
+    typeof message.result.output === "string"
+      ? [message.result.output]
+      : [],
+  );
+  assert.match(skill!, /^# Release notes/);
+  return {type: "final", text: template!.split("\n")[0]!};
+}
+
+/** Example 20's investigator and its forks, which share its instructions. Each
+ * fork checks that it starts from the logs the investigator read. */
+function investigation(request: ModelRequest): ModelResponse {
+  const results = new Map<string, ToolResult>();
+  for (const message of request.messages)
+    if (message.role === "tool") results.set(message.callId, message.result);
+  const copy = request.messages.find(
+    (message) => message.role === "user" && message.content.startsWith("[Forked sub-agent]"),
+  );
+  if (copy?.role === "user") {
+    // The investigator's request: the logs it read, but not the calls that started the forks.
+    assert.deepEqual(results.get("logs-payments"), {
+      status: "success",
+      output:
+        "11:58 deployed payments v2.3.0\n12:00 database connection pool exhausted (10 of 10 in use)",
+    });
+    assert.equal(results.has("pool"), false);
+    if (copy.content.includes("connection pool")) {
+      if (!results.has("deeper"))
+        return {
+          type: "tool_calls",
+          calls: [{id: "deeper", name: "investigate", input: {task: "Check the database"}}],
+        };
+      const nested = results.get("deeper");
+      assert.equal(nested?.status === "error" && nested.code, "fork_nested");
+      return {type: "final", text: "Supported: the pool ran out two minutes after the deploy."};
+    }
+    // A fork calls tools of its own; the investigator never sees these calls.
+    if (!results.has("logs-inventory"))
+      return {
+        type: "tool_calls",
+        calls: [{id: "logs-inventory", name: "readLogs", input: {service: "inventory"}}],
+      };
+    return {type: "final", text: "Rejected: inventory answers within 80ms."};
+  }
+  if (!results.has("logs-payments"))
+    return {
+      type: "tool_calls",
+      calls: [
+        {id: "logs-checkout", name: "readLogs", input: {service: "checkout"}},
+        {id: "logs-payments", name: "readLogs", input: {service: "payments"}},
+      ],
+    };
+  if (!results.has("pool"))
+    return {
+      type: "tool_calls",
+      calls: [
+        {
+          id: "pool",
+          name: "investigate",
+          input: {task: "The deploy exhausted the connection pool"},
+        },
+        {id: "stock", name: "investigate", input: {task: "Inventory is slow"}},
+      ],
+    };
+  assert.equal(results.has("logs-inventory"), false);
+  const reply = (id: string) => {
+    const result = results.get(id);
+    assert.ok(result?.status === "success" && typeof result.output === "string");
+    return result.output;
+  };
+  return {type: "final", text: `Payments v2.3.0. ${reply("pool")} ${reply("stock")}`};
+}
+
 const fixtureModel: Model = function* (request) {
   const instructions = request.instructions ?? "";
+  if (instructions.startsWith("Investigate production incidents.")) return investigation(request);
+  if (instructions.startsWith("You write for a software team")) return skillsModel(request);
   if (
     instructions.startsWith("Ticket approval lesson.") ||
     (instructions.startsWith("Help with the user's task.") &&
@@ -305,8 +418,8 @@ const fixtureModel: Model = function* (request) {
 };
 
 // Replace only the external model. Import the same service instances the app serves.
-mock.module("@restatedev/agentlib/openai", {
-  namedExports: {openAIModel: () => fixtureModel},
+mock.module("@restatedev/agentlib/provider", {
+  namedExports: {aiModel: () => fixtureModel},
 });
 const [
   {hello},
@@ -322,6 +435,8 @@ const [
   {guardedBooking},
   {peerAuthor, peerReviewer, peerReview},
   {progressFeed, inventoryAudit},
+  {skilledWriter},
+  {incidentInvestigation},
 ] = await Promise.all([
   import("../src/lessons/01_hello.ts"),
   import("../src/lessons/02_tools.ts"),
@@ -336,6 +451,8 @@ const [
   import("../src/lessons/13_tool_guardrail.ts"),
   import("../src/lessons/15_peer_review_rpc.ts"),
   import("../src/lessons/16_progress_feed.ts"),
+  import("../src/lessons/19_skills.ts"),
+  import("../src/lessons/20_forked_agents.ts"),
 ]);
 
 const approvalCommands: string[] = [];
@@ -366,6 +483,8 @@ before(
         peerReview,
         progressFeed,
         inventoryAudit,
+        skilledWriter,
+        incidentInvestigation,
       ],
       container: () => new RestateContainer().alwaysReplay().disableRetries(),
     });
@@ -551,13 +670,11 @@ void test("research rejects duplicate source IDs before invoking a model", async
   assert.equal(effects.size, calls);
 });
 
-void test("a research worker cannot cite a supplied source it has not read", async () => {
-  await assert.rejects(
-    connect({url: env.baseUrl()})
-      .client(researchWorker)
-      .research({question: "cite without reading", sources}),
-    /source the worker did not read/,
-  );
+void test("a research worker that cites a source it has not read must read it first", async () => {
+  const finding = await connect({url: env.baseUrl()})
+    .client(researchWorker)
+    .research({question: "cite without reading", sources});
+  assert.deepEqual(finding, {answer: "Supported claim", sourceIds: ["durability"]});
 });
 
 void test(`${codeReview.name}: evaluator feedback reaches the next draft and stops on acceptance`, async () => {
@@ -641,6 +758,8 @@ void test("string prompt defaults are exposed as object fields for the request e
     ["PeerReview", "answer", "brief"],
     ["AiSession", "steer", "message"],
     ["AiSession", "interrupt", "reason"],
+    ["SkilledWriter", "write", "request"],
+    ["IncidentInvestigation", "investigate", "incident"],
   ]) {
     const schema = services.find((item) => item.name === service)!
       .handlers.find((item) => item.name === handler)!.input_json_schema;
@@ -656,4 +775,20 @@ void test("string prompt defaults are exposed as object fields for the request e
   });
   assert.ok(reply.ok);
   assert.equal(await reply.json(), "Say hello in one sentence.");
+});
+
+void test("19: the agent loads a skill from the folder and reads its file", async () => {
+  const notes = await ingress().client(skilledWriter).write({request: "Release notes for 2.4.0"});
+  assert.equal(notes, "## <version> — <date>");
+});
+
+void test("20: forks start from the investigator's conversation and cannot start forks", async () => {
+  const report = await ingress()
+    .client(incidentInvestigation)
+    .investigate({incident: "Checkout returns 502 errors since 12:00."});
+  assert.equal(
+    report,
+    "Payments v2.3.0. Supported: the pool ran out two minutes after the deploy. " +
+      "Rejected: inventory answers within 80ms.",
+  );
 });
