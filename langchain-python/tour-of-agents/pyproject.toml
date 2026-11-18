@@ -11,7 +11,7 @@ dependencies = [
     "langchain>=1.0.0",
     "langchain-openai>=0.3.0",
     "langgraph>=1.0.0",
-    "restate-sdk[serde]>=1.0.3",
+    "restate-sdk[serde]>=1.5.4",
 ]
 
 [tool.hatch.build.targets.wheel]
