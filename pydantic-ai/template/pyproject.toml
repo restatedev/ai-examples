@@ -9,7 +9,7 @@ dependencies = [
     "hypercorn",
     "pydantic>=2.13.4",
     "pydantic-ai>=2.17.0",
-    "restate-sdk[serde]>=1.0.3",
+    "restate-sdk[serde]>=1.5.4",
 ]
 
 [dependency-groups]

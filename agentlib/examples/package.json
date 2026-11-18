@@ -17,15 +17,15 @@
     "@ag-ui/core": "1.0.0",
     "@ai-sdk/openai": "4.0.13",
     "@restatedev/agentlib": "^0.2.0",
-    "@restatedev/restate-sdk": "^1.18.2",
-    "@restatedev/restate-sdk-clients": "^1.18.2",
-    "@restatedev/restate-sdk-gen": "^1.18.2",
+    "@restatedev/restate-sdk": "^1.18.4",
+    "@restatedev/restate-sdk-clients": "^1.18.4",
+    "@restatedev/restate-sdk-gen": "^1.18.4",
     "modal": "0.10.1",
     "zod": "^4.6.5"
   },
   "devDependencies": {
     "@ag-ui/client": "1.0.0",
-    "@restatedev/restate-sdk-testcontainers": "^1.18.2",
+    "@restatedev/restate-sdk-testcontainers": "^1.18.4",
     "@types/node": "^22",
     "tsx": "^4.23.13",
     "typescript": "^5.9.3"
