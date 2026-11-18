@@ -16,7 +16,7 @@ const model = journaledModel(async (request): Promise<ModelResponse> => {
   assert.equal(result?.role, "tool");
   return {type: "final", text: JSON.stringify(result.result)};
 });
-mock.module("@restatedev/agentlib/openai", {namedExports: {openAIModel: () => model}});
+mock.module("@restatedev/agentlib/provider", {namedExports: {aiModel: () => model}});
 const {webResearch} = await import("../src/lessons/14_web_search.js");
 
 const attempts = new Map<string, number>();

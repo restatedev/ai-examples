@@ -2,7 +2,8 @@
 
 Runnable examples of agents and workflows built with [Restate agentlib](https://github.com/restatedev/agentlib).
 Examples 01-10 cover the basics, from tool calls to
-session management. The remaining examples cover coding agents, routing, and MCP.
+session management. The remaining examples cover coding agents, routing, MCP, AG-UI,
+skills, and forked agents.
 
 | Example | Pattern                                 | Source                                                             |
 | ------- | --------------------------------------- | ------------------------------------------------------------------ |
@@ -23,6 +24,9 @@ session management. The remaining examples cover coding agents, routing, and MCP
 | 15      | Exchange feedback over durable RPC      | [15_peer_review_rpc.ts](src/lessons/15_peer_review_rpc.ts)         |
 | 16      | Follow an agent's progress              | [16_progress_feed.ts](src/lessons/16_progress_feed.ts)             |
 | 17      | Tools from a remote MCP server          | [17_mcp_tools.ts](src/lessons/17_mcp_tools.ts)                     |
+| 18      | Serve an AG-UI client                   | [18_ag_ui.ts](src/lessons/18_ag_ui.ts)                             |
+| 19      | Skills from a folder                    | [19_skills.ts](src/lessons/19_skills.ts)                           |
+| 20      | Fork the agent to check hypotheses      | [20_forked_agents.ts](src/lessons/20_forked_agents.ts)             |
 
 ## Start
 
@@ -51,8 +55,9 @@ Register the endpoint:
 npx @restatedev/restate deployments register http://localhost:9080
 ```
 
-The app serves the Restate endpoint on port 9080. The Restate UI is at http://localhost:9070. Run the template and
-example app separately because they use the same service port.
+The app serves the Restate endpoint on port 9080 and the AG-UI endpoint of example 18 on port 9081.
+The Restate UI is at http://localhost:9070. Run the template and example app separately because they
+use the same service port.
 
 ```sh
 npm run build
@@ -196,8 +201,9 @@ fields to compare providers. Running both agents can use more tokens than a sing
 
 A planner splits a research topic into 2-4 questions and calls a `ResearchWorker`
 for each question in parallel. The workers read the supplied sources through tools,
-and the planner combines their findings into a report. Workers can only cite sources
-they have read. Cancelling the parent also cancels unfinished worker calls.
+and the planner combines their findings into a report. An `afterRun` check rejects
+citations of sources the worker did not read, and the worker's model gets the reason
+and another step to fix them. Cancelling the parent also cancels unfinished worker calls.
 
 ```sh
 curl --globoff "localhost:8080/ResearchReport/generate" --json '{
@@ -393,4 +399,85 @@ call results. This example uses the [Restate docs MCP server](https://docs.resta
 
 ```sh
 curl "localhost:8080/DocsGuide/ask" --json '{"question":"What is a virtual object?"}'
+```
+
+## 18 - AG-UI
+
+[Code](src/lessons/18_ag_ui.ts)
+
+[AG-UI](https://docs.ag-ui.com) is an open protocol between agents and user interfaces,
+such as CopilotKit. An `AgUiThread` object runs each turn of one AG-UI thread and appends
+the AG-UI events of the turn to its state. `agUiHandler` implements AG-UI's HTTP transport:
+it accepts a `RunAgentInput` and streams the turn's events as server-sent events.
+[app.ts](src/app.ts) serves it on port 9081 and calls the Restate ingress at
+`RESTATE_CALL_URL` (default `http://localhost:8080`).
+
+A run does the first of these that applies:
+
+- A `resume` answers the approval that ended the previous run.
+- `tool` messages at the end answer the client tools that the turn waits for.
+- A user message at the end starts a turn. The handler sends it once per message ID,
+  so a retried run follows the same turn instead of starting another.
+- Otherwise, the run reconnects: it returns the conversation as `MESSAGES_SNAPSHOT`,
+  then streams the turn in progress, including an approval that is still open.
+
+An approval ends the AG-UI run with an interrupt, and the turn waits on a durable signal.
+A run with `resume` and `payload: {"approved": true}` answers the approval and streams the
+rest of the turn, including events the turn appended while no stream was open. Closing a
+stream does not stop a turn.
+
+```sh
+curl -N localhost:9081 --json '{"threadId":"t1","runId":"r1","messages":[{"id":"m1","role":"user","content":"Cancel order O-7."}]}'
+curl -N localhost:9081 --json '{"threadId":"t1","runId":"r2","messages":[],"resume":[{"interruptId":"<id from the interrupt>","status":"resolved","payload":{"approved":true}}]}'
+```
+
+The client's `tools`, such as CopilotKit frontend tools, become tools of the turn. When the
+model calls one, the run ends with the call. The client runs the tool and starts a new run
+with the result as a `tool` message, which resolves the signal the turn waits on.
+
+To keep the example small, the handler polls the object's state. It ignores the client's
+`context` and `state`, because the object stores the conversation.
+
+## 19 - Skills
+
+[Code](src/lessons/19_skills.ts)
+
+A skill contains instructions for one kind of task, such as writing release notes.
+`agent({skills})` takes a `SkillSource`. The run lists the skills once and adds each
+skill's name and description after the agent's instructions. The model loads a skill
+with `load_skill` when a task needs it, and reads the files that a skill refers to with
+`read_skill_file`. Restate journals every call to the source, and the skill list stays
+fixed for the whole run, so the cached prompt prefix stays valid.
+
+agentlib does not read files itself. This example's `folderSkills` reads [skills/](skills),
+which follows the layout of Anthropic's Agent Skills: one folder per skill, with a
+`SKILL.md` whose frontmatter defines `name` and `description`. To define skills in code
+instead, use `skills([{name, description, instructions, files}])` from `@restatedev/agentlib`.
+
+```sh
+curl "localhost:8080/SkilledWriter/write" \
+  --json '{"request":"Release notes for 2.4.0: added CSV export, fixed the login redirect loop, bumped lodash."}'
+```
+
+agentlib provides no shell, so this example does not run a skill's scripts. An agent with
+a sandbox, as in example 11, can copy a skill into the sandbox and run them there.
+
+## 20 - Forked agents
+
+[Code](src/lessons/20_forked_agents.ts)
+
+`forkAgentTool` gives the agent a tool that starts a copy of itself. A sub-agent from
+`agentTool` starts with only its task, but a fork starts from the conversation up to the
+step that called the tool. The investigator in this example reads the service logs, then
+calls `investigate` several times in one step to check hypotheses in parallel. Each fork
+builds on the logs that the investigator already read, and its first request repeats that
+step's request, so the provider can serve it from its prompt cache.
+
+A fork has the run's tools, policies, and limits. Only its reply returns to the
+investigator, as the tool result. A fork cannot start forks or sub-agents, and saves
+nothing to the conversation.
+
+```sh
+curl "localhost:8080/IncidentInvestigation/investigate" \
+  --json '{"incident":"Checkout returns 502 errors since 12:00."}'
 ```

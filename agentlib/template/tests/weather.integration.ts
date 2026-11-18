@@ -23,7 +23,7 @@ const model = journaledModel(async (request): Promise<ModelResponse> => {
   });
   return { type: "final", text: "Demo weather in San Francisco: 23°C, sunny and warm." };
 });
-mock.module("@restatedev/agentlib/openai", { namedExports: { openAIModel: () => model } });
+mock.module("@restatedev/agentlib/provider", { namedExports: { aiModel: () => model } });
 const { weatherService } = await import("../src/agent.js");
 
 let env: RestateTestEnvironment;
