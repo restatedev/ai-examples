@@ -20,6 +20,10 @@ jobs:
   updates:
     # prevent from running on forks
     if: github.repository_owner == 'restatedev'
+    # the default GITHUB_TOKEN is read-only; create-pull-request needs to push a branch and open a PR
+    permissions:
+      contents: write
+      pull-requests: write
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:

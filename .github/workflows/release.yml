@@ -10,6 +10,9 @@ jobs:
     # prevent from running on forks
     if: github.repository_owner == 'restatedev'
     name: Publish release
+    # the default GITHUB_TOKEN is read-only; creating a release needs contents: write
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
 
     steps:
