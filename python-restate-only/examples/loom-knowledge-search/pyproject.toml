@@ -1,0 +1,10 @@
+[project]
+name = "loom-knowledge-search"
+version = "0.1.0"
+description = "Durable document search from a Restate service"
+requires-python = ">=3.12"
+dependencies = [
+    "httpx>=0.28.1",
+    "hypercorn>=0.17.3",
+    "restate-sdk[serde]>=1.5.4",
+]

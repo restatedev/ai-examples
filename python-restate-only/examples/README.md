@@ -16,3 +16,5 @@ Run Restate and register the service, similar to [the AI Quickstart](https://doc
 Then invoke the agents that were registered, via the UI playground, using their default messages.
 
 Check the Restate journal to see how the agents executed their steps durably.
+
+- [Durable document search with Loom](loom-knowledge-search/README.md) searches a shared runbook namespace inside a retryable step and returns excerpts with their source URIs.
