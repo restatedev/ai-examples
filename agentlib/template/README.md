@@ -24,8 +24,12 @@ Register the app and invoke the agent through Restate:
 
 ```sh
 npx @restatedev/restate deployments register http://localhost:9080
-curl localhost:8080/agent/run --json '{"prompt":"What is the weather in San Francisco?"}'
+curl localhost:8080/agent/session-1/run --json '{"prompt":"What is the weather in San Francisco?"}'
 ```
+
+The agent is a virtual object, and `session-1` is its key. Each key keeps its own
+conversation in the object's state, so a second request to `session-1` continues
+the conversation. Use another key to start a new one.
 
 Use `{}` to try the default prompt. Open http://localhost:9070 to inspect the
 model and tool calls. Stop and restart the app during a request to see it

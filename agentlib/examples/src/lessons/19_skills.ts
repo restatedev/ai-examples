@@ -18,7 +18,10 @@ import {fileURLToPath} from "node:url";
 import * as restate from "@restatedev/restate-sdk-gen";
 import {agent, type SkillSource} from "@restatedev/agentlib";
 import {z} from "zod";
-import {exampleModel as model} from "../shared.js";
+import {openai} from "@ai-sdk/openai";
+import {aiModel} from "@restatedev/agentlib/provider";
+
+const model = aiModel({model: openai(process.env.AGENT_MODEL ?? "gpt-5.4")});
 
 /**
  * A SKILL.md's frontmatter fields and its body. Enough YAML for skills:

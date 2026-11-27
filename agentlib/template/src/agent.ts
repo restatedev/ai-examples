@@ -1,5 +1,5 @@
 import { openai } from "@ai-sdk/openai";
-import { agent, asyncTool } from "@restatedev/agentlib";
+import { agent, asyncTool, Conversation } from "@restatedev/agentlib";
 import { aiModel } from "@restatedev/agentlib/provider";
 import * as restate from "@restatedev/restate-sdk-gen";
 import { z } from "zod";
@@ -26,7 +26,8 @@ const weatherAgent = agent({
   },
 });
 
-export const weatherService = restate.service({
+// One virtual object per conversation: requests to the same key continue it.
+export const weatherService = restate.object({
   name: "agent",
   handlers: {
     run: restate.schemas(
@@ -37,9 +38,14 @@ export const weatherService = restate.service({
         output: z.string(),
       },
       function* ({ prompt }) {
-        const result = yield* weatherAgent.run(prompt);
+        // The run loads the conversation from this object's state and saves its progress there.
+        const result = yield* weatherAgent.run(prompt, { conversation: new Conversation() });
         return result.status === "completed" ? result.output : result.output ?? result.reason;
       },
     ),
+  },
+  options: {
+    // Restate sends these keys with each request. The run reads the message chunks on demand.
+    state: { preload: ["conversation/meta", "conversation/summary"] },
   },
 });

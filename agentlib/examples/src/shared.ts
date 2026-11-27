@@ -1,20 +1,6 @@
 import * as restate from "@restatedev/restate-sdk-gen";
-import {openai} from "@ai-sdk/openai";
 import {ToolError, type ApprovalRequest} from "@restatedev/agentlib";
-import {aiModel} from "@restatedev/agentlib/provider";
 import {z} from "zod";
-
-// Construction is lazy: importing the examples needs no provider credentials.
-// To use another provider, pass a model from its AI SDK package instead of openai(...).
-export const exampleModel = aiModel({
-  model: openai(process.env.AGENT_MODEL ?? "gpt-5.4"),
-  retry: {
-    maxAttempts: 3,
-    initialInterval: {milliseconds: 500},
-    exponentiationFactor: 2,
-    maxInterval: {seconds: 5},
-  },
-});
 
 /** Log a ready-to-run approval command from an object handler. */
 export function logApprovalCommand(service: string, request: ApprovalRequest): void {

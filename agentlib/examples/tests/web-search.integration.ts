@@ -57,7 +57,7 @@ after(async () => {
 });
 
 async function search(question: string) {
-  return JSON.parse(await connect({url: env.baseUrl()}).client(webResearch).answer({question}));
+  return JSON.parse(await connect({url: env.baseUrl()}).client(webResearch, question).answer({question}));
 }
 
 test("web search journals HTTP results and bounds sources and snippets", async () => {

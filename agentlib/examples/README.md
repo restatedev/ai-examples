@@ -68,6 +68,23 @@ Tests use a real Restate container with always-replay enabled and fixture model
 responses. They do not require API keys or make paid model calls. The coding
 agent test substitutes a temporary local directory for Modal.
 
+## Conversations in virtual objects
+
+Examples 01, 02, 04, 07, 08, 11, 13, 16, and 19 handle one self-contained task per
+request, so they are Restate services. The other examples run their agents in a
+virtual object and pass a `Conversation` to each run, so the next request
+to the same object key continues the conversation. Put the key in the URL:
+`localhost:8080/<Object>/<key>/<handler>`.
+
+A conversation stores its messages in chunks under `<stateKey>/0`, `<stateKey>/1`,
+and so on, its message count under `<stateKey>/meta`, and its summary under
+`<stateKey>/summary`. The default state key is `conversation`. Agents that share an
+object, as in examples 05 and 12, each use their own state key. Each object preloads
+the `meta` and `summary` keys with `options: {state: {preload: [...]}}`, and the run
+reads the message chunks on demand. With a preload list, reads of several keys in one
+handler can return values from different moments. Example 18 shows how to keep
+related keys consistent.
+
 ## 01 - Simple agent
 
 [Code](src/lessons/01_hello.ts)
@@ -97,8 +114,14 @@ curl --globoff "localhost:8080/TicketLookup/ask" \
 demo ticket with an API call. The callback's second argument provides application
 context, call metadata, and an `AbortSignal` for cancelling I/O.
 
-The tool retries failed calls up to five times, with a delay starting at 250 ms
-and doubling after each attempt.
+The tool makes up to five attempts, with a delay starting at 250 ms and doubling
+after each attempt.
+
+The model sets `retry` too, with up to five attempts. agentlib runs each model call
+as a journaled step, and Restate retries a call that fails with a transient provider
+error, such as throttling. When the provider specifies a retry delay, the retry waits
+that long. A missing API key or a rejected request fails without a retry. Without
+`retry`, agentlib makes up to three attempts, which is what the other examples use.
 
 Use `tool` with `yield*` when you need to call other agentlib operations inside a
 tool. Use `handlerTool` to call a Restate handler.
@@ -107,8 +130,9 @@ tool. Use `handlerTool` to call a Restate handler.
 
 [Code](src/lessons/03_conversation.ts)
 
-A chat agent that stores conversation history in a Restate virtual object.
-The handler loads the messages before each run and saves `result.messages` afterward.
+A chat agent that keeps its conversation history in a Restate virtual object.
+The handler passes a `Conversation` to the run, which loads the history
+from the object's state and saves the new messages.
 
 ```sh
 curl --globoff "localhost:8080/ChatSession/bob/ask" --json '{"message":"My name is Bob."}'
@@ -116,8 +140,16 @@ curl --globoff "localhost:8080/ChatSession/bob/ask" --json '{"message":"What is 
 ```
 
 Both requests use the key `bob`, so they share a conversation. Each key has its
-own history. This example stores all messages. Example 09 also shows conversation
-compaction, steering, and interruption.
+own history. The shared `history` handler returns up to 100 saved messages from
+the index in the request body, including messages that a summary replaced:
+
+```sh
+curl --globoff "localhost:8080/ChatSession/bob/history" --json '0'
+```
+
+See [Conversations in virtual objects](#conversations-in-virtual-objects) for how
+the conversation is stored and preloaded. Example 09 also shows
+steering and interruption.
 
 ## 04 - Structured output
 
@@ -143,8 +175,12 @@ One agent generates code and another reviews it. The handler passes the feedback
 back to the first agent until the reviewer approves the code or three attempts
 have been made. Each agent run has its own name.
 
+The writer and the reviewer save their conversations in the same object under the
+state keys `writer` and `reviewer`. The writer's conversation contains its earlier
+drafts, so each revision request contains only the reviewer's feedback.
+
 ```sh
-curl --globoff "localhost:8080/CodeReview/generate" \
+curl --globoff "localhost:8080/CodeReview/first-item/generate" \
   --json '{"task":"Read the first item of an array safely, returning undefined when it is empty."}'
 ```
 
@@ -201,7 +237,7 @@ fields to compare providers. Running both agents can use more tokens than a sing
 
 A planner splits a research topic into 2-4 questions and calls a `ResearchWorker`
 for each question in parallel. The workers read the supplied sources through tools,
-and the planner combines their findings into a report. An `afterRun` check rejects
+and a writer combines their findings into a report. An `afterRun` check rejects
 citations of sources the worker did not read, and the worker's model gets the reason
 and another step to fix them. Cancelling the parent also cancels unfinished worker calls.
 
@@ -232,8 +268,8 @@ read the sources they cite, but does not check whether their conclusions are cor
 [Code](src/lessons/09_support_session.ts)
 
 A support agent with one conversation per object key. `doTurn` processes one turn
-at a time, saves the messages, and compacts long conversations. Shared handlers let
-you control the agent while it runs:
+at a time and saves the messages. Shared handlers let you control the agent while
+it runs:
 
 - `status`: Get the active turn.
 - `steer`: Add a message to the running turn.
@@ -243,7 +279,7 @@ you control the agent while it runs:
 The ticket tools use demo data.
 
 ```sh
-curl --globoff "localhost:8080/AiSession/bobb/doTurn" \
+curl --globoff "localhost:8080/AiSession/bob/doTurn" \
   --json '{"message":"Look up ticket T-42, then close it."}'
 ```
 
@@ -263,7 +299,7 @@ schemas from the interface. To expose only one handler, pass
 `{iface, handler: "issueRefund"}`. For virtual objects and workflows, also pass a `key`.
 
 ```sh
-curl --globoff "localhost:8080/RefundAgent/ask" \
+curl --globoff "localhost:8080/RefundAgent/bob/ask" \
   --json '{"message":"Refund order O-99 for $12.50 and tell me the refund policy."}'
 ```
 
@@ -299,15 +335,18 @@ curl --globoff "localhost:8080/CodingAgent/ask" \
 [Code](src/lessons/12_routing.ts)
 
 A routing agent selects `billing`, `account`, or `product` using structured output.
-The handler then calls the selected specialist.
+The handler then calls the selected specialist. The object key identifies the
+customer.
 
 ```sh
-curl --globoff "localhost:8080/SupportRouter/answer" \
+curl --globoff "localhost:8080/SupportRouter/bob/answer" \
   --json '{"question":"I cannot log into my account. How can I regain access?"}'
 ```
 
-Each specialist starts a new run with the question. To transfer the current run
-and conversation history to another agent, use `handoff`.
+The router and each specialist save their conversations under their own state keys:
+`router`, `billing`, `account`, and `product`. A specialist receives only the
+question and its own earlier conversation with the customer, not the router's. To
+transfer the current run and conversation history to another agent, use `handoff`.
 
 ## 13 - Tool guardrails
 
@@ -339,7 +378,7 @@ The API key stays in the tool and is never passed to the model.
 
 ```sh
 export TAVILY_API_KEY=...
-curl localhost:8080/WebResearch/answer \
+curl localhost:8080/WebResearch/bob/answer \
   --json '{"question":"Find the Restate TypeScript SDK docs and cite their URLs."}'
 ```
 
@@ -348,8 +387,8 @@ curl localhost:8080/WebResearch/answer \
 [Code](src/lessons/15_peer_review_rpc.ts)
 
 `PeerReview` calls `PeerAuthor` to write a draft, then calls two `PeerReviewer`
-instances in parallel. It sends both reviews back to the author for a revision.
-Each agent is a Restate service, communicating through typed RPC calls:
+objects in parallel. It sends both reviews back to the author for a revision.
+Each agent is a Restate virtual object, communicating through typed RPC calls:
 
 ```mermaid
 sequenceDiagram
@@ -365,12 +404,16 @@ sequenceDiagram
     Lead->>Reviewer: review(brief, draft, clarity)
     Reviewer-->>Lead: feedback
   end
-  Lead->>Author: write(brief, draft, both reviews)
+  Lead->>Author: revise(both reviews)
   Author-->>Lead: revised answer
 ```
 
+The `PeerReview` key also names the review's author, and each reviewer uses the key
+`<review key>/<focus>`. The author's conversation contains the brief and the first
+draft, so `revise` sends only the feedback.
+
 ```sh
-curl --globoff "localhost:8080/PeerReview/answer" \
+curl --globoff "localhost:8080/PeerReview/release-note/answer" \
   --json '{"brief":"Write a two-sentence release note for a feature that retries transient failures and resumes completed steps from a journal."}'
 ```
 
@@ -398,7 +441,7 @@ curl --globoff "localhost:8080/InventoryAudit/audit" --json '{"job":"audit-1"}'
 call results. This example uses the [Restate docs MCP server](https://docs.restate.dev/mcp).
 
 ```sh
-curl "localhost:8080/DocsGuide/ask" --json '{"question":"What is a virtual object?"}'
+curl "localhost:8080/DocsGuide/bob/ask" --json '{"question":"What is a virtual object?"}'
 ```
 
 ## 18 - AG-UI
@@ -406,8 +449,9 @@ curl "localhost:8080/DocsGuide/ask" --json '{"question":"What is a virtual objec
 [Code](src/lessons/18_ag_ui.ts)
 
 [AG-UI](https://docs.ag-ui.com) is an open protocol between agents and user interfaces,
-such as CopilotKit. An `AgUiThread` object runs each turn of one AG-UI thread and appends
-the AG-UI events of the turn to its state. `agUiHandler` implements AG-UI's HTTP transport:
+such as CopilotKit. An `AgUiThread` object runs each turn of one AG-UI thread and keeps
+the thread's conversation and the AG-UI events of its turns in its state. `agUiHandler`
+implements AG-UI's HTTP transport:
 it accepts a `RunAgentInput` and streams the turn's events as server-sent events.
 [app.ts](src/app.ts) serves it on port 9081 and calls the Restate ingress at
 `RESTATE_CALL_URL` (default `http://localhost:8080`).
@@ -478,6 +522,6 @@ investigator, as the tool result. A fork cannot start forks or sub-agents, and s
 nothing to the conversation.
 
 ```sh
-curl "localhost:8080/IncidentInvestigation/investigate" \
+curl "localhost:8080/IncidentInvestigation/checkout-502/investigate" \
   --json '{"incident":"Checkout returns 502 errors since 12:00."}'
 ```

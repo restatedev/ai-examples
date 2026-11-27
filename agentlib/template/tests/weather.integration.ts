@@ -36,7 +36,7 @@ before(async () => {
 after(async () => { await env?.stop(); });
 
 test("weather tool and model results survive replay", async () => {
-  const response = await fetch(`${env.baseUrl()}/agent/run`, {
+  const response = await fetch(`${env.baseUrl()}/agent/session-1/run`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({}),

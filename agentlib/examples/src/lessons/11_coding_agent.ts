@@ -3,7 +3,10 @@ import * as restate from "@restatedev/restate-sdk-gen";
 import {ModalClient, Sandbox, SandboxFilesystemNotFoundError} from "modal";
 import {agent, asyncTool, ToolError} from "@restatedev/agentlib";
 import {z} from "zod";
-import {exampleModel as model} from "../shared.js";
+import {openai} from "@ai-sdk/openai";
+import {aiModel} from "@restatedev/agentlib/provider";
+
+const model = aiModel({model: openai(process.env.AGENT_MODEL ?? "gpt-5.4")});
 
 // Created on first use, so the other lessons run without Modal credentials.
 let client: ModalClient | undefined;
