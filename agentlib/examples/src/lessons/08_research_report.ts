@@ -5,7 +5,10 @@ import {TerminalError} from "@restatedev/restate-sdk";
 import * as restate from "@restatedev/restate-sdk-gen";
 import {agent, tool, ToolError} from "@restatedev/agentlib";
 import {z} from "zod";
-import {exampleModel as model} from "../shared.js";
+import {openai} from "@ai-sdk/openai";
+import {aiModel} from "@restatedev/agentlib/provider";
+
+const model = aiModel({model: openai(process.env.AGENT_MODEL ?? "gpt-5.4")});
 
 const sourceSchema = z.object({
   id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),

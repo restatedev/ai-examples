@@ -1,8 +1,12 @@
 // 14: Call a web search API from an ordinary async tool.
 import * as restate from "@restatedev/restate-sdk-gen";
-import {agent, asyncTool} from "@restatedev/agentlib";
+import {agent, asyncTool, Conversation} from "@restatedev/agentlib";
 import {z} from "zod";
-import {exampleModel as model, searchTavily} from "../shared.js";
+import {openai} from "@ai-sdk/openai";
+import {aiModel} from "@restatedev/agentlib/provider";
+import {searchTavily} from "../shared.js";
+
+const model = aiModel({model: openai(process.env.AGENT_MODEL ?? "gpt-5.4")});
 
 // asyncTool journals the result, so replay does not repeat a completed HTTP request.
 const searchWeb = asyncTool({
@@ -23,7 +27,7 @@ const researcher = agent({
   tools: {searchWeb},
 });
 
-export const webResearch = restate.service({
+export const webResearch = restate.object({
   name: "WebResearch",
   handlers: {
     answer: restate.schemas(
@@ -34,10 +38,11 @@ export const webResearch = restate.service({
         output: z.string(),
       },
       function* ({question}) {
-        const result = yield* researcher.run(question);
+        const result = yield* researcher.run(question, {conversation: new Conversation()});
         if (result.status !== "completed") return result.output ?? result.reason;
         return result.output;
       },
     ),
   },
+  options: {state: {preload: ["conversation/meta", "conversation/summary"]}},
 });

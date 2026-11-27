@@ -1,9 +1,12 @@
 // 17: Give an agent the tools of a remote MCP server.
 import * as restate from "@restatedev/restate-sdk-gen";
-import {agent} from "@restatedev/agentlib";
+import {agent, Conversation} from "@restatedev/agentlib";
 import {mcpTools} from "@restatedev/agentlib/mcp";
 import {z} from "zod";
-import {exampleModel as model} from "../shared.js";
+import {openai} from "@ai-sdk/openai";
+import {aiModel} from "@restatedev/agentlib/provider";
+
+const model = aiModel({model: openai(process.env.AGENT_MODEL ?? "gpt-5.4")});
 
 const guide = agent({
   model,
@@ -11,7 +14,7 @@ const guide = agent({
   instructions: "Answer questions about Restate. Search the Restate docs and be brief.",
 });
 
-export const docsGuide = restate.service({
+export const docsGuide = restate.object({
   name: "DocsGuide",
   handlers: {
     ask: restate.schemas(
@@ -28,10 +31,14 @@ export const docsGuide = restate.service({
           deferred: false,
           allow: (name) => name !== "submit_feedback",
         });
-        const result = yield* guide.run(question, {tools: docs.tools});
+        const result = yield* guide.run(question, {
+          conversation: new Conversation(),
+          tools: docs.tools,
+        });
         if (result.status !== "completed") return result.output ?? result.reason;
         return result.output;
       },
     ),
   },
+  options: {state: {preload: ["conversation/meta", "conversation/summary"]}},
 });

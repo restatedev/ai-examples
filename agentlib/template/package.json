@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@ai-sdk/openai": "4.0.13",
-    "@restatedev/agentlib": "^0.2.0",
+    "@restatedev/agentlib": "^0.3.1",
     "@restatedev/restate-sdk": "^1.18.4",
     "@restatedev/restate-sdk-gen": "^1.18.4",
     "zod": "^4.6.5"

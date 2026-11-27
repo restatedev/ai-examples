@@ -7,9 +7,12 @@
 // from its prompt cache. A fork has the run's tools, policies, and limits. Only
 // its reply reaches the lead, and it cannot start forks or sub-agents.
 import * as restate from "@restatedev/restate-sdk-gen";
-import {agent, forkAgentTool, tool} from "@restatedev/agentlib";
+import {agent, Conversation, forkAgentTool, tool} from "@restatedev/agentlib";
 import {z} from "zod";
-import {exampleModel as model} from "../shared.js";
+import {openai} from "@ai-sdk/openai";
+import {aiModel} from "@restatedev/agentlib/provider";
+
+const model = aiModel({model: openai(process.env.AGENT_MODEL ?? "gpt-5.4")});
 
 const logs = {
   checkout: "12:01 POST /checkout 502: payments timed out after 30s (41 requests)",
@@ -41,7 +44,8 @@ const investigator = agent({
   },
 });
 
-export const incidentInvestigation = restate.service({
+/** One object per incident. Forks also see the earlier requests about the incident. */
+export const incidentInvestigation = restate.object({
   name: "IncidentInvestigation",
   handlers: {
     investigate: restate.schemas(
@@ -52,10 +56,11 @@ export const incidentInvestigation = restate.service({
         output: z.string(),
       },
       function* ({incident}) {
-        const result = yield* investigator.run(incident);
+        const result = yield* investigator.run(incident, {conversation: new Conversation()});
         if (result.status !== "completed") return result.output ?? result.reason;
         return result.output;
       },
     ),
   },
+  options: {state: {preload: ["conversation/meta", "conversation/summary"]}},
 });

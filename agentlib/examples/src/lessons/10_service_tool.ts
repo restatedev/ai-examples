@@ -1,8 +1,11 @@
 // 10: Expose a whole Restate service to the agent as one tool, from its `iface` contract.
 import * as restate from "@restatedev/restate-sdk-gen";
-import {agent, serviceTool} from "@restatedev/agentlib";
+import {agent, Conversation, serviceTool} from "@restatedev/agentlib";
 import {z} from "zod";
-import {exampleModel as model} from "../shared.js";
+import {openai} from "@ai-sdk/openai";
+import {aiModel} from "@restatedev/agentlib/provider";
+
+const model = aiModel({model: openai(process.env.AGENT_MODEL ?? "gpt-5.4")});
 
 // The interface (contract). Its descriptions are surfaced to the model by serviceTool,
 // so the agent knows what each handler does without any extra wiring.
@@ -42,7 +45,7 @@ const support = agent({
   },
 });
 
-export const refundAgent = restate.service({
+export const refundAgent = restate.object({
   name: "RefundAgent",
   handlers: {
     ask: restate.schemas(
@@ -53,10 +56,11 @@ export const refundAgent = restate.service({
         output: z.string(),
       },
       function* ({message}) {
-        const result = yield* support.run(message);
+        const result = yield* support.run(message, {conversation: new Conversation()});
         if (result.status !== "completed") return result.output ?? result.reason;
         return result.output;
       },
     ),
   },
+  options: {state: {preload: ["conversation/meta", "conversation/summary"]}},
 });

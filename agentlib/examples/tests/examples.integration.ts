@@ -31,7 +31,6 @@ const effects = new Map<string, number>();
 const peerEffects = new Map<string, number>();
 const cleanedRaces = new Set<string>();
 const answer = (output: unknown): ModelResponse => ({type: "final", text: JSON.stringify(output)});
-type PeerDraftRequest = {brief: string; draft?: string; feedback: string[]};
 type PeerReviewRequest = {brief: string; draft: string; focus: "requirements" | "clarity"};
 
 // Both workers must reach this barrier before either can finish: serialization
@@ -108,26 +107,23 @@ const researchModel: Model = function* (request) {
 
 const reviewCounts = new Map<string, number>();
 const reviewModel: Model = function* (request) {
-  const message = request.messages.find((message) => message.role === "user");
-  assert.ok(message && message.role === "user");
-  const input = JSON.parse(message.content) as {
-    task: string;
-    previousCode?: string;
-    feedback?: string;
-    code?: string;
-  };
+  const input = lastPrompt(request);
   return yield* r.run(
     async () => {
       if (request.instructions?.startsWith("Code writer")) {
-        if (input.previousCode) {
-          assert.match(input.feedback!, /empty input/);
+        if (input.startsWith("Revise")) {
+          // A revision request carries only the feedback; the draft comes from the
+          // writer's conversation.
+          assert.match(input, /empty input/);
+          assert.match(JSON.stringify(request.messages), /items\[0\]\.value/);
           return answer({code: "return items.length ? items[0] : undefined;"});
         }
         return answer({code: "return items[0].value;"});
       }
-      reviewCounts.set(input.task, (reviewCounts.get(input.task) ?? 0) + 1);
+      const {task, code} = JSON.parse(input) as {task: string; code: string};
+      reviewCounts.set(task, (reviewCounts.get(task) ?? 0) + 1);
       return answer({
-        approved: input.task !== "always reject" && input.code!.includes("items.length"),
+        approved: task !== "always reject" && code.includes("items.length"),
         feedback: "Handle empty input.",
       });
     },
@@ -137,6 +133,12 @@ const reviewModel: Model = function* (request) {
 
 function prompt(request: Parameters<Model>[0]) {
   const message = request.messages.find((message) => message.role === "user");
+  assert.ok(message && message.role === "user");
+  return message.content;
+}
+/** The newest user message. Earlier ones can come from previous runs on the same key. */
+function lastPrompt(request: Parameters<Model>[0]) {
+  const message = request.messages.findLast((message) => message.role === "user");
   assert.ok(message && message.role === "user");
   return message.content;
 }
@@ -303,11 +305,19 @@ const fixtureModel: Model = function* (request) {
       request.messages.some((message) => message.role === "user" && message.content === "approve ticket"))
   ) {
     const session = instructions.startsWith("Help with the user's task.");
-    const result = request.messages.find((message) => message.role === "tool");
+    // Earlier turns on the same key are in the conversation; look only at this one.
+    const turns = request.messages.filter((message) => message.role === "user").length;
+    const start = request.messages.findLastIndex((message) => message.role === "user");
+    const result = request.messages.slice(start).find((message) => message.role === "tool");
     if (!result) {
       return {
         type: "tool_calls",
-        calls: [{id: "close-ticket", name: "closeTicket", input: {[session ? "ticket" : "ticketId"]: "T-42"}}],
+        // A conversation rejects a tool-call ID that an earlier turn used.
+        calls: [{
+          id: `close-ticket-${turns}`,
+          name: "closeTicket",
+          input: {[session ? "ticket" : "ticketId"]: "T-42"},
+        }],
       };
     }
     assert.equal(result.role, "tool");
@@ -363,19 +373,20 @@ const fixtureModel: Model = function* (request) {
     return {type: "final", text: "Demo hotel H-42 was reserved."};
   }
   if (instructions.startsWith("Write a concise answer using only facts")) {
-    const input = JSON.parse(prompt(request)) as PeerDraftRequest;
-    if (input.draft)
-      assert.deepEqual(input.feedback, [
-        "requirements: Mention retries and replay.",
-        "clarity: Use two short sentences.",
-      ]);
-    const stage = input.draft ? "revision" : "first-draft";
+    const input = lastPrompt(request);
+    const revision = input.startsWith("Revise");
+    if (revision) {
+      assert.match(input, /requirements: Mention retries and replay\.\nclarity: Use two short sentences\./);
+      // The first draft reaches the revision through the author's conversation.
+      assert.match(JSON.stringify(request.messages), /First draft\./);
+    }
+    const stage = revision ? "revision" : "first-draft";
     const invocationId = r.handlerRequest().id;
     return yield* r.run(
       async (): Promise<ModelResponse> => {
         const key = `${invocationId}:${stage}`;
         peerEffects.set(key, (peerEffects.get(key) ?? 0) + 1);
-        return {type: "final", text: input.draft ? "Revised answer." : "First draft."};
+        return {type: "final", text: revision ? "Revised answer." : "First draft."};
       },
       {name: `fixture:${stage}`},
     );
@@ -513,6 +524,13 @@ void test("03: history persists between requests and is isolated by key", async 
   assert.equal(await bob.ask({message: "What is my name?"}), "My name is Bob. | What is my name?");
   const alice = ingress().client(chatSession, "alice");
   assert.equal(await alice.ask({message: "What is my name?"}), "What is my name?");
+  const {messages, next} = await bob.history(0);
+  assert.deepEqual(
+    messages.map((message) => message.role),
+    ["user", "assistant", "user", "assistant"],
+  );
+  assert.equal(next, 4);
+  assert.deepEqual((await bob.history(2)).messages, messages.slice(2));
 });
 
 void test("04: structured output reaches the caller as an object", async () => {
@@ -520,16 +538,20 @@ void test("04: structured output reaches the caller as an object", async () => {
   assert.deepEqual(result, {category: "billing", summary: "Duplicate subscription charge."});
 });
 
-void test("routing chooses a specialist and gives it a fresh run", async () => {
-  const client = connect({url: env.baseUrl()}).client(supportRouter);
+void test("routing chooses a specialist with its own conversation", async () => {
   assert.equal(
-    await client.answer({question: "I cannot log into my account."}),
+    await ingress().client(supportRouter, "login").answer({question: "I cannot log into my account."}),
     "Use the account recovery flow.",
   );
   assert.equal(
-    await client.answer({question: "How does this feature work?"}),
+    await ingress().client(supportRouter, "feature").answer({question: "How does this feature work?"}),
     "Here is how the feature works.",
   );
+  // The router and the specialist save their conversations under their own state keys.
+  const state = env.stateOf(supportRouter, "login");
+  assert.deepEqual(await state.get("router/meta"), {count: 2});
+  assert.deepEqual(await state.get("account/meta"), {count: 2});
+  assert.equal(await state.get("product/meta"), null);
 });
 
 void test("tool policy denies an over-budget booking and permits one within budget", async () => {
@@ -550,7 +572,7 @@ void test(
   async () => {
     const before = new Set(peerEffects.keys());
     const result = await ingress()
-      .client(peerReview)
+      .client(peerReview, "release-note")
       .answer({brief: "Write a two-sentence release note about retries and journal replay."});
     assert.equal(result, "Revised answer.");
     // Two drafts and two reviews, each run exactly once despite forced replay.
@@ -680,7 +702,7 @@ void test("a research worker that cites a source it has not read must read it fi
 void test(`${codeReview.name}: evaluator feedback reaches the next draft and stops on acceptance`, async () => {
   const task = "Read the first item safely";
   const before = reviewCounts.get(task) ?? 0;
-  const result = await ingress().client(codeReview).generate({task});
+  const result = await ingress().client(codeReview, "accepted").generate({task});
   assert.equal(result, "return items.length ? items[0] : undefined;");
   assert.equal(reviewCounts.get(task)! - before, 2);
 });
@@ -688,7 +710,7 @@ void test(`${codeReview.name}: evaluator feedback reaches the next draft and sto
 void test(`${codeReview.name}: exhausting the budget retains the last draft and feedback`, async () => {
   const task = "always reject";
   const before = reviewCounts.get(task) ?? 0;
-  const result = await ingress().client(codeReview).generate({task});
+  const result = await ingress().client(codeReview, "rejected").generate({task});
   assert.match(result, /still needs work after 3 reviews: Handle empty input/);
   assert.match(result, /items.length/);
   assert.equal(reviewCounts.get(task)! - before, 3);
@@ -784,7 +806,7 @@ void test("19: the agent loads a skill from the folder and reads its file", asyn
 
 void test("20: forks start from the investigator's conversation and cannot start forks", async () => {
   const report = await ingress()
-    .client(incidentInvestigation)
+    .client(incidentInvestigation, "checkout-502")
     .investigate({incident: "Checkout returns 502 errors since 12:00."});
   assert.equal(
     report,

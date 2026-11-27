@@ -17,13 +17,17 @@ import * as restate from "@restatedev/restate-sdk-gen";
 import {
   agent,
   asyncTool,
+  Conversation,
   type JsonValue,
   type Message,
   type ProgressEvent,
   type Tool,
 } from "@restatedev/agentlib";
 import {z} from "zod";
-import {exampleModel as model} from "../shared.js";
+import {openai} from "@ai-sdk/openai";
+import {aiModel} from "@restatedev/agentlib/provider";
+
+const model = aiModel({model: openai(process.env.AGENT_MODEL ?? "gpt-5.4")});
 
 const assistant = agent({
   model,
@@ -70,6 +74,9 @@ type Entry =
 type Pending = {invocationId: string; signalName: string; cursor: number};
 /** The turn in progress: where its entries start, and the message it answers. */
 type Running = {start: number; messageId: string; message: string};
+/** How many conversation messages the finished turns saved, and the turn in progress.
+ * One key, so a reconnect reads both at once. */
+type Turns = {finished: number; running?: Running};
 
 /** The AG-UI events that show a progress event; the others have no counterpart here. */
 function progressEvents(event: ProgressEvent): Event[] {
@@ -116,9 +123,14 @@ export const agUiThread = restate.object({
           for (const entry of entries) state.set(`entry-${count++}`, entry);
           state.set("count", count);
         };
+        // The conversation lives in this object's state. The turn saves to it as it runs.
+        const conversation = new Conversation();
+        // The messages saved so far belong to finished turns. The run reads the same
+        // keys again from this invocation's cache, not from Restate.
+        const {version: finished} = yield* conversation.load();
         // Turns queue on the object, so each marks where its own events start.
         state.set(`start-${messageId}`, count);
-        state.set("running", {start: count, messageId, message} satisfies Running);
+        state.set("turns", {finished, running: {start: count, messageId, message}} satisfies Turns);
         append({type: "turn", messageId});
         const pending: Record<string, Pending> = {};
         const wait = (callId: string, signalName: string, interrupt?: Interrupt) => {
@@ -147,7 +159,7 @@ export const agUiThread = restate.object({
         );
         try {
           const result = yield* assistant.run(message, {
-            messages: (yield* state.get<Message[]>("messages")) ?? [],
+            conversation,
             tools: clientTools,
             *onProgress(event) {
               if (event.type !== "tool-end" || !ranByClient.has(event.callId))
@@ -171,7 +183,6 @@ export const agUiThread = restate.object({
               });
             },
           });
-          state.set("messages", result.messages);
           const text = result.status === "completed" ? result.output : (result.output ?? "");
           const answerId = `${invocationId}-answer`;
           append(
@@ -188,30 +199,35 @@ export const agUiThread = restate.object({
           append({type: "failed", message: error.message});
         } finally {
           state.clear("pending");
-          state.clear("running");
+          // The conversation now holds this turn too.
+          state.set("turns", {finished: (yield* conversation.load()).version} satisfies Turns);
         }
       },
     ),
     /** Where the turn for a message starts, or where the next turn will. */
     *locate(messageId: string) {
       const state = restate.sharedState();
-      return (
-        (yield* state.get<number>(`start-${messageId}`)) ?? (yield* state.get<number>("count")) ?? 0
-      );
+      // Read `count` first: the reads can return values from different moments, and a
+      // turn that starts after this read starts at or after this count.
+      const count = (yield* state.get<number>("count")) ?? 0;
+      return (yield* state.get<number>(`start-${messageId}`)) ?? count;
     },
     /** The finished conversation and the turn in progress, for a client that reconnects. */
     *connect() {
-      const state = restate.sharedState();
-      return {
-        messages: (yield* state.get<Message[]>("messages")) ?? [],
-        running: (yield* state.get<Running>("running")) ?? undefined,
-      };
+      const {finished, running} =
+        (yield* restate.sharedState().get<Turns>("turns")) ?? {finished: 0};
+      // A running turn has saved part of its work; return only the finished turns.
+      return {messages: yield* savedMessages(finished), running};
     },
     /** Up to 100 entries, starting at `after`; null for a wait already answered. */
     *read(after: number) {
       const state = restate.sharedState();
-      const pending = (yield* state.get<Record<string, Pending>>("pending")) ?? {};
+      // Read `count` before `pending`: the reads can return values from different
+      // moments, and a turn adds a call to `pending` before it appends the call's wait
+      // entry and increments `count`. So every wait entry below `count` whose call
+      // still waits is in `pending`.
       const end = Math.min((yield* state.get<number>("count")) ?? 0, after + 100);
+      const pending = (yield* state.get<Record<string, Pending>>("pending")) ?? {};
       const entries: (Entry | null)[] = [];
       for (let i = after; i < end; i++) {
         const entry = (yield* state.get<Entry>(`entry-${i}`))!;
@@ -234,8 +250,11 @@ export const agUiThread = restate.object({
       return waiting.cursor;
     },
   },
-  // Shared handlers read and answer while a turn runs.
   options: {
+    // Restate sends these keys with each request. Handlers read the conversation's
+    // message chunks and the log entries on demand.
+    state: {preload: ["conversation/meta", "conversation/summary", "count", "pending", "turns"]},
+    // Shared handlers read and answer while a turn runs.
     handlers: {
       locate: {shared: true},
       connect: {shared: true},
@@ -245,6 +264,18 @@ export const agUiThread = restate.object({
     },
   },
 });
+
+/** The first `count` saved messages of the thread's conversation. */
+function* savedMessages(count: number): restate.Operation<Message[]> {
+  const conversation = new Conversation();
+  const messages: Message[] = [];
+  while (messages.length < count) {
+    const page = yield* conversation.page(messages.length, Math.min(1000, count - messages.length));
+    if (!page.messages.length) break;
+    messages.push(...page.messages);
+  }
+  return messages;
+}
 
 /** A finished conversation as AG-UI messages, with the turn in progress. */
 function snapshot(threadId: string, messages: Message[], running?: Running): AgUiMessage[] {

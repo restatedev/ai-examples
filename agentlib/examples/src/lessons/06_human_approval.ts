@@ -1,8 +1,12 @@
 // 06: Pause a tool for a human decision, then resume the same agent run.
 import * as restate from "@restatedev/restate-sdk-gen";
-import {agent, asyncTool} from "@restatedev/agentlib";
+import {agent, asyncTool, Conversation} from "@restatedev/agentlib";
 import {z} from "zod";
-import {exampleModel as model, logApprovalCommand} from "../shared.js";
+import {openai} from "@ai-sdk/openai";
+import {aiModel} from "@restatedev/agentlib/provider";
+import {logApprovalCommand} from "../shared.js";
+
+const model = aiModel({model: openai(process.env.AGENT_MODEL ?? "gpt-5.4")});
 
 const support = agent({
   model,
@@ -31,6 +35,7 @@ export const ticketApproval = restate.object({
       },
       function* ({message}) {
         const result = yield* support.run(message, {
+          conversation: new Conversation(),
           *onApproval(request) {
             // Replace this by requesting approval via email, or your preferred method
             logApprovalCommand("TicketApproval", request);
@@ -56,6 +61,7 @@ export const ticketApproval = restate.object({
     ),
   },
   options: {
+    state: {preload: ["conversation/meta", "conversation/summary"]},
     // Approval can arrive while the exclusive ask handler is waiting.
     handlers: {approve: {shared: true}},
   },

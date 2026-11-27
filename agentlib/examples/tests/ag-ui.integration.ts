@@ -5,6 +5,7 @@ import {createServer, type Server} from "node:http";
 import type {AddressInfo} from "node:net";
 import {after, before, mock, test} from "node:test";
 import {HttpAgent} from "@ag-ui/client";
+import {connect} from "@restatedev/restate-sdk-clients";
 import {RestateContainer, RestateTestEnvironment} from "@restatedev/restate-sdk-testcontainers";
 import type {Model, ModelResponse} from "@restatedev/agentlib";
 
@@ -48,6 +49,11 @@ after(async () => {
   server?.close();
   await env?.stop();
 });
+
+/** The thread's object, through the Restate ingress. */
+function thread(threadId: string) {
+  return connect({url: env.baseUrl()}).client(agUiThread, threadId);
+}
 
 function client(threadId: string, text: string) {
   const agent = new HttpAgent({url, threadId});
@@ -106,8 +112,7 @@ void test("a thread keeps its conversation across runs", {timeout: 30000}, async
   agent.addMessage({id: crypto.randomUUID(), role: "user", content: "And the status now?"});
   const {newMessages} = await agent.runAgent();
   assert.equal(newMessages.at(-1)!.content, "Order O-7 is shipped.");
-  const state = env.stateOf(agUiThread, "memory");
-  const messages = (await state.get<{role: string}[]>("messages"))!;
+  const {messages} = await thread("memory").connect();
   assert.equal(messages.filter((message) => message.role === "user").length, 2);
 });
 
@@ -200,7 +205,7 @@ void test(
     retry.addMessage(message!);
     const {newMessages} = await retry.runAgent();
     assert.equal(newMessages.at(-1)!.content, "Order O-7 is shipped.");
-    const messages = (await env.stateOf(agUiThread, "retry").get<{role: string}[]>("messages"))!;
+    const {messages} = await thread("retry").connect();
     assert.equal(messages.filter((entry) => entry.role === "user").length, 1);
   },
 );

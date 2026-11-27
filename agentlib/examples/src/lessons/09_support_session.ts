@@ -1,8 +1,12 @@
 // 09: Keep a conversation in a keyed object and control its running turn.
 import * as restate from "@restatedev/restate-sdk-gen";
-import {agent, asyncTool, LazyStateConversation} from "@restatedev/agentlib";
+import {agent, asyncTool, Conversation} from "@restatedev/agentlib";
 import {z} from "zod";
-import {exampleModel as model, logApprovalCommand} from "../shared.js";
+import {openai} from "@ai-sdk/openai";
+import {aiModel} from "@restatedev/agentlib/provider";
+import {logApprovalCommand} from "../shared.js";
+
+const model = aiModel({model: openai(process.env.AGENT_MODEL ?? "gpt-5.4")});
 
 type ActiveTurn = {invocationId: string};
 
@@ -44,10 +48,9 @@ export const aiSession = restate.object({
         output: z.string(),
       },
       function* ({message}) {
-        // The conversation lives in this object's state; long ones are summarized.
-        const conversation = new LazyStateConversation({
-          compaction: {model, policy: {maxMessages: 64, retainMessages: 12}},
-        });
+        // The conversation lives in this object's state. The turn saves to it as it
+        // runs, so the shared `history` handler shows a running turn.
+        const conversation = new Conversation();
         restate.state().set("active", {invocationId: restate.handlerRequest().id});
         try {
           const result = yield* support.run(message, {
@@ -70,8 +73,9 @@ export const aiSession = restate.object({
         active: yield* restate.sharedState().get<ActiveTurn>("active"),
       };
     },
+    // The saved conversation, including the turn that is running now.
     *history() {
-      return yield* new LazyStateConversation().page();
+      return yield* new Conversation().page();
     },
     steer: restate.schemas(
       {
@@ -107,6 +111,8 @@ export const aiSession = restate.object({
     ),
   },
   options: {
+    // Every turn reads these keys, so Restate sends them with the request.
+    state: {preload: ["conversation/meta", "conversation/summary", "active"]},
     // Shared handlers run while doTurn holds the object's lock.
     handlers: {
       status: {shared: true},

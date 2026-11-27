@@ -73,12 +73,12 @@ before(async () => {
 after(async () => { await env?.stop(); });
 
 test("service tool dispatches both handlers through durable RPC", async () => {
-  const result = await connect({ url: env.baseUrl() }).client(refundAgent).ask({message: "Refund O-99"});
+  const result = await connect({ url: env.baseUrl() }).client(refundAgent, "bob").ask({message: "Refund O-99"});
   assert.equal(result, "Demo refund issued within the 30-day policy.");
 });
 
 test("MCP handler uses its tools without repeating committed effects", async () => {
   const ingress = connect({ url: env.baseUrl() });
-  assert.match(await ingress.client(docsGuide).ask({question: "Explain virtual objects"}), /durable state/);
+  assert.match(await ingress.client(docsGuide, "bob").ask({question: "Explain virtual objects"}), /durable state/);
   assert.equal(searches, 1);
 });
